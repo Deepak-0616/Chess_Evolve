@@ -31,6 +31,16 @@ export class ChessComClient {
     return this.fetchJson(url);
   }
 
+  static async getPlayerStats(username) {
+    const cleanUsername = username.trim().toLowerCase();
+    const url = `${CHESS_COM_BASE}/player/${encodeURIComponent(cleanUsername)}/stats`;
+    try {
+      return await this.fetchJson(url);
+    } catch (e) {
+      return null;
+    }
+  }
+
   static async getGameArchives(username) {
     const cleanUsername = username.trim().toLowerCase();
     const url = `${CHESS_COM_BASE}/player/${encodeURIComponent(cleanUsername)}/games/archives`;

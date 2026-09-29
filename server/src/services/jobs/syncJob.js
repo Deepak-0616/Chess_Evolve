@@ -128,7 +128,7 @@ export class SyncJobManager {
               continue;
             }
 
-            const analysisRes = ChessEngineService.analyzeGame(parsed.pgn, parsed.playerColor);
+            const analysisRes = ChessEngineService.analyzeGame(parsed.pgn, parsed.playerColor, parsed.accuracy);
 
             const createdGame = await prisma.game.create({
               data: {

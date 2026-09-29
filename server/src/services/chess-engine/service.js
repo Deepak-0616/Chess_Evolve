@@ -122,9 +122,13 @@ export class ChessEngineService {
   /**
    * Analyze complete game move sequence and produce accuracy metrics & critical moments.
    */
-  static analyzeGame(pgn, playerColor) {
+  static analyzeGame(pgn, playerColor, preCalculatedAccuracy = null) {
     const chess = new Chess();
-    chess.loadPgn(pgn);
+    try {
+      chess.loadPgn(pgn, { strict: false });
+    } catch (e) {
+      chess.loadPgn(pgn);
+    }
     const history = chess.history({ verbose: true });
 
     let blunders = 0;
@@ -226,11 +230,16 @@ export class ChessEngineService {
       prevEval = currEval;
     }
 
-    const playerAvgLoss = playerMoveCount > 0 ? playerLossSum / playerMoveCount : 0;
-    const opponentAvgLoss = opponentMoveCount > 0 ? opponentLossSum / opponentMoveCount : 0;
+    let playerAccuracy = preCalculatedAccuracy;
+    let opponentAccuracy;
 
-    const playerAccuracy = Number(Math.max(40, Math.min(99.5, 100 - playerAvgLoss * 2.2)).toFixed(1));
-    const opponentAccuracy = Number(Math.max(40, Math.min(99.5, 100 - opponentAvgLoss * 2.2)).toFixed(1));
+    if (!playerAccuracy || isNaN(playerAccuracy)) {
+      const playerAvgLoss = playerMoveCount > 0 ? playerLossSum / playerMoveCount : 5;
+      playerAccuracy = Number(Math.max(45, Math.min(98.5, 100 - playerAvgLoss * 3.5 - (blunders * 4.5 + mistakes * 2.0))).toFixed(1));
+    }
+
+    const opponentAvgLoss = opponentMoveCount > 0 ? opponentLossSum / opponentMoveCount : 5;
+    opponentAccuracy = Number(Math.max(45, Math.min(98.5, 100 - opponentAvgLoss * 3.5)).toFixed(1));
 
     return {
       playerAccuracy,

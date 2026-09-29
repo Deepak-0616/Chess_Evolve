@@ -63,6 +63,16 @@ export class PgnParser {
         openingName = `ECO ${headers["ECO"]}`;
       }
 
+      // Official accuracy from Chess.com PGN headers if available
+      let officialAccuracy;
+      if (isWhite && headers["WhiteAccuracy"]) {
+        officialAccuracy = parseFloat(headers["WhiteAccuracy"]);
+      } else if (!isWhite && headers["BlackAccuracy"]) {
+        officialAccuracy = parseFloat(headers["BlackAccuracy"]);
+      } else if (headers["Accuracy"]) {
+        officialAccuracy = parseFloat(headers["Accuracy"]);
+      }
+
       // Moves extraction
       const history = chess.history({ verbose: true });
       const moves = history.map((moveObj, index) => ({
@@ -84,6 +94,7 @@ export class PgnParser {
         timeControl: rawGame.time_control || headers["TimeControl"] || undefined,
         eco: eco || undefined,
         openingName: openingName || undefined,
+        accuracy: officialAccuracy && !isNaN(officialAccuracy) ? Number(officialAccuracy.toFixed(1)) : undefined,
         pgn: rawGame.pgn,
         playedAt: playedAt && !isNaN(playedAt.getTime()) ? playedAt : new Date(),
         moves,

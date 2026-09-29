@@ -70,9 +70,13 @@ router.get("/", authenticate, async (req, res) => {
   });
 
   const totalGames = winsCount + lossesCount + drawsCount;
-  const avgAcc = recentGames.length > 0
+  const accAgg = await prisma.game.aggregate({
+    where: { userId, accuracy: { not: null } },
+    _avg: { accuracy: true },
+  });
+  const avgAcc = accAgg._avg.accuracy || (recentGames.length > 0
     ? recentGames.reduce((acc, g) => acc + (g.accuracy || 75), 0) / recentGames.length
-    : 82.5;
+    : 82.5);
 
   const latestRating = recentGames[0]?.playerRating || 1400;
 
