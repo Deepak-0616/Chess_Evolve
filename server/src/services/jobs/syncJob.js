@@ -75,7 +75,8 @@ export class SyncJobManager {
       });
 
       const archives = await ChessComClient.getGameArchives(username);
-      const targetArchives = fullSync ? archives : archives.slice(-6);
+      // For fast interactive setup, process recent 3 archives first
+      const targetArchives = fullSync ? archives : archives.slice(-3);
 
       let gamesDiscovered = 0;
       let gamesImported = 0;
@@ -87,6 +88,13 @@ export class SyncJobManager {
       });
 
       if (!chessProfile) return;
+
+      // Pre-fetch all existing game externalIds into a Set for instant O(1) duplicate checks
+      const existingGames = await prisma.game.findMany({
+        where: { chessProfileId: chessProfile.id },
+        select: { externalId: true },
+      });
+      const existingIds = new Set(existingGames.map((g) => g.externalId));
 
       await prisma.syncJob.update({
         where: { id: jobId },
@@ -107,26 +115,22 @@ export class SyncJobManager {
           const rawGames = await ChessComClient.getGamesFromArchive(archiveUrl);
           gamesDiscovered += rawGames.length;
 
-          for (const rawGame of rawGames) {
+          // Limit to max 40 games per archive for blazingly fast initial response
+          const gamesToProcess = rawGames.slice(-40);
+
+          for (const rawGame of gamesToProcess) {
             const parsed = PgnParser.parseChessComGame(rawGame, username);
             if (!parsed) {
               gamesSkipped++;
               continue;
             }
 
-            const existing = await prisma.game.findUnique({
-              where: {
-                chessProfileId_externalId: {
-                  chessProfileId: chessProfile.id,
-                  externalId: parsed.externalId,
-                },
-              },
-            });
-
-            if (existing) {
+            if (existingIds.has(parsed.externalId)) {
               gamesSkipped++;
               continue;
             }
+
+            existingIds.add(parsed.externalId);
 
             const analysisRes = ChessEngineService.analyzeGame(parsed.pgn, parsed.playerColor, parsed.accuracy);
 
@@ -148,7 +152,7 @@ export class SyncJobManager {
                 pgn: parsed.pgn,
                 accuracy: analysisRes.playerAccuracy,
                 moves: {
-                  create: parsed.moves,
+                  create: parsed.moves.slice(0, 80), // limit ply store for fast db write
                 },
               },
             });

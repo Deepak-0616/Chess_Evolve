@@ -69,7 +69,7 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
             setStage("IDLE");
             setActiveJobId(null);
             setProgressDetails(null);
-          }, 1200);
+          }, 600);
         } else if (jobStatus.status === "FAILED") {
           clearInterval(interval);
           setLoading(false);
@@ -78,7 +78,7 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
       } catch (err) {
         console.warn("Polling status error:", err);
       }
-    }, 1200);
+    }, 500);
 
     return () => clearInterval(interval);
   }, [activeJobId]);
