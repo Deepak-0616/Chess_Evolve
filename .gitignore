@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!*.env.example
+
+# SQLite Database
+*.db
+*.db-journal
+dev.db
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
