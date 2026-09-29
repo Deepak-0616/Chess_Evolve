@@ -59,7 +59,12 @@ const MainContent = () => {
           />
         )}
 
-        {currentView === "dashboard" && <Dashboard onNavigate={navigateTo} />}
+        {currentView === "dashboard" && (
+          <Dashboard
+            onNavigate={navigateTo}
+            onOpenConnect={() => setConnectModalOpen(true)}
+          />
+        )}
         {currentView === "dna" && <ChessDNA />}
         {currentView === "play" && <Play initialOpponentType={tabParams.opponentType || "PEAK_SELF"} />}
         {currentView === "analysis" && <GameAnalysis gameId={tabParams.gameId} onBack={() => navigateTo("dashboard")} />}

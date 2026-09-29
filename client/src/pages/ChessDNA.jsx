@@ -5,14 +5,17 @@ import { ApiClient } from "../services/api.js";
 export const ChessDNA = () => {
   const [dna, setDna] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const loadDna = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await ApiClient.getCurrentDNA();
       setDna(res);
     } catch (err) {
       console.warn("Failed to fetch Chess DNA:", err);
+      setError(err.message || "Failed to load Chess DNA.");
     } finally {
       setLoading(false);
     }
@@ -22,13 +25,32 @@ export const ChessDNA = () => {
     loadDna();
   }, []);
 
-  if (loading || !dna) {
+  if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex items-center space-x-3 text-gold-400">
           <RotateCw className="h-6 w-6 animate-spin" />
           <span className="text-sm font-semibold">Extracting Chess DNA from database games...</span>
         </div>
+      </div>
+    );
+  }
+
+  if (error || !dna) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center space-y-4 text-center">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-400 max-w-md space-y-2">
+          <ShieldAlert className="h-8 w-8 mx-auto text-red-400" />
+          <p className="text-base font-bold">Unable to extract Chess DNA</p>
+          <p className="text-xs text-gray-300">{error || "Failed to communicate with server."}</p>
+        </div>
+        <button
+          onClick={loadDna}
+          className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 px-5 py-2.5 text-xs font-bold text-dark-900 shadow-lg shadow-gold-500/20 hover:scale-105 transition-transform"
+        >
+          <RotateCw className="h-4 w-4" />
+          <span>Retry Extracting DNA</span>
+        </button>
       </div>
     );
   }

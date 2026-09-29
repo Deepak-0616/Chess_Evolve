@@ -13,17 +13,20 @@ import {
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import { ApiClient } from "../services/api.js";
 
-export const Dashboard = ({ onNavigate }) => {
+export const Dashboard = ({ onNavigate, onOpenConnect }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await ApiClient.getDashboard();
       setData(res);
     } catch (err) {
       console.warn("Failed to load dashboard data:", err);
+      setError(err.message || "Failed to load dashboard data.");
     } finally {
       setLoading(false);
     }
@@ -33,13 +36,32 @@ export const Dashboard = ({ onNavigate }) => {
     loadData();
   }, []);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex items-center space-x-3 text-gold-400">
           <RotateCw className="h-6 w-6 animate-spin" />
           <span className="text-sm font-semibold">Loading AI Performance Dashboard...</span>
         </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center space-y-4 text-center">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-400 max-w-md space-y-2">
+          <ShieldAlert className="h-8 w-8 mx-auto text-red-400" />
+          <p className="text-base font-bold">Unable to load AI Performance Dashboard</p>
+          <p className="text-xs text-gray-300">{error || "Failed to communicate with server."}</p>
+        </div>
+        <button
+          onClick={loadData}
+          className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 px-5 py-2.5 text-xs font-bold text-dark-900 shadow-lg shadow-gold-500/20 hover:scale-105 transition-transform"
+        >
+          <RotateCw className="h-4 w-4" />
+          <span>Retry Loading Dashboard</span>
+        </button>
       </div>
     );
   }
@@ -56,6 +78,27 @@ export const Dashboard = ({ onNavigate }) => {
 
   return (
     <div className="space-y-8 pb-12">
+      {/* Unsynced Banner prompt if 0 games analyzed */}
+      {player.gamesAnalyzed === 0 && (
+        <div className="rounded-3xl border border-gold-500/30 bg-gradient-to-r from-dark-800 via-gold-950/20 to-dark-800 p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="space-y-1 text-center sm:text-left">
+            <h3 className="text-lg font-bold text-white flex items-center justify-center sm:justify-start space-x-2">
+              <Sparkles className="h-5 w-5 text-gold-400" />
+              <span>Connect Your Chess.com Account</span>
+            </h3>
+            <p className="text-xs text-gray-300 max-w-lg">
+              Sync your Chess.com profile to import your games, extract your unique Chess DNA metrics, and create your personalized Peak Self AI opponent!
+            </p>
+          </div>
+          <button
+            onClick={onOpenConnect}
+            className="rounded-2xl bg-gold-500 px-6 py-3 text-xs font-bold text-dark-900 shadow-lg shadow-gold-500/20 hover:scale-105 transition-all shrink-0"
+          >
+            Connect Profile Now
+          </button>
+        </div>
+      )}
+
       {/* Top Banner & Peak Self Shortcut */}
       <div className="glass-panel-gold rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-2 text-center md:text-left">

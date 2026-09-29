@@ -6,21 +6,51 @@ import { ApiClient } from "../services/api.js";
 export const Evolution = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadEvolution = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await ApiClient.getEvolution();
+      setData(res);
+    } catch (err) {
+      console.warn("Failed to fetch evolution timeline:", err);
+      setError(err.message || "Failed to load evolution timeline.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    ApiClient.getEvolution()
-      .then((res) => setData(res))
-      .catch((err) => console.warn("Failed to fetch evolution timeline:", err))
-      .finally(() => setLoading(false));
+    loadEvolution();
   }, []);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex items-center space-x-3 text-gold-400">
           <RotateCw className="h-6 w-6 animate-spin" />
           <span className="text-sm font-semibold">Constructing Evolution Timeline...</span>
         </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center space-y-4 text-center">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-400 max-w-md space-y-2">
+          <p className="text-base font-bold">Unable to construct Evolution Timeline</p>
+          <p className="text-xs text-gray-300">{error || "Failed to communicate with server."}</p>
+        </div>
+        <button
+          onClick={loadEvolution}
+          className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 px-5 py-2.5 text-xs font-bold text-dark-900 shadow-lg shadow-gold-500/20 hover:scale-105 transition-transform"
+        >
+          <RotateCw className="h-4 w-4" />
+          <span>Retry Loading Timeline</span>
+        </button>
       </div>
     );
   }

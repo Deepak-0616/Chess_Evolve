@@ -13,8 +13,6 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
   const [stage, setStage] = useState("IDLE");
   const [progressDetails, setProgressDetails] = useState(null);
 
-  if (!isOpen) return null;
-
   const handleConnect = async (e) => {
     e.preventDefault();
     setError(null);
@@ -83,6 +81,8 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
     if (stepIdx < currIdx) return "DONE";
     return "PENDING";
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
