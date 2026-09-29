@@ -4,7 +4,7 @@ import { ApiClient } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -12,6 +12,22 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
   const [activeJobId, setActiveJobId] = useState(null);
   const [stage, setStage] = useState("IDLE");
   const [progressDetails, setProgressDetails] = useState(null);
+
+  // Reset modal state whenever it is opened or user changes
+  useEffect(() => {
+    if (isOpen) {
+      setStage("IDLE");
+      setActiveJobId(null);
+      setProgressDetails(null);
+      setLoading(false);
+      setError(null);
+      if (user?.chessProfile?.username) {
+        setUsername(user.chessProfile.username);
+      } else {
+        setUsername("");
+      }
+    }
+  }, [isOpen, user?.id]);
 
   const handleConnect = async (e) => {
     e.preventDefault();
@@ -50,7 +66,10 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
           setTimeout(() => {
             onSuccess();
             onClose();
-          }, 1000);
+            setStage("IDLE");
+            setActiveJobId(null);
+            setProgressDetails(null);
+          }, 1200);
         } else if (jobStatus.status === "FAILED") {
           clearInterval(interval);
           setLoading(false);
@@ -88,7 +107,11 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
       <div className="relative w-full max-w-lg rounded-2xl border border-gold-500/30 bg-dark-800 p-6 shadow-2xl shadow-gold-500/10">
         <button
-          onClick={onClose}
+          onClick={() => {
+            setStage("IDLE");
+            setActiveJobId(null);
+            onClose();
+          }}
           disabled={loading}
           className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 hover:bg-white/5 hover:text-white"
         >
@@ -136,7 +159,7 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
               className="flex w-full items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 py-3 text-sm font-bold text-dark-900 shadow-lg shadow-gold-500/20 transition-all hover:shadow-gold-500/40"
             >
               <RefreshCw className="h-4 w-4" />
-              <span>Analyze My Games</span>
+              <span>{user?.chessProfile?.username ? "Re-sync & Update Games" : "Analyze My Games"}</span>
             </button>
           </form>
         ) : (
@@ -171,6 +194,20 @@ export const ConnectModal = ({ isOpen, onClose, onSuccess }) => {
                 );
               })}
             </div>
+
+            {error && (
+              <button
+                onClick={() => {
+                  setStage("IDLE");
+                  setActiveJobId(null);
+                  setError(null);
+                  setLoading(false);
+                }}
+                className="mt-3 w-full rounded-xl border border-white/10 bg-dark-900 py-2.5 text-xs font-bold text-white hover:bg-white/5"
+              >
+                Try Again
+              </button>
+            )}
           </div>
         )}
       </div>
