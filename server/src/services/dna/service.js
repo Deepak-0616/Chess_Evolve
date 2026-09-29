@@ -114,8 +114,18 @@ export class ChessDNAService {
     let endgameLosses = 0;
 
     for (const game of games) {
-      if (game.result === "WIN") totalWins++;
-      else if (game.result === "LOSS") totalLosses++;
+      const isWin =
+        (game.playerColor === "WHITE" && game.result === "1-0") ||
+        (game.playerColor === "BLACK" && game.result === "0-1") ||
+        game.result === "WIN";
+
+      const isLoss =
+        (game.playerColor === "WHITE" && game.result === "0-1") ||
+        (game.playerColor === "BLACK" && game.result === "1-0") ||
+        game.result === "LOSS";
+
+      if (isWin) totalWins++;
+      else if (isLoss) totalLosses++;
       else totalDraws++;
 
       if (game.accuracy) {
@@ -145,7 +155,7 @@ export class ChessDNAService {
         }
       }
 
-      if (game.result === "LOSS") {
+      if (isLoss) {
         if (game.moves.length > 50) endgameLosses++;
         if (game.openingName && game.openingName.toLowerCase().includes("sicilian")) {
           kingsideAttackCount++;

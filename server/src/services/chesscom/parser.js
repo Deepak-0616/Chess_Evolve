@@ -6,7 +6,11 @@ export class PgnParser {
 
     try {
       const chess = new Chess();
-      chess.loadPgn(rawGame.pgn);
+      try {
+        chess.loadPgn(rawGame.pgn, { strict: false });
+      } catch (e) {
+        chess.loadPgn(rawGame.pgn);
+      }
       const headers = chess.header();
 
       const whiteUser = (rawGame.white?.username || headers["White"] || "White").trim();
@@ -16,8 +20,11 @@ export class PgnParser {
       const isWhite = whiteUser.toLowerCase() === normalizedTarget;
       const playerColor = isWhite ? "WHITE" : "BLACK";
 
-      const playerRating = isWhite ? rawGame.white?.rating : rawGame.black?.rating;
-      const opponentRating = isWhite ? rawGame.black?.rating : rawGame.white?.rating;
+      const whiteRating = rawGame.white?.rating || (headers["WhiteElo"] ? parseInt(headers["WhiteElo"], 10) : undefined);
+      const blackRating = rawGame.black?.rating || (headers["BlackElo"] ? parseInt(headers["BlackElo"], 10) : undefined);
+
+      const playerRating = isWhite ? whiteRating : blackRating;
+      const opponentRating = isWhite ? blackRating : whiteRating;
 
       let result = headers["Result"] || "*";
       if (rawGame.white?.result && rawGame.black?.result) {
@@ -40,7 +47,21 @@ export class PgnParser {
 
       // ECO and Opening
       const eco = headers["ECO"] || undefined;
-      const openingName = headers["Opening"] || headers["Event"] || undefined;
+      let openingName = headers["Opening"];
+
+      if (!openingName) {
+        const ecoUrl = rawGame.eco || headers["ECOUrl"];
+        if (ecoUrl && typeof ecoUrl === "string") {
+          const parts = ecoUrl.split("/openings/");
+          if (parts[1]) {
+            openingName = decodeURIComponent(parts[1]).replace(/-/g, " ");
+          }
+        }
+      }
+
+      if (!openingName && headers["ECO"]) {
+        openingName = `ECO ${headers["ECO"]}`;
+      }
 
       // Moves extraction
       const history = chess.history({ verbose: true });

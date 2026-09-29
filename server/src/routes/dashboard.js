@@ -37,9 +37,37 @@ router.get("/", authenticate, async (req, res) => {
     }),
   ]);
 
-  const winsCount = await prisma.game.count({ where: { userId, result: "1-0" } });
-  const lossesCount = await prisma.game.count({ where: { userId, result: "0-1" } });
-  const drawsCount = await prisma.game.count({ where: { userId, result: "1/2-1/2" } });
+  const winsCount = await prisma.game.count({
+    where: {
+      userId,
+      OR: [
+        { playerColor: "WHITE", result: "1-0" },
+        { playerColor: "BLACK", result: "0-1" },
+        { result: "WIN" },
+      ],
+    },
+  });
+
+  const lossesCount = await prisma.game.count({
+    where: {
+      userId,
+      OR: [
+        { playerColor: "WHITE", result: "0-1" },
+        { playerColor: "BLACK", result: "1-0" },
+        { result: "LOSS" },
+      ],
+    },
+  });
+
+  const drawsCount = await prisma.game.count({
+    where: {
+      userId,
+      OR: [
+        { result: "1/2-1/2" },
+        { result: "DRAW" },
+      ],
+    },
+  });
 
   const totalGames = winsCount + lossesCount + drawsCount;
   const avgAcc = recentGames.length > 0

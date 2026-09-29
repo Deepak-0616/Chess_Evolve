@@ -19,9 +19,25 @@ router.get("/", authenticate, async (req, res) => {
   const whereClause = { userId };
 
   if (result && typeof result === "string") {
-    if (result.toLowerCase() === "win") whereClause.result = "1-0";
-    else if (result.toLowerCase() === "loss") whereClause.result = "0-1";
-    else if (result.toLowerCase() === "draw") whereClause.result = "1/2-1/2";
+    const resLower = result.toLowerCase();
+    if (resLower === "win") {
+      whereClause.OR = [
+        { playerColor: "WHITE", result: "1-0" },
+        { playerColor: "BLACK", result: "0-1" },
+        { result: "WIN" },
+      ];
+    } else if (resLower === "loss") {
+      whereClause.OR = [
+        { playerColor: "WHITE", result: "0-1" },
+        { playerColor: "BLACK", result: "1-0" },
+        { result: "LOSS" },
+      ];
+    } else if (resLower === "draw") {
+      whereClause.OR = [
+        { result: "1/2-1/2" },
+        { result: "DRAW" },
+      ];
+    }
   }
 
   if (color && typeof color === "string") {

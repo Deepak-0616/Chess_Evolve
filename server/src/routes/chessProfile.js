@@ -31,14 +31,21 @@ router.post("/connect", authenticate, async (req, res) => {
     const comProfile = await ChessComClient.getPlayerProfile(username);
     const archives = await ChessComClient.getGameArchives(username);
 
-    let profile = await prisma.chessProfile.findUnique({
-      where: { userId },
+    const existingProfile = await prisma.chessProfile.findFirst({
+      where: {
+        OR: [
+          { userId },
+          { username: comProfile.username },
+        ],
+      },
     });
 
-    if (profile) {
+    let profile;
+    if (existingProfile) {
       profile = await prisma.chessProfile.update({
-        where: { userId },
+        where: { id: existingProfile.id },
         data: {
+          userId,
           username: comProfile.username,
           profileUrl: comProfile.url,
           avatarUrl: comProfile.avatar || null,
