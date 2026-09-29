@@ -61,17 +61,18 @@ const MainContent = () => {
 
         {currentView === "dashboard" && (
           <Dashboard
+            key={user?.id || "guest"}
             onNavigate={navigateTo}
             onOpenConnect={() => setConnectModalOpen(true)}
           />
         )}
-        {currentView === "dna" && <ChessDNA />}
-        {currentView === "play" && <Play initialOpponentType={tabParams.opponentType || "PEAK_SELF"} />}
-        {currentView === "analysis" && <GameAnalysis gameId={tabParams.gameId} onBack={() => navigateTo("dashboard")} />}
-        {currentView === "training" && <Training />}
-        {currentView === "evolution" && <Evolution />}
-        {currentView === "history" && <GameHistory onAnalyzeGame={(gameId) => navigateTo("analysis", { gameId })} />}
-        {currentView === "coach" && <AICoach />}
+        {currentView === "dna" && <ChessDNA key={user?.id || "guest"} />}
+        {currentView === "play" && <Play key={user?.id || "guest"} initialOpponentType={tabParams.opponentType || "PEAK_SELF"} />}
+        {currentView === "analysis" && <GameAnalysis key={user?.id || "guest"} gameId={tabParams.gameId} onBack={() => navigateTo("dashboard")} />}
+        {currentView === "training" && <Training key={user?.id || "guest"} />}
+        {currentView === "evolution" && <Evolution key={user?.id || "guest"} />}
+        {currentView === "history" && <GameHistory key={user?.id || "guest"} onAnalyzeGame={(gameId) => navigateTo("analysis", { gameId })} />}
+        {currentView === "coach" && <AICoach key={user?.id || "guest"} />}
       </main>
 
       {/* Modals */}
