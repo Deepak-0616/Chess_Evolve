@@ -127,14 +127,27 @@ export const Dashboard = ({ onNavigate, onOpenConnect }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="glass-panel rounded-2xl p-5 space-y-2">
           <div className="flex items-center justify-between text-gray-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Current Rating</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Chess.com Rating</span>
             <Trophy className="h-4 w-4 text-gold-400" />
           </div>
           <p className="text-3xl font-extrabold text-white">{player.rating}</p>
-          <p className="text-[11px] text-emerald-400 flex items-center">
-            <ArrowUpRight className="h-3 w-3 mr-1" />
-            Top 15% performance tier
-          </p>
+          <div className="flex items-center space-x-1.5 text-[10px] pt-0.5">
+            {player.ratingsBreakdown?.rapid && (
+              <span className="rounded-md bg-gold-500/10 border border-gold-500/20 px-1.5 py-0.5 text-gold-400 font-semibold">
+                Rapid {player.ratingsBreakdown.rapid}
+              </span>
+            )}
+            {player.ratingsBreakdown?.blitz && (
+              <span className="rounded-md bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-blue-400 font-semibold">
+                Blitz {player.ratingsBreakdown.blitz}
+              </span>
+            )}
+            {player.ratingsBreakdown?.bullet && (
+              <span className="rounded-md bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 text-purple-400 font-semibold">
+                Bullet {player.ratingsBreakdown.bullet}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="glass-panel rounded-2xl p-5 space-y-2">

@@ -4,6 +4,7 @@ import { sendSuccess } from "../utils/apiResponse.js";
 import { authenticate } from "../middleware/auth.js";
 import { ChessDNAService } from "../services/dna/service.js";
 import { PeakSelfService } from "../services/peak-self/service.js";
+import { ChessComClient } from "../services/chesscom/client.js";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -37,6 +38,16 @@ router.get("/", authenticate, async (req, res) => {
     }),
   ]);
 
+  const username = user?.chessProfile?.username;
+  const comStats = username ? await ChessComClient.getPlayerStats(username) : null;
+
+  const rapidRating = comStats?.chess_rapid?.last?.rating;
+  const blitzRating = comStats?.chess_blitz?.last?.rating;
+  const bulletRating = comStats?.chess_bullet?.last?.rating;
+  const dailyRating = comStats?.chess_daily?.last?.rating;
+
+  const officialRating = rapidRating || blitzRating || bulletRating || dailyRating || recentGames[0]?.playerRating || 1400;
+
   const winsCount = await prisma.game.count({
     where: {
       userId,
@@ -69,7 +80,34 @@ router.get("/", authenticate, async (req, res) => {
     },
   });
 
-  const totalGames = winsCount + lossesCount + drawsCount;
+  const dbTotalGames = winsCount + lossesCount + drawsCount;
+
+  const officialWins = comStats
+    ? (comStats.chess_rapid?.record?.win || 0) +
+      (comStats.chess_blitz?.record?.win || 0) +
+      (comStats.chess_bullet?.record?.win || 0) +
+      (comStats.chess_daily?.record?.win || 0)
+    : winsCount;
+
+  const officialLosses = comStats
+    ? (comStats.chess_rapid?.record?.loss || 0) +
+      (comStats.chess_blitz?.record?.loss || 0) +
+      (comStats.chess_bullet?.record?.loss || 0) +
+      (comStats.chess_daily?.record?.loss || 0)
+    : lossesCount;
+
+  const officialDraws = comStats
+    ? (comStats.chess_rapid?.record?.draw || 0) +
+      (comStats.chess_blitz?.record?.draw || 0) +
+      (comStats.chess_bullet?.record?.draw || 0) +
+      (comStats.chess_daily?.record?.draw || 0)
+    : drawsCount;
+
+  const finalWins = Math.max(winsCount, officialWins);
+  const finalLosses = Math.max(lossesCount, officialLosses);
+  const finalDraws = Math.max(drawsCount, officialDraws);
+  const finalTotalGames = Math.max(dbTotalGames, finalWins + finalLosses + finalDraws);
+
   const accAgg = await prisma.game.aggregate({
     where: { userId, accuracy: { not: null } },
     _avg: { accuracy: true },
@@ -78,19 +116,22 @@ router.get("/", authenticate, async (req, res) => {
     ? recentGames.reduce((acc, g) => acc + (g.accuracy || 75), 0) / recentGames.length
     : 82.5);
 
-  const latestRating = recentGames[0]?.playerRating || 1400;
-
   return sendSuccess(res, {
     player: {
-      username: user?.chessProfile?.username || user?.displayName || "Player",
-      rating: latestRating,
-      gamesAnalyzed: dna.gamesAnalyzed || totalGames,
+      username: username || user?.displayName || "Player",
+      rating: officialRating,
+      ratingsBreakdown: {
+        rapid: rapidRating || null,
+        blitz: blitzRating || null,
+        bullet: bulletRating || null,
+      },
+      gamesAnalyzed: finalTotalGames,
     },
     performance: {
       accuracy: Number(avgAcc.toFixed(1)),
-      wins: winsCount,
-      losses: lossesCount,
-      draws: drawsCount,
+      wins: finalWins,
+      losses: finalLosses,
+      draws: finalDraws,
     },
     dna: {
       version: dna.version,
