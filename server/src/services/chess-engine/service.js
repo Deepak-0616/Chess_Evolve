@@ -1,4 +1,120 @@
 import { Chess } from "chess.js";
+import { spawn } from "child_process";
+import fs from "fs";
+
+const STOCKFISH_PATH = "C:\\Program Files\\stockfish\\STOCKFISH.exe";
+
+class StockfishEngineProcess {
+  constructor(executablePath) {
+    this.path = executablePath;
+    this.process = null;
+    this.available = false;
+    this.queue = [];
+    this.isProcessing = false;
+    this.init();
+  }
+
+  init() {
+    if (!fs.existsSync(this.path)) {
+      this.available = false;
+      return;
+    }
+    try {
+      this.process = spawn(this.path);
+      this.available = true;
+      this.process.stdin.write("uci\nisready\n");
+
+      this.process.on("error", (err) => {
+        console.warn("Stockfish engine error:", err?.message || err);
+        this.available = false;
+      });
+
+      this.process.on("exit", () => {
+        this.available = false;
+        this.process = null;
+      });
+    } catch (e) {
+      console.warn("Failed to spawn Stockfish binary:", e);
+      this.available = false;
+    }
+  }
+
+  async evaluate(fen, depth = 12, timeoutMs = 2500) {
+    if (!this.available) {
+      if (fs.existsSync(this.path) && !this.process) {
+        this.init();
+      }
+      if (!this.available) return null;
+    }
+
+    return new Promise((resolve) => {
+      this.queue.push({ fen, depth, timeoutMs, resolve });
+      this.processQueue();
+    });
+  }
+
+  async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) return;
+    this.isProcessing = true;
+
+    const { fen, depth, timeoutMs, resolve } = this.queue.shift();
+
+    if (!this.process || !this.available) {
+      this.isProcessing = false;
+      resolve(null);
+      this.processQueue();
+      return;
+    }
+
+    let stdoutData = "";
+    let cp = 0;
+    let mate = null;
+    let bestMove = "";
+    let timer = null;
+
+    const onData = (data) => {
+      stdoutData += data.toString();
+      const lines = stdoutData.split("\n");
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("info ") && trimmed.includes(" score ")) {
+          const matchCp = trimmed.match(/score cp (-?\d+)/);
+          const matchMate = trimmed.match(/score mate (-?\d+)/);
+          if (matchCp) {
+            cp = parseInt(matchCp[1], 10);
+            mate = null;
+          } else if (matchMate) {
+            mate = parseInt(matchMate[1], 10);
+          }
+        }
+        if (trimmed.startsWith("bestmove ")) {
+          bestMove = trimmed.split(" ")[1]?.trim() || "";
+          finish({ cp, mate, bestMove });
+          return;
+        }
+      }
+    };
+
+    const finish = (result) => {
+      if (timer) clearTimeout(timer);
+      if (this.process && this.process.stdout) {
+        this.process.stdout.removeListener("data", onData);
+      }
+      this.isProcessing = false;
+      resolve(result);
+      setImmediate(() => this.processQueue());
+    };
+
+    timer = setTimeout(() => {
+      finish(null);
+    }, timeoutMs);
+
+    this.process.stdout.on("data", onData);
+    this.process.stdin.write(`position fen ${fen}\ngo depth ${depth}\n`);
+  }
+}
+
+const globalStockfishPool = new StockfishEngineProcess(STOCKFISH_PATH);
 
 export class ChessEngineService {
   /**
@@ -9,7 +125,64 @@ export class ChessEngineService {
   }
 
   /**
-   * Static rule-based & tactical position evaluator for fast & deterministic evaluation.
+   * Async position evaluation using native Stockfish 19 NNUE binary if available,
+   * falling back to rule-based evaluation.
+   */
+  static async evaluatePositionAsync(fen, depth = 12) {
+    const chess = new Chess(fen);
+    if (chess.isCheckmate()) {
+      const turn = chess.turn();
+      return {
+        score: turn === "w" ? -10000 : 10000,
+        bestMove: "",
+        depth: 18,
+        engine: "Checkmate",
+      };
+    }
+    if (chess.isDraw() || chess.isStalemate()) {
+      return { score: 0, bestMove: "", depth: 18, engine: "Draw" };
+    }
+
+    const sfRes = await globalStockfishPool.evaluate(fen, depth);
+    if (sfRes) {
+      const turn = chess.turn();
+      let whiteScore = 0;
+      if (sfRes.mate !== null) {
+        if (turn === "w") {
+          whiteScore = sfRes.mate > 0 ? 10000 - sfRes.mate * 10 : -10000 - sfRes.mate * 10;
+        } else {
+          whiteScore = sfRes.mate > 0 ? -10000 + sfRes.mate * 10 : 10000 + sfRes.mate * 10;
+        }
+      } else {
+        whiteScore = turn === "w" ? sfRes.cp : -sfRes.cp;
+      }
+
+      let bestMoveSan = sfRes.bestMove;
+      if (sfRes.bestMove && sfRes.bestMove.length >= 4) {
+        try {
+          const from = sfRes.bestMove.slice(0, 2);
+          const to = sfRes.bestMove.slice(2, 4);
+          const promotion = sfRes.bestMove.length > 4 ? sfRes.bestMove[4] : undefined;
+          const m = chess.move({ from, to, promotion });
+          if (m) bestMoveSan = m.san;
+        } catch (e) {
+          // ignore move parsing errors
+        }
+      }
+
+      return {
+        score: whiteScore,
+        bestMove: bestMoveSan,
+        depth,
+        engine: "Stockfish 19 NNUE",
+      };
+    }
+
+    return this.evaluatePosition(fen);
+  }
+
+  /**
+   * Static rule-based & tactical position evaluator for fast & deterministic fallback.
    */
   static evaluatePosition(fen) {
     const chess = new Chess(fen);
@@ -122,7 +295,7 @@ export class ChessEngineService {
   /**
    * Analyze complete game move sequence and produce accuracy metrics & critical moments.
    */
-  static analyzeGame(pgn, playerColor, preCalculatedAccuracy = null) {
+  static async analyzeGame(pgn, playerColor, preCalculatedAccuracy = null) {
     const chess = new Chess();
     try {
       chess.loadPgn(pgn, { strict: false });
@@ -146,7 +319,8 @@ export class ChessEngineService {
     let opponentLossSum = 0;
     let opponentMoveCount = 0;
 
-    let prevEval = this.evaluatePosition(replay.fen()).score;
+    const initialEvalObj = await this.evaluatePositionAsync(replay.fen(), 10);
+    let prevEval = initialEvalObj.score;
 
     for (let i = 0; i < history.length; i++) {
       const move = history[i];
@@ -157,7 +331,7 @@ export class ChessEngineService {
       replay.move(move);
       const fenAfter = replay.fen();
 
-      const currEvalObj = this.evaluatePosition(fenAfter);
+      const currEvalObj = await this.evaluatePositionAsync(fenAfter, 10);
       const currEval = currEvalObj.score;
 
       let evalLoss = 0;
@@ -194,7 +368,7 @@ export class ChessEngineService {
         opponentMoveCount++;
       }
 
-      const bestMoveObj = this.evaluatePosition(fenBefore);
+      const bestMoveObj = await this.evaluatePositionAsync(fenBefore, 10);
 
       if (severity === "BLUNDER" || severity === "MISTAKE" || (isPlayerMove && evalLoss > 1.2)) {
         criticalMoments.push({
@@ -253,3 +427,4 @@ export class ChessEngineService {
     };
   }
 }
+

@@ -190,25 +190,27 @@ export class PlayService {
     const isPeak = opponentType === "PEAK_SELF";
     const currentTurn = chess.turn();
 
-    let moveCandidates = moves.map((m) => {
-      const copy = new Chess(chess.fen());
-      copy.move(m);
-      const evalRes = ChessEngineService.evaluatePosition(copy.fen());
+    let moveCandidates = await Promise.all(
+      moves.map(async (m) => {
+        const copy = new Chess(chess.fen());
+        copy.move(m);
+        const evalRes = await ChessEngineService.evaluatePositionAsync(copy.fen());
 
-      let score = currentTurn === "w" ? evalRes.score : -evalRes.score;
+        let score = currentTurn === "w" ? evalRes.score : -evalRes.score;
 
-      if (!isPeak) {
-        if (m.san.includes("+")) score += dna.metrics.aggression * 0.8;
-        if (m.san.includes("x")) score += dna.metrics.tacticalPreference * 0.7;
-        if (m.piece === "n" || m.piece === "q") score += dna.metrics.riskTaking * 0.3;
-      } else {
-        if (copy.inCheck()) score += 80;
-        if (m.san.includes("x")) score += peak.strengthProfile.tactical * 0.5;
-        if (m.piece === "k" && copy.moves().length > 30) score -= 100;
-      }
+        if (!isPeak) {
+          if (m.san.includes("+")) score += dna.metrics.aggression * 0.8;
+          if (m.san.includes("x")) score += dna.metrics.tacticalPreference * 0.7;
+          if (m.piece === "n" || m.piece === "q") score += dna.metrics.riskTaking * 0.3;
+        } else {
+          if (copy.inCheck()) score += 80;
+          if (m.san.includes("x")) score += peak.strengthProfile.tactical * 0.5;
+          if (m.piece === "k" && copy.moves().length > 30) score -= 100;
+        }
 
-      return { move: m, score };
-    });
+        return { move: m, score };
+      })
+    );
 
     moveCandidates.sort((a, b) => b.score - a.score);
 

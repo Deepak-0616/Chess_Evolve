@@ -114,7 +114,7 @@ router.post("/:gameId/analyze", authenticate, async (req, res) => {
     return sendError(res, "GAME_NOT_FOUND", "Game not found.", 404);
   }
 
-  const analysisRes = ChessEngineService.analyzeGame(game.pgn, game.playerColor);
+  const analysisRes = await ChessEngineService.analyzeGame(game.pgn, game.playerColor);
 
   const updatedAnalysis = await prisma.gameAnalysis.upsert({
     where: { gameId: game.id },
