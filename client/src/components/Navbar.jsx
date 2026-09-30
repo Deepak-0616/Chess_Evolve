@@ -1,17 +1,5 @@
 import React, { useState } from "react";
-import {
-  Swords,
-  Dna,
-  Bot,
-  BrainCircuit,
-  TrendingUp,
-  History,
-  Target,
-  UserCheck,
-  LogIn,
-  LogOut,
-  RefreshCw,
-} from "lucide-react";
+import { Bot, UserCheck, LogIn, LogOut, RefreshCw } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) => {
@@ -19,13 +7,13 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
   const [profileDropdown, setProfileDropdown] = useState(false);
 
   const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: BrainCircuit },
-    { id: "dna", label: "Chess DNA", icon: Dna },
-    { id: "play", label: "Play AI", icon: Swords },
-    { id: "training", label: "Training", icon: Target },
-    { id: "evolution", label: "Evolution", icon: TrendingUp },
-    { id: "coach", label: "AI Coach", icon: Bot },
-    { id: "history", label: "History", icon: History },
+    { id: "dashboard", label: "Dashboard" },
+    { id: "dna", label: "Chess DNA" },
+    { id: "play", label: "Play AI" },
+    { id: "training", label: "Training" },
+    { id: "evolution", label: "Evolution" },
+    { id: "coach", label: "AI Coach" },
+    { id: "history", label: "History" },
   ];
 
   return (
@@ -34,38 +22,36 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
         {/* Brand Logo */}
         <div
           onClick={() => setActiveTab(user ? "dashboard" : "landing")}
-          className="flex cursor-pointer items-center space-x-3 transition-transform hover:scale-[1.02]"
+          className="flex cursor-pointer items-center space-x-3 transition-transform hover:scale-[1.02] shrink-0"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-gold-400 via-gold-500 to-gold-700 shadow-lg shadow-gold-500/20">
             <Bot className="h-6 w-6 text-dark-900" />
           </div>
           <div>
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-1.5 leading-none">
               <span className="text-xl font-extrabold tracking-tight text-white">CHESS</span>
               <span className="text-xl font-extrabold tracking-tight text-gold-gradient">EVOLVE</span>
             </div>
-            <p className="text-[10px] font-medium tracking-widest text-gray-400 uppercase">AI Performance Lab</p>
+            <p className="text-[10px] font-medium tracking-widest text-gray-400 uppercase mt-0.5">AI Performance Lab</p>
           </div>
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items - Clean text-only buttons with equal spacing */}
         {user && (
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden md:flex items-center space-x-2 lg:space-x-3">
             {navItems.map((item) => {
-              const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center space-x-2 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                  className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition-all duration-200 border ${
                     isActive
-                      ? "bg-gold-500/10 text-gold-400 border border-gold-500/30 shadow-sm"
-                      : "text-gray-400 hover:bg-white/5 hover:text-white"
+                      ? "bg-gold-500/10 text-gold-400 border-gold-500/30 shadow-sm"
+                      : "text-gray-300 border-transparent hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${isActive ? "text-gold-400" : "text-gray-400"}`} />
-                  <span>{item.label}</span>
+                  {item.label}
                 </button>
               );
             })}
@@ -73,7 +59,7 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
         )}
 
         {/* Action Controls */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 shrink-0">
           {user ? (
             <>
               <button
@@ -137,3 +123,5 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
     </header>
   );
 };
+
+export default Navbar;
