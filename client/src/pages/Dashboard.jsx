@@ -208,7 +208,7 @@ export const Dashboard = ({ onNavigate, onOpenConnect }) => {
                 <XAxis dataKey="date" stroke="#6B7280" fontSize={11} />
                 <YAxis domain={["dataMin - 50", "dataMax + 50"]} stroke="#6B7280" fontSize={11} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#121722", borderColor: "rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "12px" }}
+                  contentStyle={{ backgroundColor: "#121214", borderColor: "rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "12px" }}
                 />
                 <Area type="monotone" dataKey="rating" stroke="#F59E0B" strokeWidth={3} fillOpacity={1} fill="url(#goldGrad)" />
               </AreaChart>

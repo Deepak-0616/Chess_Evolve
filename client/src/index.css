@@ -7,7 +7,7 @@
 
 body {
   margin: 0;
-  background-color: #0B0E14;
+  background-color: #050505;
   color: #F3F4F6;
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
@@ -15,14 +15,14 @@ body {
 
 /* Custom Utilities */
 .glass-panel {
-  background: rgba(18, 23, 34, 0.7);
+  background: rgba(18, 18, 20, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-panel-gold {
-  background: rgba(18, 23, 34, 0.8);
+  background: rgba(18, 18, 20, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(245, 158, 11, 0.25);
@@ -57,10 +57,10 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0E14;
+  background: #050505;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2D3748;
+  background: #2A2A2E;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {

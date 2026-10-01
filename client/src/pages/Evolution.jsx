@@ -81,7 +81,7 @@ export const Evolution = () => {
               <XAxis dataKey="date" stroke="#6B7280" fontSize={11} />
               <YAxis stroke="#6B7280" fontSize={11} domain={["dataMin - 50", "dataMax + 50"]} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#121722", borderColor: "rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "12px" }}
+                contentStyle={{ backgroundColor: "#121214", borderColor: "rgba(255,255,255,0.1)", borderRadius: "12px", fontSize: "12px" }}
               />
               <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={3} dot={{ fill: "#F59E0B", r: 5 }} />
             </LineChart>
