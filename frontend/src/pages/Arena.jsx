@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Users, Search, Swords } from 'lucide-react';
-import { getArenaLeaderboard } from '../api';
+import { getArenaPlayers } from '../api';
 
 const Arena = () => {
   const [leaderboard, setLeaderboard] = useState([]);
@@ -10,7 +10,7 @@ const Arena = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await getArenaLeaderboard();
+        const res = await getArenaPlayers();
         setLeaderboard(res.data?.data || []);
       } catch (err) {
         console.error('Failed to load arena leaderboard', err);

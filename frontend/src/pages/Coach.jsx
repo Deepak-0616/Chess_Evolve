@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Brain, User, AlertCircle, Bot } from 'lucide-react';
-import { askCoach } from '../api';
+import { sendCoachMessage } from '../api';
 
 const Coach = () => {
   const [messages, setMessages] = useState([
@@ -23,7 +23,7 @@ const Coach = () => {
     setLoading(true);
 
     try {
-      const res = await askCoach(q);
+      const res = await sendCoachMessage(q);
       const reply = res.data?.data?.reply || "I'm having trouble analyzing your request right now. Try again.";
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (err) {
