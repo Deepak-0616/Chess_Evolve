@@ -10,17 +10,23 @@ const router = Router();
 const prisma = new PrismaClient();
 
 router.get("/", authenticate, async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
-  const [user, dna, peakSelf, recentGames] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      include: { chessProfile: true },
-    }),
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { chessProfile: true },
+  });
+
+  const chessProfileId = user?.chessProfile?.id || null;
+  const username = user?.chessProfile?.username || null;
+
+  const profileWhere = chessProfileId ? { userId, chessProfileId } : { userId };
+
+  const [dna, peakSelf, recentGames] = await Promise.all([
     ChessDNAService.getCurrentDNA(userId),
     PeakSelfService.getCurrentPeakSelf(userId),
     prisma.game.findMany({
-      where: { userId },
+      where: profileWhere,
       take: 5,
       orderBy: { playedAt: "desc" },
       select: {
@@ -38,7 +44,6 @@ router.get("/", authenticate, async (req, res) => {
     }),
   ]);
 
-  const username = user?.chessProfile?.username;
   const comStats = username ? await ChessComClient.getPlayerStats(username) : null;
 
   const rapidRating = comStats?.chess_rapid?.last?.rating;
@@ -50,7 +55,7 @@ router.get("/", authenticate, async (req, res) => {
 
   const winsCount = await prisma.game.count({
     where: {
-      userId,
+      ...profileWhere,
       OR: [
         { playerColor: "WHITE", result: "1-0" },
         { playerColor: "BLACK", result: "0-1" },
@@ -61,7 +66,7 @@ router.get("/", authenticate, async (req, res) => {
 
   const lossesCount = await prisma.game.count({
     where: {
-      userId,
+      ...profileWhere,
       OR: [
         { playerColor: "WHITE", result: "0-1" },
         { playerColor: "BLACK", result: "1-0" },
@@ -72,7 +77,7 @@ router.get("/", authenticate, async (req, res) => {
 
   const drawsCount = await prisma.game.count({
     where: {
-      userId,
+      ...profileWhere,
       OR: [
         { result: "1/2-1/2" },
         { result: "DRAW" },
@@ -109,7 +114,7 @@ router.get("/", authenticate, async (req, res) => {
   const finalTotalGames = Math.max(dbTotalGames, finalWins + finalLosses + finalDraws);
 
   const accAgg = await prisma.game.aggregate({
-    where: { userId, accuracy: { not: null } },
+    where: { ...profileWhere, accuracy: { not: null } },
     _avg: { accuracy: true },
   });
   const avgAcc = accAgg._avg.accuracy || (recentGames.length > 0

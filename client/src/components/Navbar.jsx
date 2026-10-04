@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bot, UserCheck, LogIn, LogOut, RefreshCw } from "lucide-react";
+import { Bot, UserCheck, LogIn, LogOut, RefreshCw, Swords, Cpu, User } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) => {
@@ -8,13 +8,16 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
 
   const navItems = [
     { id: "dashboard", label: "Dashboard" },
-    { id: "dna", label: "Chess DNA" },
     { id: "play", label: "Play AI" },
+    { id: "my-ai", label: "My AI" },
+    { id: "dna", label: "Chess DNA" },
     { id: "training", label: "Training" },
     { id: "evolution", label: "Evolution" },
-    { id: "coach", label: "AI Coach" },
-    { id: "history", label: "History" },
+    { id: "arena", label: "AI Arena" },
+    { id: "coach", label: "Coach" },
   ];
+
+  const connectedUsername = user?.chessProfile?.username;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-dark-900/80 backdrop-blur-md">
@@ -36,16 +39,16 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
           </div>
         </div>
 
-        {/* Navigation Items - Clean text-only buttons with equal spacing */}
+        {/* Navigation Items */}
         {user && (
-          <nav className="hidden md:flex items-center space-x-2 lg:space-x-3">
+          <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition-all duration-200 border ${
+                  className={`rounded-lg px-3 py-1.5 text-xs lg:text-sm font-semibold transition-all duration-200 border ${
                     isActive
                       ? "bg-gold-500/10 text-gold-400 border-gold-500/30 shadow-sm"
                       : "text-gray-300 border-transparent hover:bg-white/5 hover:text-white"
@@ -64,10 +67,10 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
             <>
               <button
                 onClick={onOpenConnect}
-                className="hidden sm:flex items-center space-x-2 rounded-lg border border-gold-500/40 bg-gold-500/10 px-3.5 py-1.5 text-xs font-semibold text-gold-400 transition-all hover:bg-gold-500/20 hover:shadow-md hover:shadow-gold-500/10"
+                className="hidden sm:flex items-center space-x-1.5 rounded-lg border border-gold-500/40 bg-gold-500/10 px-3 py-1.5 text-xs font-semibold text-gold-400 transition-all hover:bg-gold-500/20 hover:shadow-md hover:shadow-gold-500/10"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                <span>{user.chessProfile?.username ? `@${user.chessProfile.username}` : "Connect Chess.com"}</span>
+                <span>{connectedUsername ? `♟ ${connectedUsername}` : "Connect Chess.com"}</span>
               </button>
 
               <div className="relative">
@@ -76,15 +79,45 @@ export const Navbar = ({ activeTab, setActiveTab, onOpenConnect, onOpenAuth }) =
                   className="flex items-center space-x-2 rounded-lg border border-white/10 bg-dark-800 px-3 py-1.5 text-sm font-medium text-white hover:border-gold-500/40"
                 >
                   <UserCheck className="h-4 w-4 text-gold-400" />
-                  <span className="max-w-[100px] truncate">{user.displayName}</span>
+                  <span className="max-w-[100px] truncate">{connectedUsername || user.displayName}</span>
                 </button>
 
                 {profileDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-white/10 bg-dark-800 py-1.5 shadow-2xl backdrop-blur-lg">
+                  <div className="absolute right-0 mt-2 w-52 rounded-xl border border-white/10 bg-dark-800 py-1.5 shadow-2xl backdrop-blur-lg">
                     <div className="border-b border-white/5 px-4 py-2">
-                      <p className="text-xs font-semibold text-white">{user.displayName}</p>
+                      <p className="text-xs font-semibold text-white">{connectedUsername ? `♟ ${connectedUsername}` : user.displayName}</p>
                       <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
                     </div>
+                    <button
+                      onClick={() => {
+                        setActiveTab("my-ai");
+                        setProfileDropdown(false);
+                      }}
+                      className="flex w-full items-center space-x-2 px-4 py-2 text-xs text-gray-200 hover:bg-white/5"
+                    >
+                      <Cpu className="h-3.5 w-3.5 text-gold-400" />
+                      <span>My AI Models</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab("arena");
+                        setProfileDropdown(false);
+                      }}
+                      className="flex w-full items-center space-x-2 px-4 py-2 text-xs text-gray-200 hover:bg-white/5"
+                    >
+                      <Swords className="h-3.5 w-3.5 text-purple-400" />
+                      <span>AI Arena</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab("profile");
+                        setProfileDropdown(false);
+                      }}
+                      className="flex w-full items-center space-x-2 px-4 py-2 text-xs text-gray-200 hover:bg-white/5"
+                    >
+                      <User className="h-3.5 w-3.5 text-blue-400" />
+                      <span>Profile & Settings</span>
+                    </button>
                     <button
                       onClick={() => {
                         onOpenConnect();

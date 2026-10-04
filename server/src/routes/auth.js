@@ -27,7 +27,6 @@ router.post("/register", async (req, res) => {
   }
 
   const { email, password, displayName } = result.data;
-
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return sendError(res, "EMAIL_IN_USE", "A user with this email already exists.", 400);
@@ -40,9 +39,12 @@ router.post("/register", async (req, res) => {
       passwordHash,
       displayName,
     },
+    include: {
+      chessProfile: true
+    }
   });
 
-  const accessToken = generateToken({ userId: user.id, email: user.email });
+  const accessToken = generateToken({ id: user.id, email: user.email });
 
   return sendSuccess(
     res,
@@ -51,6 +53,7 @@ router.post("/register", async (req, res) => {
         id: user.id,
         email: user.email,
         displayName: user.displayName,
+        chessProfile: user.chessProfile
       },
       accessToken,
     },
@@ -65,24 +68,30 @@ router.post("/login", async (req, res) => {
   }
 
   const { email, password } = result.data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ 
+    where: { email },
+    include: { chessProfile: true }
+  });
 
   if (!user) {
     return sendError(res, "AUTH_INVALID_CREDENTIALS", "Invalid email or password.", 401);
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    return sendError(res, "AUTH_INVALID_CREDENTIALS", "Invalid email or password.", 401);
+  if (user.passwordHash) {
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return sendError(res, "AUTH_INVALID_CREDENTIALS", "Invalid email or password.", 401);
+    }
   }
 
-  const accessToken = generateToken({ userId: user.id, email: user.email });
+  const accessToken = generateToken({ id: user.id, email: user.email });
 
   return sendSuccess(res, {
     user: {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
+      chessProfile: user.chessProfile
     },
     accessToken,
   });
@@ -90,11 +99,12 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", authenticate, async (req, res) => {
   const user = await prisma.user.findUnique({
-    where: { id: req.user.userId },
+    where: { id: req.user.id },
     select: {
       id: true,
       email: true,
       displayName: true,
+      avatarUrl: true,
       createdAt: true,
       chessProfile: true,
     },
@@ -105,6 +115,10 @@ router.get("/me", authenticate, async (req, res) => {
   }
 
   return sendSuccess(res, user);
+});
+
+router.post("/logout", authenticate, (req, res) => {
+  return sendSuccess(res, { message: "Logged out successfully" });
 });
 
 export default router;

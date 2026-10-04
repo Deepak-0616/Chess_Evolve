@@ -1,5 +1,4 @@
 import React from "react";
-import { ArrowRight, Cpu } from "lucide-react";
 
 export const Landing = ({ onConnect }) => {
   return (
@@ -20,14 +19,12 @@ export const Landing = ({ onConnect }) => {
             Chess DNA, and play against your evolving <strong className="text-white">Peak Self AI</strong>.
           </p>
 
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="pt-6 flex justify-center">
             <button
               onClick={onConnect}
-              className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-gold-500 via-gold-500 to-gold-600 px-8 py-4 text-base font-bold text-dark-900 shadow-xl shadow-gold-500/25 transition-all hover:scale-105 hover:shadow-gold-500/40"
+              className="rounded-2xl bg-gradient-to-r from-gold-500 via-gold-400 to-gold-600 px-10 py-4.5 text-lg font-extrabold text-dark-900 shadow-2xl shadow-gold-500/30 transition-all duration-300 hover:scale-105 hover:shadow-gold-500/50 cursor-pointer active:scale-95"
             >
-              <Cpu className="h-5 w-5" />
-              <span>Connect Chess.com</span>
-              <ArrowRight className="h-5 w-5" />
+              Connect Chess.com
             </button>
           </div>
         </div>
@@ -35,5 +32,6 @@ export const Landing = ({ onConnect }) => {
     </div>
   );
 };
+
 
 

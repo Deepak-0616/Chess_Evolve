@@ -7,9 +7,9 @@ const router = Router();
 const prisma = new PrismaClient();
 
 router.get("/", authenticate, async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
-  const [games, dnaVersions, peakSelfVersions] = await Promise.all([
+  const [games, dnaVersions, peakSelfVersions, modelVersions, evolutionEvents] = await Promise.all([
     prisma.game.findMany({
       where: { userId },
       orderBy: { playedAt: "asc" },
@@ -27,6 +27,14 @@ router.get("/", authenticate, async (req, res) => {
       where: { userId },
       orderBy: { version: "asc" },
     }),
+    prisma.mLModelVersion.findMany({
+      where: { userId },
+      orderBy: { version: "asc" }
+    }),
+    prisma.evolutionEvent.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" }
+    })
   ]);
 
   const ratingTimeline = games
@@ -38,11 +46,7 @@ router.get("/", authenticate, async (req, res) => {
     }));
 
   return sendSuccess(res, {
-    rating: ratingTimeline.length > 0 ? ratingTimeline : [
-      { date: "2026-01-01", value: 1200, accuracy: 74 },
-      { date: "2026-06-01", value: 1350, accuracy: 81 },
-      { date: "2026-09-01", value: 1428, accuracy: 86.4 },
-    ],
+    rating: ratingTimeline,
     dnaVersions: dnaVersions.map((d) => ({
       version: d.version,
       gamesAnalyzed: d.gamesAnalyzed,
@@ -56,6 +60,15 @@ router.get("/", authenticate, async (req, res) => {
       strengthProfile: JSON.parse(p.strengthProfile),
       createdAt: p.generatedAt,
     })),
+    modelVersions: modelVersions.map(m => ({
+      id: m.id,
+      modelType: m.modelType,
+      version: m.version,
+      status: m.status,
+      metrics: m.metrics ? JSON.parse(m.metrics) : null,
+      trainedAt: m.trainedAt
+    })),
+    events: evolutionEvents
   });
 });
 

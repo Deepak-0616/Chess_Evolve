@@ -3,6 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import { ChessEngineService } from "../chess-engine/service.js";
 import { ChessDNAService } from "../dna/service.js";
 import { PeakSelfService } from "../peak-self/service.js";
+import { MLService } from "../ml/mlService.js";
+import { FeatureExtractor } from "../ml/featureExtractor.js";
 
 const prisma = new PrismaClient();
 
@@ -185,41 +187,47 @@ export class PlayService {
     if (moves.length === 0) return null;
 
     const dna = await ChessDNAService.getCurrentDNA(userId);
-    const peak = await PeakSelfService.getCurrentPeakSelf(userId);
-
     const isPeak = opponentType === "PEAK_SELF";
     const currentTurn = chess.turn();
 
-    let moveCandidates = await Promise.all(
-      moves.map(async (m) => {
+    const candidatesToEval = moves.slice(0, 6);
+
+    const candidateMoves = await Promise.all(
+      candidatesToEval.map(async (m) => {
         const copy = new Chess(chess.fen());
         copy.move(m);
         const evalRes = await ChessEngineService.evaluatePositionAsync(copy.fen());
-
-        let score = currentTurn === "w" ? evalRes.score : -evalRes.score;
-
-        if (!isPeak) {
-          if (m.san.includes("+")) score += dna.metrics.aggression * 0.8;
-          if (m.san.includes("x")) score += dna.metrics.tacticalPreference * 0.7;
-          if (m.piece === "n" || m.piece === "q") score += dna.metrics.riskTaking * 0.3;
-        } else {
-          if (copy.inCheck()) score += 80;
-          if (m.san.includes("x")) score += peak.strengthProfile.tactical * 0.5;
-          if (m.piece === "k" && copy.moves().length > 30) score -= 100;
-        }
-
-        return { move: m, score };
+        const score = currentTurn === "w" ? evalRes.score : -evalRes.score;
+        const uci = `${m.from}${m.to}${m.promotion || ""}`;
+        return {
+          moveObj: m,
+          uci,
+          san: m.san,
+          stockfishEval: score,
+          features: FeatureExtractor.extractCandidateFeatures(chess, m, score, score, 0, dna.metrics),
+        };
       })
     );
 
-    moveCandidates.sort((a, b) => b.score - a.score);
-
     if (isPeak) {
-      return moveCandidates[0].move;
+      const peakPrediction = await MLService.predictPeakSelf(userId, candidateMoves, dna.metrics, dna.weaknesses);
+      const topUci = peakPrediction.predictions[0]?.uci;
+      const chosen = candidateMoves.find((c) => c.uci === topUci) || candidateMoves[0];
+      return chosen.moveObj;
     } else {
-      const topCandidates = moveCandidates.slice(0, Math.min(3, moveCandidates.length));
-      const pick = topCandidates[Math.floor(Math.random() * topCandidates.length)];
-      return pick.move;
+      const currentPrediction = await MLService.predictCurrentSelf(userId, candidateMoves, dna.metrics);
+      const rand = Math.random();
+      let cumulative = 0;
+      let selectedUci = currentPrediction.predictions[0]?.uci;
+      for (const p of currentPrediction.predictions) {
+        cumulative += p.probability;
+        if (rand <= cumulative) {
+          selectedUci = p.uci;
+          break;
+        }
+      }
+      const chosen = candidateMoves.find((c) => c.uci === selectedUci) || candidateMoves[0];
+      return chosen.moveObj;
     }
   }
 }

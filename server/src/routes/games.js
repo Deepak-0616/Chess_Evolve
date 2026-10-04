@@ -8,7 +8,20 @@ const router = Router();
 const prisma = new PrismaClient();
 
 router.get("/", authenticate, async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
+
+  const profile = await prisma.chessProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!profile) {
+    return sendSuccess(res, [], 200, {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    });
+  }
 
   const page = Math.max(1, parseInt(req.query.page || "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "20", 10)));
@@ -16,7 +29,10 @@ router.get("/", authenticate, async (req, res) => {
 
   const { result, color, opening, timeControl } = req.query;
 
-  const whereClause = { userId };
+  const whereClause = {
+    userId,
+    chessProfileId: profile.id,
+  };
 
   if (result && typeof result === "string") {
     const resLower = result.toLowerCase();
@@ -88,7 +104,7 @@ router.get("/", authenticate, async (req, res) => {
 });
 
 router.get("/:gameId", authenticate, async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
   const game = await prisma.game.findFirst({
     where: { id: req.params.gameId, userId },
     include: {
@@ -105,7 +121,7 @@ router.get("/:gameId", authenticate, async (req, res) => {
 });
 
 router.post("/:gameId/analyze", authenticate, async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
   const game = await prisma.game.findFirst({
     where: { id: req.params.gameId, userId },
   });
@@ -157,7 +173,7 @@ router.post("/:gameId/analyze", authenticate, async (req, res) => {
 });
 
 router.get("/:gameId/analysis", authenticate, async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
   const game = await prisma.game.findFirst({
     where: { id: req.params.gameId, userId },
     include: { analysis: true },

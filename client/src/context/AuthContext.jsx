@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiClient } from "../services/api.js";
+import { supabase } from "../services/supabase.js";
 
 const AuthContext = createContext(undefined);
 
@@ -10,7 +11,8 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      if (!token) {
+      const activeToken = localStorage.getItem("chess_evolve_token");
+      if (!activeToken) {
         setUser(null);
         setLoading(false);
         return;
@@ -28,8 +30,31 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // Listen for Supabase auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.access_token) {
+        localStorage.setItem("chess_evolve_token", session.access_token);
+        setToken(session.access_token);
+      }
+    });
+
     refreshUser();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [token]);
+
+  const loginWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if (error) throw error;
+    return data;
+  };
 
   const login = async (email, pass) => {
     const res = await ApiClient.login({ email, password: pass });
@@ -45,14 +70,17 @@ export const AuthProvider = ({ children }) => {
     setUser(res.user);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
     localStorage.removeItem("chess_evolve_token");
     setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, loginWithGoogle, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

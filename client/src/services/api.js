@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api/v1";
 
 export class ApiClient {
   static getToken() {
@@ -47,6 +47,19 @@ export class ApiClient {
     return this.request("/auth/me");
   }
 
+  static logout() {
+    return this.request("/auth/logout", { method: "POST" });
+  }
+
+  // User Profile
+  static getUserProfile() {
+    return this.request("/profile");
+  }
+
+  static updateUserProfile(data) {
+    return this.request("/profile", { method: "PATCH", body: JSON.stringify(data) });
+  }
+
   // Profile & Sync
   static connectChessProfile(username) {
     return this.request("/chess/profile/connect", { method: "POST", body: JSON.stringify({ username }) });
@@ -82,7 +95,7 @@ export class ApiClient {
     return this.request(`/games/${gameId}/analysis`);
   }
 
-  // DNA & Peak Self
+  // DNA & Models
   static getCurrentDNA() {
     return this.request("/dna/current");
   }
@@ -91,17 +104,40 @@ export class ApiClient {
     return this.request("/dna/history");
   }
 
-  static getPeakSelf() {
-    return this.request("/peak-self");
+  static getModelsSummary() {
+    return this.request("/models");
   }
 
-  static generatePeakSelf() {
-    return this.request("/peak-self/generate", { method: "POST" });
+  static trainCurrentSelf() {
+    return this.request("/models/current-self/train", { method: "POST" });
+  }
+
+  static getCurrentSelfStatus() {
+    return this.request("/models/current-self/status");
+  }
+
+  static trainPeakSelf() {
+    return this.request("/models/peak-self/train", { method: "POST" });
+  }
+
+  static getPeakSelfStatus() {
+    return this.request("/models/peak-self/status");
+  }
+
+  static getModelHistory(modelType) {
+    return this.request(`/models/${modelType}/history`);
   }
 
   // Play
-  static createPlaySession(opponentType, color) {
-    return this.request("/play/sessions", { method: "POST", body: JSON.stringify({ opponentType, color }) });
+  static createPlaySession(opponentType, color, opponentUserId = null) {
+    return this.request("/play/sessions", {
+      method: "POST",
+      body: JSON.stringify({ opponentType, color, opponentUserId }),
+    });
+  }
+
+  static getPlaySession(sessionId) {
+    return this.request(`/play/sessions/${sessionId}`);
   }
 
   static submitMove(sessionId, move) {
@@ -112,6 +148,27 @@ export class ApiClient {
     return this.request(`/play/sessions/${sessionId}/resign`, { method: "POST" });
   }
 
+  static drawPlaySession(sessionId) {
+    return this.request(`/play/sessions/${sessionId}/draw`, { method: "POST" });
+  }
+
+  // AI Arena
+  static getArenaPlayers(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/arena/players?${query}`);
+  }
+
+  static getArenaPlayerDetails(playerId) {
+    return this.request(`/arena/players/${playerId}`);
+  }
+
+  static startArenaSession(targetUserId, opponentType, color) {
+    return this.request("/arena/sessions", {
+      method: "POST",
+      body: JSON.stringify({ targetUserId, opponentType, color }),
+    });
+  }
+
   // Training
   static getTrainingRecommendations() {
     return this.request("/training/recommendations");
@@ -119,6 +176,10 @@ export class ApiClient {
 
   static startTrainingSession(category, topic, positionCount = 5) {
     return this.request("/training/sessions", { method: "POST", body: JSON.stringify({ category, topic, positionCount }) });
+  }
+
+  static getTrainingSession(sessionId) {
+    return this.request(`/training/sessions/${sessionId}`);
   }
 
   static submitTrainingAttempt(sessionId, positionId, move, timeSpentMs = 1000) {
@@ -131,6 +192,10 @@ export class ApiClient {
   // Coach & Dashboard & Evolution
   static askCoach(message, conversationId) {
     return this.request("/coach/chat", { method: "POST", body: JSON.stringify({ message, conversationId }) });
+  }
+
+  static getCoachHistory() {
+    return this.request("/coach/history");
   }
 
   static getDashboard() {

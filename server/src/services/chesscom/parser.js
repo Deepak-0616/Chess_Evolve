@@ -18,6 +18,13 @@ export class PgnParser {
 
       const normalizedTarget = targetUsername.trim().toLowerCase();
       const isWhite = whiteUser.toLowerCase() === normalizedTarget;
+      const isBlack = blackUser.toLowerCase() === normalizedTarget;
+
+      if (!isWhite && !isBlack) {
+        // Game does not involve target username
+        return null;
+      }
+
       const playerColor = isWhite ? "WHITE" : "BLACK";
 
       const whiteRating = rawGame.white?.rating || (headers["WhiteElo"] ? parseInt(headers["WhiteElo"], 10) : undefined);

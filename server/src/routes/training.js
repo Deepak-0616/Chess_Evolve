@@ -23,7 +23,7 @@ const submitAttemptSchema = z.object({
 
 router.get("/recommendations", authenticate, async (req, res) => {
   try {
-    const recs = await TrainingService.getRecommendations(req.user.userId);
+    const recs = await TrainingService.getRecommendations(req.user.id);
     return sendSuccess(res, recs);
   } catch (err) {
     return sendError(res, "TRAINING_ERROR", err.message || "Failed to load recommendations.", 400);
@@ -38,10 +38,19 @@ router.post("/sessions", authenticate, async (req, res) => {
 
   const { category, topic, positionCount } = parseResult.data;
   try {
-    const sessionData = await TrainingService.startSession(req.user.userId, category, topic, positionCount);
+    const sessionData = await TrainingService.startSession(req.user.id, category, topic, positionCount);
     return sendSuccess(res, sessionData, 201);
   } catch (err) {
     return sendError(res, "TRAINING_ERROR", err.message || "Failed to start training session.", 400);
+  }
+});
+
+router.get("/sessions/:sessionId", authenticate, async (req, res) => {
+  try {
+    const session = await TrainingService.getSession(req.user.id, req.params.sessionId);
+    return sendSuccess(res, session);
+  } catch (err) {
+    return sendError(res, "SESSION_NOT_FOUND", err.message || "Training session not found.", 404);
   }
 });
 
@@ -53,7 +62,7 @@ router.post("/sessions/:sessionId/attempts", authenticate, async (req, res) => {
 
   const { positionId, move, timeSpentMs } = parseResult.data;
   try {
-    const result = await TrainingService.submitAttempt(req.user.userId, req.params.sessionId, positionId, move, timeSpentMs);
+    const result = await TrainingService.submitAttempt(req.user.id, req.params.sessionId, positionId, move, timeSpentMs);
     return sendSuccess(res, result);
   } catch (err) {
     return sendError(res, "TRAINING_ERROR", err.message || "Failed to submit attempt.", 400);

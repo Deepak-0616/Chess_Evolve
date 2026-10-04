@@ -25,17 +25,20 @@ router.post("/connect", authenticate, async (req, res) => {
   }
 
   const { username } = result.data;
-  const userId = req.user.userId;
+  const userId = req.user.id;
 
   try {
     const comProfile = await ChessComClient.getPlayerProfile(username);
+    const comStats = await ChessComClient.getPlayerStats(username);
     const archives = await ChessComClient.getGameArchives(username);
+
+    const targetUsername = comProfile.exactCaseUsername || username;
 
     const existingProfile = await prisma.chessProfile.findFirst({
       where: {
         OR: [
           { userId },
-          { username: comProfile.username },
+          { username: { equals: targetUsername } },
         ],
       },
     });
@@ -46,7 +49,7 @@ router.post("/connect", authenticate, async (req, res) => {
         where: { id: existingProfile.id },
         data: {
           userId,
-          username: comProfile.username,
+          username: targetUsername,
           profileUrl: comProfile.url,
           avatarUrl: comProfile.avatar || null,
           country: comProfile.country || null,
@@ -58,7 +61,7 @@ router.post("/connect", authenticate, async (req, res) => {
       profile = await prisma.chessProfile.create({
         data: {
           userId,
-          username: comProfile.username,
+          username: targetUsername,
           profileUrl: comProfile.url,
           avatarUrl: comProfile.avatar || null,
           country: comProfile.country || null,
@@ -68,7 +71,12 @@ router.post("/connect", authenticate, async (req, res) => {
       });
     }
 
+    // Start initial sync job
     const syncRes = await SyncJobManager.startSyncJob(userId, false);
+
+    const rapidRating = comStats?.chess_rapid?.last?.rating || null;
+    const blitzRating = comStats?.chess_blitz?.last?.rating || null;
+    const bulletRating = comStats?.chess_bullet?.last?.rating || null;
 
     return sendSuccess(res, {
       profile: {
@@ -78,17 +86,22 @@ router.post("/connect", authenticate, async (req, res) => {
         avatarUrl: profile.avatarUrl,
         country: profile.country,
         joinedAt: profile.joinedAt,
+        ratings: {
+          rapid: rapidRating,
+          blitz: blitzRating,
+          bullet: bulletRating,
+        },
       },
       sync: {
         jobId: syncRes.jobId,
-        status: "READY",
+        status: "QUEUED",
         archiveCount: archives.length,
-        estimatedGames: archives.length * 70,
+        estimatedGames: archives.length * 50,
       },
     });
   } catch (err) {
     if (err.message === "NOT_FOUND") {
-      return sendError(res, "CHESS_PROFILE_NOT_FOUND", "We couldn't find this Chess.com profile.", 444);
+      return sendError(res, "CHESS_PROFILE_NOT_FOUND", "We couldn't find this Chess.com profile.", 404);
     }
     return sendError(res, "CHESS_API_ERROR", err.message || "Failed to fetch Chess.com profile.", 500);
   }
@@ -96,7 +109,7 @@ router.post("/connect", authenticate, async (req, res) => {
 
 router.get("/", authenticate, async (req, res) => {
   const profile = await prisma.chessProfile.findUnique({
-    where: { userId: req.user.userId },
+    where: { userId: req.user.id },
   });
 
   if (!profile) {
@@ -108,11 +121,16 @@ router.get("/", authenticate, async (req, res) => {
     username: profile.username,
     avatarUrl: profile.avatarUrl,
     title: profile.title,
+    country: profile.country,
+    joinedAt: profile.joinedAt,
     lastSyncedAt: profile.lastSyncedAt,
     gamesImported: profile.gamesImported,
     gamesAnalyzed: profile.gamesAnalyzed,
     dnaVersion: profile.dnaVersion,
     peakSelfVersion: profile.peakSelfVersion,
+    aiVisibility: profile.aiVisibility,
+    aiRatingCurrentSelf: profile.aiRatingCurrentSelf,
+    aiRatingPeakSelf: profile.aiRatingPeakSelf,
   });
 });
 

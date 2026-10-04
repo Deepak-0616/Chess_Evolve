@@ -26,9 +26,20 @@ export class ChessComClient {
   }
 
   static async getPlayerProfile(username) {
-    const cleanUsername = username.trim().toLowerCase();
-    const url = `${CHESS_COM_BASE}/player/${encodeURIComponent(cleanUsername)}`;
-    return this.fetchJson(url);
+    const rawUsername = username.trim();
+    const url = `${CHESS_COM_BASE}/player/${encodeURIComponent(rawUsername.toLowerCase())}`;
+    const data = await this.fetchJson(url);
+
+    // If user provided custom case (e.g. Hikaru / HIKARU / hiKARu), preserve exact user casing if it matches
+    const exactCaseUsername =
+      data.username && data.username.toLowerCase() === rawUsername.toLowerCase()
+        ? rawUsername
+        : (data.username || rawUsername);
+
+    return {
+      ...data,
+      exactCaseUsername,
+    };
   }
 
   static async getPlayerStats(username) {
@@ -53,3 +64,4 @@ export class ChessComClient {
     return res.games || [];
   }
 }
+

@@ -8,6 +8,9 @@ import { Landing } from "./pages/Landing.jsx";
 import { Dashboard } from "./pages/Dashboard.jsx";
 import { ChessDNA } from "./pages/ChessDNA.jsx";
 import { Play } from "./pages/Play.jsx";
+import { MyAI } from "./pages/MyAI.jsx";
+import { AIArena } from "./pages/AIArena.jsx";
+import { UserProfile } from "./pages/UserProfile.jsx";
 import { GameAnalysis } from "./pages/GameAnalysis.jsx";
 import { Training } from "./pages/Training.jsx";
 import { Evolution } from "./pages/Evolution.jsx";
@@ -66,8 +69,17 @@ const MainContent = () => {
             onOpenConnect={() => setConnectModalOpen(true)}
           />
         )}
+        {currentView === "my-ai" && <MyAI key={user?.id || "guest"} onNavigate={navigateTo} />}
+        {currentView === "arena" && <AIArena key={user?.id || "guest"} onNavigate={navigateTo} />}
+        {currentView === "profile" && <UserProfile key={user?.id || "guest"} />}
         {currentView === "dna" && <ChessDNA key={user?.id || "guest"} />}
-        {currentView === "play" && <Play key={user?.id || "guest"} initialOpponentType={tabParams.opponentType || "PEAK_SELF"} />}
+        {currentView === "play" && (
+          <Play
+            key={user?.id || "guest"}
+            initialOpponentType={tabParams.opponentType || "PEAK_SELF"}
+            sessionId={tabParams.sessionId}
+          />
+        )}
         {currentView === "analysis" && <GameAnalysis key={user?.id || "guest"} gameId={tabParams.gameId} onBack={() => navigateTo("dashboard")} />}
         {currentView === "training" && <Training key={user?.id || "guest"} />}
         {currentView === "evolution" && <Evolution key={user?.id || "guest"} />}

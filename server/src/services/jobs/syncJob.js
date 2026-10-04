@@ -75,8 +75,8 @@ export class SyncJobManager {
       });
 
       const archives = await ChessComClient.getGameArchives(username);
-      // For fast interactive setup, process recent 3 archives first
-      const targetArchives = fullSync ? archives : archives.slice(-3);
+      // Process recent 6 archives (or all if fullSync) for complete user game history
+      const targetArchives = fullSync ? archives : archives.slice(-6);
 
       let gamesDiscovered = 0;
       let gamesImported = 0;
@@ -115,8 +115,8 @@ export class SyncJobManager {
           const rawGames = await ChessComClient.getGamesFromArchive(archiveUrl);
           gamesDiscovered += rawGames.length;
 
-          // Limit to max 40 games per archive for blazingly fast initial response
-          const gamesToProcess = rawGames.slice(-40);
+          // Process up to 100 games per archive
+          const gamesToProcess = rawGames.slice(-100);
 
           for (const rawGame of gamesToProcess) {
             const parsed = PgnParser.parseChessComGame(rawGame, username);

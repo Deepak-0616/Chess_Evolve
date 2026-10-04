@@ -19,10 +19,19 @@ router.post("/chat", authenticate, async (req, res) => {
 
   const { message, conversationId } = result.data;
   try {
-    const coachRes = await CoachService.askCoach(req.user.userId, message, conversationId);
+    const coachRes = await CoachService.askCoach(req.user.id, message, conversationId);
     return sendSuccess(res, coachRes);
   } catch (err) {
     return sendError(res, "COACH_ERROR", err.message || "AI Coach query failed.", 400);
+  }
+});
+
+router.get("/history", authenticate, async (req, res) => {
+  try {
+    const history = await CoachService.getHistory(req.user.id);
+    return sendSuccess(res, history);
+  } catch (err) {
+    return sendError(res, "COACH_ERROR", err.message || "Failed to fetch coach history.", 400);
   }
 });
 
