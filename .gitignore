@@ -1,0 +1,28 @@
+# Environment variables & secrets
+.env
+*.env
+!.env.example
+
+# Node dependencies & build artifacts
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+frontend/dist/
+backend/dist/
+*.log
+
+# Python virtual environment & caches
+__pycache__/
+*.pyc
+.pytest_cache/
+ml-service/__pycache__/
+ml-service/app/__pycache__/
+ml-service/app/features/__pycache__/
+ml-service/app/models/__pycache__/
+ml-service/app/training/__pycache__/
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
