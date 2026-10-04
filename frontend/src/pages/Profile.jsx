@@ -78,12 +78,7 @@ const Profile = () => {
             <h3 className="text-lg font-bold" style={{ color: '#F5F0E0' }}>{form.displayName || displayName}</h3>
             <p className="text-sm" style={{ color: '#4A4A4A' }}>{user?.email}</p>
             <div className="flex items-center space-x-2 mt-2">
-              {isDevMode && (
-                <span className="text-xs px-2.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
-                  Demo Mode
-                </span>
-              )}
+
               {profile?.chessUsername && (
                 <span className="text-xs px-2.5 py-0.5 rounded-full"
                   style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>
