@@ -21,7 +21,7 @@ const navItems = [
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isDevMode, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -89,15 +89,7 @@ const Layout = ({ children }) => {
           </button>
         </div>
 
-        {/* Dev mode badge */}
-        {isDevMode && (
-          <div className="mx-4 mt-3">
-            <div className="px-3 py-1.5 rounded-lg text-xs font-medium text-center"
-              style={{ background: 'rgba(212,175,55,0.08)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
-              Demo Mode
-            </div>
-          </div>
-        )}
+
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
@@ -180,14 +172,7 @@ const Layout = ({ children }) => {
               </h1>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            {isDevMode && (
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium"
-                style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.2)' }}>
-                Demo
-              </span>
-            )}
-          </div>
+
         </header>
 
         {/* Page content */}

@@ -5,7 +5,7 @@ import { getProfile, updateProfile, connectChessProfile } from '../api';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
-  const { user, signOut, isDevMode } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

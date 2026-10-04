@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, ChevronLeft, ChevronRight, Eye, TrendingUp } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getGames } from '../api';
-
-const DEMO_GAMES = Array.from({ length: 20 }, (_, i) => ({
-  id: i + 1,
-  white: i % 2 === 0 ? 'You' : `Opponent_${i}`,
-  black: i % 2 === 0 ? `Opponent_${i}` : 'You',
-  result: ['1-0', '0-1', '1/2-1/2'][i % 3],
-  opening: ['Sicilian Defense', 'Ruy Lopez', 'French Defense', "Queen's Gambit", 'Italian Game'][i % 5],
-  timeControl: ['5+0', '10+0', '15+10', '3+2'][i % 4],
-  accuracy: Math.floor(Math.random() * 20 + 78),
-  date: new Date(Date.now() - i * 3600000 * 24).toLocaleDateString(),
-  moves: Math.floor(Math.random() * 40 + 20),
-  myRating: 1453 + Math.floor(Math.random() * 20 - 10),
-}));
 
 const ResultBadge = ({ result, isWhite }) => {
   let text, style;
@@ -48,8 +35,9 @@ const Games = () => {
       try {
         const res = await getGames({ page, limit: perPage });
         setGames(res.data?.data?.games || []);
-      } catch {
-        setGames(DEMO_GAMES);
+      } catch (err) {
+        console.error('Failed to load games', err);
+        setGames([]);
       }
       setLoading(false);
     };
@@ -79,7 +67,6 @@ const Games = () => {
         </p>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#4A4A4A' }} />
@@ -109,9 +96,7 @@ const Games = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
-        {/* Header */}
         <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wider"
           style={{ borderBottom: '1px solid #1A1A1A', color: '#4A4A4A' }}>
           <div className="col-span-1">Result</div>
@@ -131,7 +116,7 @@ const Games = () => {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-sm" style={{ color: '#4A4A4A' }}>
-            No games found matching your filters
+            No games found.
           </div>
         ) : (
           <div className="divide-y" style={{ divideColor: '#111' }}>
@@ -157,30 +142,31 @@ const Games = () => {
                     </span>
                   </div>
                   <div className="col-span-1 text-xs text-center" style={{ color: '#6B6B6B' }}>{game.myRating}</div>
-                  <div className="col-span-1 text-xs text-right" style={{ color: '#4A4A4A' }}>{game.date}</div>
+                  <div className="col-span-1 text-xs text-right" style={{ color: '#4A4A4A' }}>{new Date(game.date).toLocaleDateString()}</div>
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-5 py-3"
-          style={{ borderTop: '1px solid #111' }}>
-          <span className="text-xs" style={{ color: '#4A4A4A' }}>{filtered.length} games</span>
-          <div className="flex items-center space-x-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-              className="p-1.5 rounded-lg transition-all"
-              style={{ color: page === 1 ? '#2A2A2A' : '#6B6B6B', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
-              <ChevronLeft size={14} />
-            </button>
-            <span className="text-xs" style={{ color: '#4A4A4A' }}>Page {page}</span>
-            <button onClick={() => setPage(p => p + 1)}
-              className="p-1.5 rounded-lg transition-all" style={{ color: '#6B6B6B' }}>
-              <ChevronRight size={14} />
-            </button>
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between px-5 py-3"
+            style={{ borderTop: '1px solid #111' }}>
+            <span className="text-xs" style={{ color: '#4A4A4A' }}>{filtered.length} games on page</span>
+            <div className="flex items-center space-x-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-1.5 rounded-lg transition-all"
+                style={{ color: page === 1 ? '#2A2A2A' : '#6B6B6B', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
+                <ChevronLeft size={14} />
+              </button>
+              <span className="text-xs" style={{ color: '#4A4A4A' }}>Page {page}</span>
+              <button onClick={() => setPage(p => p + 1)}
+                className="p-1.5 rounded-lg transition-all" style={{ color: '#6B6B6B' }}>
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

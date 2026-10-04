@@ -58,11 +58,7 @@ const AppRoutes = () => (
 );
 
 const App = () => (
-  <AuthProvider>
-    <Router>
-      <AppRoutes />
-    </Router>
-  </AuthProvider>
+  <AppRoutes />
 );
 
 export default App;
