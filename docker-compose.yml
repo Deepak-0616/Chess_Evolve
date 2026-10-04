@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: chess_evolve_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: chess_evolve_ml
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    volumes:
+      - ./ml-service/app:/app/app
+    depends_on:
+      - redis
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chess_evolve_backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    environment:
+      - PORT=5000
+      - REDIS_HOST=redis
+      - ML_SERVICE_URL=http://ml-service:8000
+    depends_on:
+      - redis
+      - ml-service
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chess_evolve_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
