@@ -21,7 +21,7 @@ const Profile = () => {
       setLoading(true);
       try {
         const res = await getProfile();
-        const p = res.data?.data;
+        const p = res.data?.profile || res.data?.data;
         setProfile(p);
         setForm({
           displayName: p?.displayName || displayName,

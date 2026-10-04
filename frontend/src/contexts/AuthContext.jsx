@@ -14,6 +14,8 @@ const AuthContext = createContext({
   session: null,
   loading: true,
   signInWithGoogle: async () => {},
+  signInWithEmail: async (email, password) => {},
+  signUpWithEmail: async (email, password) => {},
   signOut: async () => {},
 });
 
@@ -60,7 +62,17 @@ export const AuthProvider = ({ children }) => {
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/connect` },
     });
-    if (error) console.error('Google OAuth error:', error.message);
+    if (error) throw error;
+  };
+
+  const signInWithEmail = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
+  const signUpWithEmail = async (email, password) => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
   };
 
   const signOut = async () => {
@@ -68,7 +80,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );

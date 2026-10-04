@@ -87,9 +87,9 @@ const Dashboard = () => {
         const [pRes, dRes, mRes] = await Promise.allSettled([
           getChessProfile(), getDNA(), getModels(),
         ]);
-        if (pRes.status === 'fulfilled') setProfile(pRes.value.data?.data);
-        if (dRes.status === 'fulfilled') setDna(dRes.value.data?.data);
-        if (mRes.status === 'fulfilled') setModels(mRes.value.data?.data);
+        if (pRes.status === 'fulfilled') setProfile(pRes.value.data?.chessProfile || pRes.value.data?.data);
+        if (dRes.status === 'fulfilled') setDna(dRes.value.data?.dna);
+        if (mRes.status === 'fulfilled') setModels(mRes.value.data?.models);
       } catch (err) {
         console.error('Failed to load dashboard data', err);
       }
