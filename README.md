@@ -201,11 +201,6 @@ The core data model managed via Prisma includes:
 
 ---
 
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
 
 <p center="text-center">
   Made with ❤️ for chess enthusiasts & AI learners worldwide.
