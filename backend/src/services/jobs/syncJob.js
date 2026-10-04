@@ -64,7 +64,6 @@ export class AccountSyncManager {
         },
       });
 
-      // Step 2: Archive Discovery
       const archiveUrls = await ChessComClient.getArchives(profile.username);
       progress.archivesDiscovered = true;
       progress.totalArchives = archiveUrls.length;
@@ -73,7 +72,8 @@ export class AccountSyncManager {
       // Step 3: Game Download, Deduplication & Storage
       let totalImportedGames = 0;
 
-      for (const archiveUrl of archiveUrls) {
+      // Reverse archives to fetch newest games first
+      for (const archiveUrl of archiveUrls.reverse()) {
         try {
           const rawGames = await ChessComClient.getGamesFromArchive(archiveUrl);
           progress.gamesDiscovered += rawGames.length;

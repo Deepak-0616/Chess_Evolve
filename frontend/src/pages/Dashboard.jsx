@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { getChessProfile, getDNA, getModels, triggerSync } from '../api';
 
-const StatCard = ({ label, value, sub, trend, color }) => (
+const StatCard = ({ label, value, sub, trend, color, tabs, activeTab, onTabChange }) => (
   <div
     className="p-5 rounded-2xl transition-all duration-200 hover:scale-[1.01]"
     style={{
@@ -19,9 +19,27 @@ const StatCard = ({ label, value, sub, trend, color }) => (
   >
     <div className="flex items-center justify-between mb-3">
       <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4A4A4A' }}>{label}</p>
-      {trend === 'up' && <TrendingUp size={14} style={{ color: '#4ade80' }} />}
-      {trend === 'down' && <TrendingDown size={14} style={{ color: '#f87171' }} />}
-      {trend === 'flat' && <Minus size={14} style={{ color: '#6B6B6B' }} />}
+      {tabs ? (
+        <div className="flex space-x-1 bg-[#1A1A1A] rounded p-0.5">
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => onTabChange(tab)}
+              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded transition-all ${
+                activeTab === tab ? 'bg-[#333] text-[#F5F0E0] shadow-sm' : 'text-[#6B6B6B] hover:text-[#D4AF37]'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center">
+          {trend === 'up' && <TrendingUp size={14} style={{ color: '#4ade80' }} />}
+          {trend === 'down' && <TrendingDown size={14} style={{ color: '#f87171' }} />}
+          {trend === 'flat' && <Minus size={14} style={{ color: '#6B6B6B' }} />}
+        </div>
+      )}
     </div>
     <div className="text-3xl font-black font-display" style={{ color: color || '#F5F0E0' }}>
       {value}
@@ -77,6 +95,7 @@ const Dashboard = () => {
   const [models, setModels] = useState(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState('idle');
+  const [timeControl, setTimeControl] = useState('rapid');
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
@@ -119,14 +138,14 @@ const Dashboard = () => {
 
   const hasProfile = !!profile?.chessUsername;
 
+  const currentStats = profile?.stats?.[timeControl] || { wins: 0, losses: 0, draws: 0, totalGames: 0, currentRating: 0, peakRating: 0 };
+  const overallStats = profile?.stats?.overall || { wins: 0, losses: 0, draws: 0, totalGames: 0 };
+  
   const stats = {
-    totalGames: profile?.totalGames || 0,
-    wins: profile?.wins || 0,
-    losses: profile?.losses || 0,
-    draws: profile?.draws || 0,
-    winRate: profile?.totalGames ? Math.round((profile.wins / profile.totalGames) * 100) : 0,
-    currentRating: profile?.currentRating || '—',
-    peakRating: profile?.peakRating || '—',
+    totalGames: overallStats.totalGames,
+    winRate: currentStats.totalGames ? Math.round((currentStats.wins / currentStats.totalGames) * 100) : 0,
+    currentRating: currentStats.currentRating || '—',
+    peakRating: currentStats.peakRating || '—',
   };
 
   const dnaSnippets = dna?.traits?.slice(0, 4) || [];
@@ -175,16 +194,17 @@ const Dashboard = () => {
       {hasProfile && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Games" value={stats.totalGames.toLocaleString()} trend="flat" />
+            <StatCard label="Total Matches" value={stats.totalGames.toLocaleString()} sub="Across all time controls" trend="flat" />
             <StatCard label="Win Rate" value={`${stats.winRate}%`}
-              sub={`${stats.wins}W · ${stats.losses}L · ${stats.draws}D`}
-              trend={stats.winRate > 50 ? 'up' : 'down'}
+              sub={`${currentStats.wins}W · ${currentStats.losses}L · ${currentStats.draws}D`}
+              tabs={['rapid', 'blitz', 'bullet']} activeTab={timeControl} onTabChange={setTimeControl}
               color="#D4AF37" />
             <StatCard label="Current Rating" value={stats.currentRating}
-              trend={stats.currentRating > 1400 ? 'up' : 'flat'} />
+              tabs={['rapid', 'blitz', 'bullet']} activeTab={timeControl} onTabChange={setTimeControl} />
             <StatCard label="Peak Rating" value={stats.peakRating}
               sub="All-time best"
-              color="#F0C040" trend="up" />
+              tabs={['rapid', 'blitz', 'bullet']} activeTab={timeControl} onTabChange={setTimeControl}
+              color="#F0C040" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

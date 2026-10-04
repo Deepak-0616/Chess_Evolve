@@ -98,25 +98,14 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
         .json({ error: "No connected Chess.com profile found for this user" });
     }
 
-    // Aggregate stats from games
+    // Aggregate stats from games for the recent games list ONLY
     const games = await prisma.game.findMany({
       where: { chessProfileId: chessProfile.id },
       orderBy: { playedAt: "desc" },
+      take: 5,
     });
 
-    let wins = 0,
-      losses = 0,
-      draws = 0;
-    for (const g of games) {
-      if (g.result === "WIN") wins++;
-      else if (g.result === "LOSS") losses++;
-      else draws++;
-    }
-
-    const currentRating = games.length > 0 ? games[0].userRating : null;
-    const peakRating =
-      games.length > 0 ? Math.max(...games.map((g) => g.userRating)) : null;
-    const recentGames = games.slice(0, 5).map((g) => ({
+    const recentGames = games.map((g) => ({
       id: g.id,
       result:
         g.result === "WIN" ? "win" : g.result === "LOSS" ? "loss" : "draw",
@@ -127,14 +116,42 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       opening: "Standard Play",
     }));
 
+    // Fetch live true stats directly from Chess.com to guarantee instant accuracy
+    let liveStats = { 
+      overall: { wins: 0, losses: 0, draws: 0, totalGames: 0 },
+      rapid: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 },
+      blitz: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 },
+      bullet: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 }
+    };
+    try {
+      const statsRes = await fetch(`https://api.chess.com/pub/player/${chessProfile.chessUsername}/stats`);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        
+        ['rapid', 'blitz', 'bullet'].forEach(tc => {
+          const category = statsData[`chess_${tc}`];
+          if (category) {
+            liveStats[tc].currentRating = category.last?.rating || 0;
+            liveStats[tc].peakRating = category.best?.rating || 0;
+            liveStats[tc].wins = category.record?.win || 0;
+            liveStats[tc].losses = category.record?.loss || 0;
+            liveStats[tc].draws = category.record?.draw || 0;
+            liveStats[tc].totalGames = liveStats[tc].wins + liveStats[tc].losses + liveStats[tc].draws;
+            
+            liveStats.overall.wins += liveStats[tc].wins;
+            liveStats.overall.losses += liveStats[tc].losses;
+            liveStats.overall.draws += liveStats[tc].draws;
+            liveStats.overall.totalGames += liveStats[tc].totalGames;
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Failed to fetch live stats from Chess.com:", e);
+    }
+
     const enrichedProfile = {
       ...chessProfile,
-      totalGames: games.length,
-      wins,
-      losses,
-      draws,
-      currentRating,
-      peakRating,
+      stats: liveStats,
       recentGames,
     };
 
