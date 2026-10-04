@@ -1,61 +1,68 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import { Navbar } from './components/Navbar';
-import { Landing } from './pages/Landing';
-import { Connect } from './pages/Connect';
-import { Dashboard } from './pages/Dashboard';
-import { Games } from './pages/Games';
-import { GameAnalysis } from './pages/GameAnalysis';
-import { ChessDNA } from './pages/ChessDNA';
-import { Evolution } from './pages/Evolution';
-import { Training } from './pages/Training';
-import { Coach } from './pages/Coach';
-import { PlayAI } from './pages/Play';
-import { Arena } from './pages/Arena';
-import { Profile } from './pages/Profile';
-import { Loader2 } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Layout from './components/Layout';
 
-const ProtectedRoute = ({ children }) => {
+// Pages
+import Landing from './pages/Landing';
+import Connect from './pages/Connect';
+import Dashboard from './pages/Dashboard';
+import Games from './pages/Games';
+import DNA from './pages/DNA';
+import Training from './pages/Training';
+import Coach from './pages/Coach';
+import Arena from './pages/Arena';
+import Play from './pages/Play';
+import Profile from './pages/Profile';
+
+const Spinner = () => (
+  <div className="min-h-screen flex items-center justify-center" style={{ background: '#080808' }}>
+    <div className="text-center space-y-4">
+      <div className="w-12 h-12 border-2 border-t-gold-500 rounded-full animate-spin mx-auto"
+        style={{ borderColor: '#2A2A2A', borderTopColor: '#D4AF37' }} />
+      <p className="text-sm" style={{ color: '#4A4A4A' }}>Loading Chess Evolve...</p>
+    </div>
+  </div>
+);
+
+// Protected route — only accessible when authenticated
+const Protected = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-      </div>
-    );
-  }
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return <Spinner />;
+  if (!user) return <Navigate to="/" replace />;
+  return <Layout>{children}</Layout>;
+};
+
+// Public route — redirects to dashboard if already signed in
+const PublicOnly = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <Spinner />;
+  if (user) return <Navigate to="/dashboard" replace />;
   return children;
 };
 
-export default function App() {
-  return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex flex-col font-sans">
-      <Navbar />
-      <div className="flex-1">
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Landing />} />
-          <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-          <Route path="/games/:gameId" element={<ProtectedRoute><GameAnalysis /></ProtectedRoute>} />
-          <Route path="/analysis" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-          <Route path="/dna" element={<ProtectedRoute><ChessDNA /></ProtectedRoute>} />
-          <Route path="/evolution" element={<ProtectedRoute><Evolution /></ProtectedRoute>} />
-          <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
-          <Route path="/coach" element={<ProtectedRoute><Coach /></ProtectedRoute>} />
-          <Route path="/play" element={<ProtectedRoute><PlayAI /></ProtectedRoute>} />
-          <Route path="/my-ai" element={<ProtectedRoute><PlayAI /></ProtectedRoute>} />
-          <Route path="/arena" element={<ProtectedRoute><Arena /></ProtectedRoute>} />
-          <Route path="/arena/:playerId" element={<ProtectedRoute><Arena /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </div>
-  );
-}
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<PublicOnly><Landing /></PublicOnly>} />
+    <Route path="/connect" element={<Protected><Connect /></Protected>} />
+    <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+    <Route path="/games" element={<Protected><Games /></Protected>} />
+    <Route path="/dna" element={<Protected><DNA /></Protected>} />
+    <Route path="/training" element={<Protected><Training /></Protected>} />
+    <Route path="/coach" element={<Protected><Coach /></Protected>} />
+    <Route path="/arena" element={<Protected><Arena /></Protected>} />
+    <Route path="/play" element={<Protected><Play /></Protected>} />
+    <Route path="/profile" element={<Protected><Profile /></Protected>} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+);
+
+const App = () => (
+  <AuthProvider>
+    <Router>
+      <AppRoutes />
+    </Router>
+  </AuthProvider>
+);
+
+export default App;

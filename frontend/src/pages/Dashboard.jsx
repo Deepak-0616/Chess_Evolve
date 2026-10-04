@@ -1,314 +1,356 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { apiClient } from '../api/client';
-import { 
-  Trophy, 
-  Swords, 
-  Target, 
-  Dna, 
-  Brain, 
-  Bot, 
-  Zap, 
-  TrendingUp, 
-  ArrowRight,
-  ShieldAlert,
-  Loader2
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  TrendingUp, TrendingDown, Minus, Gamepad2, Target,
+  Dna, Brain, RefreshCw, ArrowRight, Trophy, Zap,
+  Clock, CheckCircle, AlertCircle, Loader2, Link2
 } from 'lucide-react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { getChessProfile, getDNA, getModels, triggerSync } from '../api';
 
-export const Dashboard = () => {
+// ————————————— Demo Data ——————————————
+const DEMO_STATS = {
+  totalGames: 248,
+  wins: 134,
+  losses: 89,
+  draws: 25,
+  winRate: 54,
+  currentRating: 1453,
+  peakRating: 1612,
+  mostPlayedOpening: 'Sicilian Defense',
+};
+
+const DEMO_DNA_SNIPPETS = [
+  { label: 'Aggression', value: 72 },
+  { label: 'Positional', value: 58 },
+  { label: 'Endgame', value: 65 },
+  { label: 'Tactical', value: 79 },
+];
+
+const DEMO_RECENT = [
+  { id: 1, result: 'win', opponent: 'Player_Alpha', color: 'white', opening: 'Ruy Lopez', rating: '+8', date: '2h ago' },
+  { id: 2, result: 'loss', opponent: 'Chess_Master', color: 'black', opening: 'French Defense', rating: '-12', date: '5h ago' },
+  { id: 3, result: 'draw', opponent: 'NightRider88', color: 'white', opening: 'Italian Game', rating: '0', date: '1d ago' },
+  { id: 4, result: 'win', opponent: 'Pawn_Storm', color: 'black', opening: 'Sicilian Defense', rating: '+10', date: '1d ago' },
+  { id: 5, result: 'win', opponent: 'EndgameKing', color: 'white', opening: 'Queen\'s Gambit', rating: '+7', date: '2d ago' },
+];
+
+// ————————————— Sub-Components ——————————————
+const StatCard = ({ label, value, sub, trend, color }) => (
+  <div
+    className="p-5 rounded-2xl transition-all duration-200 hover:scale-[1.01]"
+    style={{
+      background: 'linear-gradient(145deg, #141414 0%, #111111 100%)',
+      border: '1px solid #1A1A1A',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+    }}
+  >
+    <div className="flex items-center justify-between mb-3">
+      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4A4A4A' }}>{label}</p>
+      {trend === 'up' && <TrendingUp size={14} style={{ color: '#4ade80' }} />}
+      {trend === 'down' && <TrendingDown size={14} style={{ color: '#f87171' }} />}
+      {trend === 'flat' && <Minus size={14} style={{ color: '#6B6B6B' }} />}
+    </div>
+    <div className="text-3xl font-black font-display" style={{ color: color || '#F5F0E0' }}>
+      {value}
+    </div>
+    {sub && <div className="text-xs mt-1.5" style={{ color: '#4A4A4A' }}>{sub}</div>}
+  </div>
+);
+
+const ResultBadge = ({ result }) => {
+  const map = {
+    win: { bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.25)', label: 'W' },
+    loss: { bg: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'rgba(239,68,68,0.25)', label: 'L' },
+    draw: { bg: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: 'rgba(212,175,55,0.25)', label: 'D' },
+  };
+  const s = map[result] || map.draw;
+  return (
+    <span className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold"
+      style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+      {s.label}
+    </span>
+  );
+};
+
+const SyncStatus = ({ status, onSync }) => {
+  if (status === 'running') return (
+    <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#D4AF37' }}>
+      <Loader2 size={12} className="animate-spin" />
+      <span>Syncing games...</span>
+    </div>
+  );
+  if (status === 'done') return (
+    <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#4ade80' }}>
+      <CheckCircle size={12} />
+      <span>Sync complete</span>
+    </div>
+  );
+  return (
+    <button onClick={onSync} className="flex items-center space-x-1.5 text-xs transition-all"
+      style={{ color: '#6B6B6B' }}
+      onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
+      onMouseLeave={e => e.currentTarget.style.color = '#6B6B6B'}
+    >
+      <RefreshCw size={12} />
+      <span>Sync games</span>
+    </button>
+  );
+};
+
+// ————————————— Main Component ——————————————
+const Dashboard = () => {
+  const { user, isDevMode } = useAuth();
   const [profile, setProfile] = useState(null);
   const [dna, setDna] = useState(null);
   const [models, setModels] = useState(null);
-  const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [pageLoading, setPageLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState('idle');
+
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
   useEffect(() => {
-    async function fetchData() {
+    const load = async () => {
+      setPageLoading(true);
       try {
-        const [profRes, dnaRes, modelRes, gamesRes] = await Promise.all([
-          apiClient.get('/chess/profile'),
-          apiClient.get('/dna/current'),
-          apiClient.get('/models'),
-          apiClient.get('/games?limit=5'),
+        const [pRes, dRes, mRes] = await Promise.allSettled([
+          getChessProfile(), getDNA(), getModels(),
         ]);
+        if (pRes.status === 'fulfilled') setProfile(pRes.value.data?.data);
+        if (dRes.status === 'fulfilled') setDna(dRes.value.data?.data);
+        if (mRes.status === 'fulfilled') setModels(mRes.value.data?.data);
+      } catch {}
+      setPageLoading(false);
+    };
+    load();
+  }, []);
 
-        setProfile(profRes.data.chessProfile);
-        setDna(dnaRes.data.dna);
-        setModels(modelRes.data);
-        setGames(gamesRes.data.games || []);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          navigate('/connect');
-        }
-      } finally {
-        setLoading(false);
-      }
+  const handleSync = async () => {
+    setSyncStatus('running');
+    try {
+      await triggerSync();
+      setSyncStatus('done');
+      setTimeout(() => setSyncStatus('idle'), 4000);
+    } catch {
+      setSyncStatus('idle');
     }
-    fetchData();
-  }, [navigate]);
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-      </div>
-    );
-  }
+  const stats = profile ? {
+    totalGames: profile.totalGames || 0,
+    wins: profile.wins || 0,
+    losses: profile.losses || 0,
+    draws: profile.draws || 0,
+    winRate: profile.totalGames ? Math.round((profile.wins / profile.totalGames) * 100) : 0,
+    currentRating: profile.currentRating || '—',
+    peakRating: profile.peakRating || '—',
+  } : DEMO_STATS;
 
-  if (!profile) return null;
+  const dnaSnippets = dna?.traits?.slice(0, 4) || DEMO_DNA_SNIPPETS;
+  const recentGames = profile?.recentGames || DEMO_RECENT;
 
-  // Format DNA metrics for Radar Chart
-  const radarData = dna ? [
-    { subject: 'Aggression', A: dna.aggression },
-    { subject: 'Defense', A: dna.defensiveAbility },
-    { subject: 'Tactics', A: dna.tacticalPreference },
-    { subject: 'Endgame', A: dna.endgameAbility },
-    { subject: 'King Safety', A: dna.kingSafety },
-    { subject: 'Opening', A: dna.openingDiversity },
-  ] : [];
-
-  const wins = games.filter(g => g.result === 'WIN').length;
-  const losses = games.filter(g => g.result === 'LOSS').length;
-  const draws = games.filter(g => g.result === 'DRAW').length;
+  const hasProfile = !!profile?.chessUsername;
+  const hasModels = models && (models.currentSelf || models.peakSelf);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Profile & Ratings Header */}
-      <div className="p-6 sm:p-8 rounded-2xl glass-panel relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center space-x-5 z-10">
-          <img
-            src={profile.avatarUrl || 'https://images.chesscomfiles.com/uploads/v1/user/0.2b6d13d7.160x160o.2c1d2e1f.png'}
-            alt={profile.chessUsername}
-            className="w-20 h-20 rounded-2xl border-2 border-emerald-500/50 shadow-glow"
-          />
-          <div>
-            <div className="flex items-center space-x-3">
-              <h1 className="text-2xl sm:text-3xl font-black text-white">
-                {profile.chessUsername}
-              </h1>
-              {profile.title && (
-                <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold text-xs">
-                  {profile.title}
-                </span>
-              )}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-display" style={{ color: '#F5F0E0' }}>
+            Welcome back, <span style={{
+              background: 'linear-gradient(135deg, #D4AF37, #F0C040)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>{displayName}</span>
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: '#4A4A4A' }}>
+            {hasProfile ? `Connected as ${profile.chessUsername}` : 'Connect your Chess.com account to get started'}
+          </p>
+        </div>
+        <SyncStatus status={syncStatus} onSync={handleSync} />
+      </div>
+
+      {/* Connect prompt */}
+      {!hasProfile && !pageLoading && (
+        <div className="p-5 rounded-2xl flex items-center justify-between"
+          style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.2)' }}>
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(212,175,55,0.1)' }}>
+              <Link2 size={16} style={{ color: '#D4AF37' }} />
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Connected Chess.com Account • Last Synced: {profile.lastSyncedAt ? new Date(profile.lastSyncedAt).toLocaleDateString() : 'Just now'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 sm:space-x-4 z-10 w-full md:w-auto">
-          <Link
-            to="/my-ai"
-            className="flex-1 md:flex-none px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-sm shadow-glow transition-all flex items-center justify-center space-x-2"
-          >
-            <Bot className="w-4 h-4" />
-            <span>Play My AI Models</span>
-          </Link>
-
-          <Link
-            to="/arena"
-            className="flex-1 md:flex-none px-5 py-3 rounded-xl bg-surface border border-white/10 hover:bg-white/5 text-slate-200 font-bold text-sm transition-colors flex items-center justify-center space-x-2"
-          >
-            <Swords className="w-4 h-4 text-emerald-400" />
-            <span>AI Arena</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Overview Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="p-5 rounded-2xl glass-card">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
-            <span>Analyzed Games</span>
-            <Swords className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-3xl font-black text-white">{games.length * 12 + 18}</div>
-          <p className="text-[11px] text-emerald-400 font-medium mt-1">Full history synchronized</p>
-        </div>
-
-        <div className="p-5 rounded-2xl glass-card">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
-            <span>Overall Accuracy</span>
-            <Target className="w-4 h-4 text-teal-400" />
-          </div>
-          <div className="text-3xl font-black text-white">
-            {dna ? `${Math.round(dna.defensiveAbility * 0.9)}%` : '82%'}
-          </div>
-          <p className="text-[11px] text-teal-400 font-medium mt-1">Stockfish move precision</p>
-        </div>
-
-        <div className="p-5 rounded-2xl glass-card">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
-            <span>Avg Centipawn Loss</span>
-            <TrendingUp className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="text-3xl font-black text-white">28.4</div>
-          <p className="text-[11px] text-indigo-400 font-medium mt-1">Cp loss per plies</p>
-        </div>
-
-        <div className="p-5 rounded-2xl glass-card">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">
-            <span>AI Models Ready</span>
-            <Brain className="w-4 h-4 text-rose-400" />
-          </div>
-          <div className="text-3xl font-black text-white">
-            {models?.currentSelf?.status === 'READY' ? '2 / 2' : '1 / 2'}
-          </div>
-          <p className="text-[11px] text-rose-400 font-medium mt-1">Current & Peak PyTorch Models</p>
-        </div>
-      </div>
-
-      {/* Main Grid: DNA Radar & AI Model Readiness */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* DNA Radar Chart */}
-        <div className="lg:col-span-2 p-6 rounded-2xl glass-panel space-y-6">
-          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-black text-white flex items-center space-x-2">
-                <Dna className="w-5 h-5 text-emerald-400" />
-                <span>13-Dimension Chess DNA Signature</span>
-              </h2>
-              <p className="text-xs text-slate-400">Calculated dynamically from your actual played moves</p>
+              <p className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>Connect Chess.com</p>
+              <p className="text-xs" style={{ color: '#6B6B6B' }}>Showing demo data — connect your account to see real stats</p>
             </div>
-            <Link to="/dna" className="text-xs font-bold text-emerald-400 hover:underline flex items-center space-x-1">
-              <span>View Full DNA</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+          </div>
+          <Link to="/connect"
+            className="flex items-center space-x-1.5 text-xs font-bold px-4 py-2 rounded-xl"
+            style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)', color: '#080808' }}>
+            <span>Connect</span>
+            <ArrowRight size={12} />
+          </Link>
+        </div>
+      )}
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total Games" value={stats.totalGames.toLocaleString()} trend="flat" />
+        <StatCard label="Win Rate" value={`${stats.winRate}%`}
+          sub={`${stats.wins}W · ${stats.losses}L · ${stats.draws}D`}
+          trend={stats.winRate > 50 ? 'up' : 'down'}
+          color="#D4AF37" />
+        <StatCard label="Current Rating" value={stats.currentRating}
+          trend={stats.currentRating > 1400 ? 'up' : 'flat'} />
+        <StatCard label="Peak Rating" value={stats.peakRating}
+          sub="All-time best"
+          color="#F0C040" trend="up" />
+      </div>
+
+      {/* Bottom grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Recent Games */}
+        <div className="lg:col-span-2 rounded-2xl overflow-hidden"
+          style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
+          <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#1A1A1A' }}>
+            <div className="flex items-center space-x-2">
+              <Gamepad2 size={14} style={{ color: '#D4AF37' }} />
+              <span className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>Recent Games</span>
+            </div>
+            <Link to="/games" className="text-xs flex items-center space-x-1"
+              style={{ color: '#4A4A4A' }}
+              onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
+              onMouseLeave={e => e.currentTarget.style.color = '#4A4A4A'}
+            >
+              <span>View all</span>
+              <ArrowRight size={10} />
             </Link>
           </div>
-
-          <div className="h-64 sm:h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="#334155" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94A3B8', fontSize: 12 }} />
-                <Radar name="Player DNA" dataKey="A" stroke="#10B981" fill="#10B981" fillOpacity={0.4} />
-              </RadarChart>
-            </ResponsiveContainer>
+          <div className="divide-y" style={{ divideColor: '#111' }}>
+            {recentGames.map((game, i) => (
+              <div key={game.id || i} className="flex items-center px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                <ResultBadge result={game.result} />
+                <div className="ml-3 flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate" style={{ color: '#F5F0E0' }}>
+                    vs {game.opponent}
+                    <span className="ml-2" style={{ color: '#3A3A3A' }}>({game.color})</span>
+                  </p>
+                  <p className="text-xs truncate" style={{ color: '#4A4A4A' }}>{game.opening}</p>
+                </div>
+                <div className="text-right ml-3">
+                  <div className="text-xs font-bold" style={{
+                    color: game.result === 'win' ? '#4ade80' : game.result === 'loss' ? '#f87171' : '#D4AF37'
+                  }}>
+                    {game.rating}
+                  </div>
+                  <div className="text-xs" style={{ color: '#3A3A3A' }}>{game.date}</div>
+                </div>
+              </div>
+            ))}
           </div>
-
-          {dna && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/10">
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
-                  Top Style Strengths
-                </h3>
-                <ul className="text-xs text-slate-200 space-y-1">
-                  {(dna.topStrengths || []).map((s, i) => (
-                    <li key={i}>• {s}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">
-                  Recurring Weaknesses
-                </h3>
-                <ul className="text-xs text-slate-200 space-y-1">
-                  {(dna.topWeaknesses || []).map((w, i) => (
-                    <li key={i}>• {w}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* AI Models Card */}
-        <div className="p-6 rounded-2xl glass-panel space-y-6">
-          <h2 className="text-xl font-black text-white flex items-center space-x-2">
-            <Brain className="w-5 h-5 text-indigo-400" />
-            <span>Personalized AI Models</span>
-          </h2>
-
-          {/* Current Self Card */}
-          <div className="p-5 rounded-xl bg-surface border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-white text-base">Current Self Model</h3>
-              <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-xs font-bold">
-                {models?.currentSelf?.status || 'READY'}
-              </span>
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* DNA Snapshot */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#1A1A1A' }}>
+              <div className="flex items-center space-x-2">
+                <Dna size={14} style={{ color: '#D4AF37' }} />
+                <span className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>Chess DNA</span>
+              </div>
+              <Link to="/dna" className="text-xs" style={{ color: '#4A4A4A' }}
+                onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
+                onMouseLeave={e => e.currentTarget.style.color = '#4A4A4A'}>
+                Details →
+              </Link>
             </div>
-            <p className="text-xs text-slate-400">
-              Predicts your exact decision probability distribution in any position context.
-            </p>
-            <div className="text-xs text-slate-300 font-semibold pt-1">
-              Top-1 Accuracy: <span className="text-emerald-400">87.4%</span> • Top-3: <span className="text-emerald-400">95.2%</span>
-            </div>
-          </div>
-
-          {/* Peak Self Card */}
-          <div className="p-5 rounded-xl bg-surface border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-white text-base">Peak Self Model</h3>
-              <span className="px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-xs font-bold">
-                {models?.peakSelf?.status || 'READY'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">
-              Optimizes candidate quality while preserving your unique playing identity signature.
-            </p>
-            <div className="text-xs text-slate-300 font-semibold pt-1">
-              Style Preservation: <span className="text-indigo-400">92.0%</span> • Eval Gain: <span className="text-indigo-400">+1.2 CP</span>
+            <div className="p-5 space-y-3">
+              {dnaSnippets.map(({ label, value }) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs" style={{ color: '#6B6B6B' }}>{label}</span>
+                    <span className="text-xs font-bold" style={{ color: '#D4AF37' }}>{value}%</span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#1A1A1A' }}>
+                    <div className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${value}%`, background: 'linear-gradient(90deg, #D4AF37, #F0C040)' }} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          <Link
-            to="/my-ai"
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-extrabold text-sm shadow-glow transition-all flex items-center justify-center space-x-2"
-          >
-            <span>Play Match Against My AI</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {/* AI Model */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
+            <div className="flex items-center space-x-2 px-5 py-4 border-b" style={{ borderColor: '#1A1A1A' }}>
+              <Brain size={14} style={{ color: '#D4AF37' }} />
+              <span className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>AI Models</span>
+            </div>
+            <div className="p-5 space-y-3">
+              {['Current Self', 'Peak Self'].map((name) => {
+                const isReady = hasModels;
+                return (
+                  <div key={name} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {isReady
+                        ? <CheckCircle size={12} style={{ color: '#4ade80' }} />
+                        : <AlertCircle size={12} style={{ color: '#4A4A4A' }} />}
+                      <span className="text-xs" style={{ color: isReady ? '#F5F0E0' : '#4A4A4A' }}>{name}</span>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full"
+                      style={{
+                        background: isReady ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)',
+                        color: isReady ? '#4ade80' : '#4A4A4A',
+                        border: `1px solid ${isReady ? 'rgba(34,197,94,0.2)' : '#1A1A1A'}`,
+                      }}>
+                      {isReady ? 'Ready' : 'Not trained'}
+                    </span>
+                  </div>
+                );
+              })}
+              <Link to="/training"
+                className="w-full mt-2 flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all"
+                style={{
+                  background: 'rgba(212,175,55,0.08)', color: '#D4AF37',
+                  border: '1px solid rgba(212,175,55,0.2)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.15)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.08)'; }}
+              >
+                <Zap size={12} />
+                <span>Train Models</span>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Recent Games */}
-      <div className="p-6 rounded-2xl glass-panel space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-black text-white flex items-center space-x-2">
-            <Swords className="w-5 h-5 text-emerald-400" />
-            <span>Recent Synchronized Games</span>
-          </h2>
-          <Link to="/games" className="text-xs font-bold text-emerald-400 hover:underline flex items-center space-x-1">
-            <span>View All Games</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="divide-y divide-white/5">
-          {games.map((g) => (
-            <div key={g.id} className="py-4 flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <span className={`px-2.5 py-1 rounded text-xs font-black uppercase ${
-                  g.result === 'WIN' ? 'bg-emerald-500/20 text-emerald-400' :
-                  g.result === 'LOSS' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-500/20 text-slate-300'
-                }`}>
-                  {g.result}
-                </span>
-                <div>
-                  <div className="text-sm font-bold text-white">
-                    vs {g.opponentUsername} ({g.opponentRating})
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    {g.timeClass} • Played as {g.userColor}
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                to={`/games/${g.id}`}
-                className="px-3.5 py-1.5 rounded-lg bg-surface border border-white/10 hover:border-emerald-500/40 text-xs font-bold text-slate-300 transition-colors"
-              >
-                Inspect Analysis
-              </Link>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Play AI', icon: Gamepad2, to: '/play', desc: 'vs Current Self' },
+          { label: 'Arena', icon: Trophy, to: '/arena', desc: 'Ranked battles' },
+          { label: 'Coach', icon: Brain, to: '/coach', desc: 'Get insights' },
+          { label: 'Training', icon: Target, to: '/training', desc: 'Drill patterns' },
+        ].map(({ label, icon: Icon, to, desc }) => (
+          <Link key={to} to={to}
+            className="flex flex-col items-center p-4 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 group"
+            style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(212,175,55,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1A1A1A'; e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all"
+              style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)' }}>
+              <Icon size={18} style={{ color: '#D4AF37' }} />
             </div>
-          ))}
-        </div>
+            <p className="text-xs font-bold mb-0.5" style={{ color: '#F5F0E0' }}>{label}</p>
+            <p className="text-xs" style={{ color: '#4A4A4A' }}>{desc}</p>
+          </Link>
+        ))}
       </div>
     </div>
   );
 };
+
+export default Dashboard;

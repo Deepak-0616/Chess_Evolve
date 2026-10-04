@@ -1,142 +1,189 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { apiClient } from '../api/client';
-import { Swords, Filter, Search, ArrowRight, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, ChevronLeft, ChevronRight, Eye, TrendingUp } from 'lucide-react';
+import { getGames } from '../api';
 
-export const Games = () => {
+const DEMO_GAMES = Array.from({ length: 20 }, (_, i) => ({
+  id: i + 1,
+  white: i % 2 === 0 ? 'You' : `Opponent_${i}`,
+  black: i % 2 === 0 ? `Opponent_${i}` : 'You',
+  result: ['1-0', '0-1', '1/2-1/2'][i % 3],
+  opening: ['Sicilian Defense', 'Ruy Lopez', 'French Defense', "Queen's Gambit", 'Italian Game'][i % 5],
+  timeControl: ['5+0', '10+0', '15+10', '3+2'][i % 4],
+  accuracy: Math.floor(Math.random() * 20 + 78),
+  date: new Date(Date.now() - i * 3600000 * 24).toLocaleDateString(),
+  moves: Math.floor(Math.random() * 40 + 20),
+  myRating: 1453 + Math.floor(Math.random() * 20 - 10),
+}));
+
+const ResultBadge = ({ result, isWhite }) => {
+  let text, style;
+  if (result === '1-0') {
+    if (isWhite) { text = 'Win'; style = { bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.25)' }; }
+    else { text = 'Loss'; style = { bg: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'rgba(239,68,68,0.25)' }; }
+  } else if (result === '0-1') {
+    if (!isWhite) { text = 'Win'; style = { bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.25)' }; }
+    else { text = 'Loss'; style = { bg: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'rgba(239,68,68,0.25)' }; }
+  } else {
+    text = 'Draw'; style = { bg: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: 'rgba(212,175,55,0.25)' };
+  }
+  return (
+    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold"
+      style={{ background: style.bg, color: style.color, border: `1px solid ${style.border}` }}>
+      {text}
+    </span>
+  );
+};
+
+const Games = () => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterResult, setFilterResult] = useState('');
-  const [filterTimeClass, setFilterTimeClass] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [search, setSearch] = useState('');
+  const [resultFilter, setResultFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const perPage = 10;
 
   useEffect(() => {
-    async function fetchGames() {
+    const load = async () => {
       setLoading(true);
       try {
-        let url = '/games?limit=50';
-        if (filterResult) url += `&result=${filterResult}`;
-        if (filterTimeClass) url += `&timeClass=${filterTimeClass}`;
-        const res = await apiClient.get(url);
-        setGames(res.data.games || []);
-      } catch (err) {
-        console.error('Failed to fetch games:', err);
-      } finally {
-        setLoading(false);
+        const res = await getGames({ page, limit: perPage });
+        setGames(res.data?.data?.games || []);
+      } catch {
+        setGames(DEMO_GAMES);
       }
-    }
-    fetchGames();
-  }, [filterResult, filterTimeClass]);
+      setLoading(false);
+    };
+    load();
+  }, [page]);
 
-  const filteredGames = games.filter(g =>
-    g.opponentUsername.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = games.filter(g => {
+    const matchSearch = search === '' ||
+      g.opening?.toLowerCase().includes(search.toLowerCase()) ||
+      g.white?.toLowerCase().includes(search.toLowerCase()) ||
+      g.black?.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (resultFilter === 'all') return true;
+    const isWhite = g.white === 'You';
+    if (resultFilter === 'win') return (g.result === '1-0' && isWhite) || (g.result === '0-1' && !isWhite);
+    if (resultFilter === 'loss') return (g.result === '0-1' && isWhite) || (g.result === '1-0' && !isWhite);
+    if (resultFilter === 'draw') return g.result === '1/2-1/2';
+    return true;
+  });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-white flex items-center space-x-3">
-            <Swords className="w-7 h-7 text-emerald-400" />
-            <span>Synchronized Game History</span>
-          </h1>
-          <p className="text-xs text-slate-400">
-            All retrievable games imported from your connected Chess.com account
-          </p>
-        </div>
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-bold font-display" style={{ color: '#F5F0E0' }}>Game History</h2>
+        <p className="text-sm mt-0.5" style={{ color: '#4A4A4A' }}>
+          Browse and analyze your chess games
+        </p>
       </div>
 
-      {/* Filter Bar */}
-      <div className="p-4 rounded-2xl glass-panel flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#4A4A4A' }} />
           <input
             type="text"
-            placeholder="Search opponent..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-surface border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500"
+            placeholder="Search opening, opponent..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm"
+            style={{ background: '#0F0F0F', border: '1px solid #1A1A1A', color: '#F5F0E0', outline: 'none' }}
+            onFocus={e => e.currentTarget.style.borderColor = 'rgba(212,175,55,0.4)'}
+            onBlur={e => e.currentTarget.style.borderColor = '#1A1A1A'}
           />
         </div>
-
-        <div className="flex items-center space-x-3 w-full md:w-auto">
-          <select
-            value={filterResult}
-            onChange={(e) => setFilterResult(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-surface border border-white/10 text-white text-sm focus:outline-none"
-          >
-            <option value="">All Results</option>
-            <option value="WIN">Wins</option>
-            <option value="LOSS">Losses</option>
-            <option value="DRAW">Draws</option>
-          </select>
-
-          <select
-            value={filterTimeClass}
-            onChange={(e) => setFilterTimeClass(e.target.value)}
-            className="px-3.5 py-2 rounded-xl bg-surface border border-white/10 text-white text-sm focus:outline-none"
-          >
-            <option value="">All Time Controls</option>
-            <option value="blitz">Blitz</option>
-            <option value="rapid">Rapid</option>
-            <option value="bullet">Bullet</option>
-          </select>
+        <div className="flex gap-2">
+          {['all', 'win', 'loss', 'draw'].map(f => (
+            <button key={f} onClick={() => setResultFilter(f)}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold capitalize transition-all"
+              style={{
+                background: resultFilter === f ? 'rgba(212,175,55,0.12)' : '#0F0F0F',
+                color: resultFilter === f ? '#D4AF37' : '#6B6B6B',
+                border: `1px solid ${resultFilter === f ? 'rgba(212,175,55,0.3)' : '#1A1A1A'}`,
+              }}>
+              {f}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Games List */}
-      {loading ? (
-        <div className="py-20 flex justify-center">
-          <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+      {/* Table */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
+        {/* Header */}
+        <div className="grid grid-cols-12 gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wider"
+          style={{ borderBottom: '1px solid #1A1A1A', color: '#4A4A4A' }}>
+          <div className="col-span-1">Result</div>
+          <div className="col-span-3">Opponent</div>
+          <div className="col-span-3">Opening</div>
+          <div className="col-span-1">Time</div>
+          <div className="col-span-1 text-center">Moves</div>
+          <div className="col-span-1 text-center">Accuracy</div>
+          <div className="col-span-1 text-center">Rating</div>
+          <div className="col-span-1 text-right">Date</div>
         </div>
-      ) : (
-        <div className="p-6 rounded-2xl glass-panel space-y-4">
-          <div className="divide-y divide-white/5">
-            {filteredGames.map((g) => (
-              <div key={g.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center space-x-4">
-                  <span className={`px-3 py-1 rounded text-xs font-black uppercase ${
-                    g.result === 'WIN' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                    g.result === 'LOSS' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-slate-500/20 text-slate-300'
-                  }`}>
-                    {g.result}
-                  </span>
-                  <div>
-                    <div className="text-base font-bold text-white">
-                      vs {g.opponentUsername} <span className="text-xs text-slate-400 font-normal">({g.opponentRating})</span>
-                    </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      {g.timeClass.toUpperCase()} • Color: {g.userColor} • Rating: {g.userRating}
-                    </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-2 rounded-full animate-spin"
+              style={{ borderColor: '#1A1A1A', borderTopColor: '#D4AF37' }} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center text-sm" style={{ color: '#4A4A4A' }}>
+            No games found matching your filters
+          </div>
+        ) : (
+          <div className="divide-y" style={{ divideColor: '#111' }}>
+            {filtered.map((game, i) => {
+              const isWhite = game.white === 'You';
+              return (
+                <div key={game.id || i}
+                  className="grid grid-cols-12 gap-4 px-5 py-3 items-center hover:bg-white/[0.02] transition-colors group">
+                  <div className="col-span-1">
+                    <ResultBadge result={game.result} isWhite={isWhite} />
                   </div>
+                  <div className="col-span-3 text-sm" style={{ color: '#F5F0E0' }}>
+                    <div className="truncate">{isWhite ? game.black : game.white}</div>
+                    <div className="text-xs" style={{ color: '#4A4A4A' }}>vs {isWhite ? '♔' : '♚'}</div>
+                  </div>
+                  <div className="col-span-3 text-xs truncate" style={{ color: '#6B6B6B' }}>{game.opening}</div>
+                  <div className="col-span-1 text-xs" style={{ color: '#4A4A4A' }}>{game.timeControl}</div>
+                  <div className="col-span-1 text-xs text-center" style={{ color: '#6B6B6B' }}>{game.moves}</div>
+                  <div className="col-span-1 text-center">
+                    <span className="text-xs font-bold"
+                      style={{ color: game.accuracy >= 90 ? '#4ade80' : game.accuracy >= 75 ? '#D4AF37' : '#f87171' }}>
+                      {game.accuracy}%
+                    </span>
+                  </div>
+                  <div className="col-span-1 text-xs text-center" style={{ color: '#6B6B6B' }}>{game.myRating}</div>
+                  <div className="col-span-1 text-xs text-right" style={{ color: '#4A4A4A' }}>{game.date}</div>
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end">
-                  {g.gameAnalysis && (
-                    <div className="text-right">
-                      <div className="text-xs font-bold text-emerald-400">{g.gameAnalysis.accuracy}% Acc</div>
-                      <div className="text-[11px] text-slate-500">{g.gameAnalysis.blunders} Blunders</div>
-                    </div>
-                  )}
-                  <Link
-                    to={`/games/${g.id}`}
-                    className="px-4 py-2 rounded-xl bg-surface border border-white/10 hover:border-emerald-500/40 text-xs font-bold text-slate-200 transition-colors flex items-center space-x-1"
-                  >
-                    <span>Inspect</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-
-            {filteredGames.length === 0 && (
-              <div className="py-12 text-center text-slate-400 text-sm">
-                No games found matching selected criteria.
-              </div>
-            )}
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-5 py-3"
+          style={{ borderTop: '1px solid #111' }}>
+          <span className="text-xs" style={{ color: '#4A4A4A' }}>{filtered.length} games</span>
+          <div className="flex items-center space-x-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="p-1.5 rounded-lg transition-all"
+              style={{ color: page === 1 ? '#2A2A2A' : '#6B6B6B', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-xs" style={{ color: '#4A4A4A' }}>Page {page}</span>
+            <button onClick={() => setPage(p => p + 1)}
+              className="p-1.5 rounded-lg transition-all" style={{ color: '#6B6B6B' }}>
+              <ChevronRight size={14} />
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
+
+export default Games;

@@ -1,18 +1,22 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { apiClient, setAuthToken } from '../api/client';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = supabaseUrl && supabaseAnonKey && 
+  !supabaseUrl.includes('placeholder')
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 const AuthContext = createContext({
   user: null,
   session: null,
   loading: true,
+  isDevMode: false,
   signInWithGoogle: async () => {},
-  signInAsGuestDev: async () => {},
+  continueAsDemo: async () => {},
   signOut: async () => {},
 });
 
@@ -20,76 +24,112 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDevMode, setIsDevMode] = useState(false);
 
-  useEffect(() => {
-    // Fetch initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-        setAuthToken(session.access_token);
-      } else {
-        // Fallback local session for dev testing when Supabase credentials aren't live yet
-        const localDevToken = localStorage.getItem('chess_evolve_dev_token');
-        if (localDevToken) {
-          setAuthToken(localDevToken);
-          setUser({ id: 'dev_user_123', email: 'player@chess.local', user_metadata: { full_name: 'Chess Player' } });
-        }
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-        setAuthToken(session.access_token);
-      } else {
-        const localDevToken = localStorage.getItem('chess_evolve_dev_token');
-        if (!localDevToken) {
-          setSession(null);
-          setUser(null);
-          setAuthToken(null);
-        }
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+  const bootstrapUser = useCallback(async (userId, email, name, avatarUrl, token) => {
+    setAuthToken(token);
+    setUser({ id: userId, email, user_metadata: { full_name: name, avatar_url: avatarUrl } });
   }, []);
 
+  useEffect(() => {
+    const initAuth = async () => {
+      // 1. Try Supabase real session
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setSession(session);
+          await bootstrapUser(
+            session.user.id,
+            session.user.email,
+            session.user.user_metadata?.full_name,
+            session.user.user_metadata?.avatar_url,
+            session.access_token
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Try local demo session
+      const devSession = localStorage.getItem('chess_evolve_session');
+      if (devSession) {
+        try {
+          const parsed = JSON.parse(devSession);
+          await bootstrapUser(parsed.id, parsed.email, parsed.name, null, parsed.token);
+          setIsDevMode(true);
+          setLoading(false);
+          return;
+        } catch {
+          localStorage.removeItem('chess_evolve_session');
+        }
+      }
+
+      setLoading(false);
+    };
+
+    initAuth();
+
+    if (supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session) {
+          setSession(session);
+          await bootstrapUser(
+            session.user.id,
+            session.user.email,
+            session.user.user_metadata?.full_name,
+            session.user.user_metadata?.avatar_url,
+            session.access_token
+          );
+          setIsDevMode(false);
+        } else {
+          const devSession = localStorage.getItem('chess_evolve_session');
+          if (!devSession) {
+            setUser(null);
+            setSession(null);
+            setAuthToken(null);
+          }
+        }
+        setLoading(false);
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [bootstrapUser]);
+
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/connect`,
-      },
-    });
-    if (error) {
-      console.error('Google Sign-In Error:', error.message);
-      // Fallback to guest dev authentication for local testing
-      await signInAsGuestDev();
+    if (supabase) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/connect` },
+      });
+      if (error) {
+        console.error('Google OAuth error:', error.message);
+        await continueAsDemo();
+      }
+    } else {
+      await continueAsDemo();
     }
   };
 
-  const signInAsGuestDev = async () => {
-    const dummyToken = 'dev_bearer_token_' + Date.now();
-    localStorage.setItem('chess_evolve_dev_token', dummyToken);
-    setAuthToken(dummyToken);
-    setUser({ id: 'dev_user_' + Date.now(), email: 'player@chess.local', user_metadata: { full_name: 'Chess Player' } });
-    setLoading(false);
+  const continueAsDemo = async () => {
+    const demoId = `demo_${Date.now()}`;
+    const token = `demo_token_${demoId}`;
+    const session = { id: demoId, email: 'demo@chessevolve.app', name: 'Demo Player', token };
+    localStorage.setItem('chess_evolve_session', JSON.stringify(session));
+    await bootstrapUser(demoId, session.email, session.name, null, token);
+    setIsDevMode(true);
   };
 
   const signOut = async () => {
-    localStorage.removeItem('chess_evolve_dev_token');
-    await supabase.auth.signOut();
+    localStorage.removeItem('chess_evolve_session');
+    if (supabase) await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setIsDevMode(false);
     setAuthToken(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signInAsGuestDev, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isDevMode, signInWithGoogle, continueAsDemo, signOut }}>
       {children}
     </AuthContext.Provider>
   );
