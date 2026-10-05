@@ -8,16 +8,12 @@ import statistics
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 load_dotenv()
 
-from sqlalchemy import create_engine, text
+from app.db import get_engine
 from app.datasets.target_generation import calculate_peak_score
 from app.datasets.schemas import PeakTargetConfig
 
 def run_audit(dataset_id: str = None):
-    db_url = os.getenv("DIRECT_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/chess_evolve")
-    if db_url.startswith("postgresql://"):
-        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://")
-        
-    engine = create_engine(db_url)
+    engine = get_engine()
     config = PeakTargetConfig()
     
     total = 0

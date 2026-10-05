@@ -1,11 +1,10 @@
 import torch
 from torch.utils.data import Dataset
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+from app.db import get_engine
 import json
 import os
 from dotenv import load_dotenv
-
-load_dotenv()
 
 class CurrentSelfDataset(Dataset):
     def __init__(self, dataset_id: str, split: str = "TRAIN"):
@@ -15,13 +14,7 @@ class CurrentSelfDataset(Dataset):
         self.dataset_id = dataset_id
         self.split = split
         
-        # Load from DB
-        db_url = os.getenv("DIRECT_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/chess_evolve")
-        # Replace postgresql:// with postgresql+psycopg2:// if needed by SQLAlchemy
-        if db_url.startswith("postgresql://"):
-            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://")
-            
-        self.engine = create_engine(db_url)
+        self.engine = get_engine()
         
         self.positions = []
         self._load_data()

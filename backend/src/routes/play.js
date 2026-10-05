@@ -38,6 +38,7 @@ router.post("/sessions", authenticateSupabaseUser, async (req, res) => {
         userId,
         opponentModelType,
         opponentModelVersionId: model.id,
+        dependentModelVersionId: model.dependentModelVersionId || null,
         userColor: userColor.toUpperCase() === "BLACK" ? "BLACK" : "WHITE",
         fen: initialFen,
         pgn: "",

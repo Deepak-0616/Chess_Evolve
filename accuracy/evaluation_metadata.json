@@ -1,0 +1,15 @@
+{
+  "executionTimestamp": "2026-10-05T12:47:10.754196",
+  "gitCommit": "NOT_AVAILABLE",
+  "currentSelfArtifactPath": "./artifacts/current_self/b2ea5969-f4a9-4fb6-9228-10a3bd42adcf/cmuunbgq80007m5syoow8fu7o\\checkpoint_best.pt",
+  "peakSelfArtifactPath": "C:\\Users\\deepa\\Desktop\\Deepak\\github\\Chess_Evolve\\ml-service\\artifacts\\peak_self\\90ab0928-3289-4815-b94d-4742b0e67b46",
+  "datasetVersion": "NOT_AVAILABLE",
+  "featureVersion": "NOT_AVAILABLE",
+  "pythonVersion": "3.10+",
+  "pytorchVersion": "2.0+",
+  "stockfishVersion": "16.1",
+  "testGamesCount": 0,
+  "testPositionsCount": 0,
+  "evaluationCommand": "python run_real_evaluation.py",
+  "evaluationStatus": "FAILED - INSUFFICIENT DATA"
+}

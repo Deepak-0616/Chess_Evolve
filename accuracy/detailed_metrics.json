@@ -1,0 +1,21 @@
+{
+  "evaluationContext": {
+    "timestamp": "2026-10-05T12:47:10.754196",
+    "status": "SUCCESS",
+    "reason": "Successfully generated metrics."
+  },
+  "currentSelfRawMetrics": {
+    "mrr": 0.47777777989705406,
+    "top1": 0.20666666666666667,
+    "top3": 0.6866666666666666,
+    "test_mrr": 0.5140151706608859,
+    "test_top1": 0.26704545454545453
+  },
+  "peakSelfRawMetrics": {
+    "mrr": 1.1,
+    "top1": 1.0,
+    "top3": 1.15,
+    "valLoss": 0.002498000394552946
+  },
+  "reasonsForUnavailableMetrics": {}
+}

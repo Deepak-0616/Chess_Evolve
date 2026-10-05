@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+from app.db import get_engine
 import os
 import json
 import uuid
@@ -6,10 +7,7 @@ import datetime
 
 class ModelRegistry:
     def __init__(self):
-        db_url = os.getenv("DIRECT_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/chess_evolve")
-        if db_url.startswith("postgresql://"):
-            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://")
-        self.engine = create_engine(db_url)
+        self.engine = get_engine()
 
     def start_training(self, model_version_id: str):
         with self.engine.connect() as conn:

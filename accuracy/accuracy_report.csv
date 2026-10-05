@@ -1,0 +1,8 @@
+Metric,Current Self,Peak Self,Difference,Direction
+Top-1 Accuracy,0.2067,1.0000,0.7933,Higher is better
+Top-3 Accuracy,0.6867,1.1500,0.4633,Higher is better
+MRR,0.4778,1.1000,0.6222,Higher is better
+Log Loss,NOT_AVAILABLE,0.0025,NOT_AVAILABLE,Lower is better
+Weakness Reduction,-,0.35,-,Higher is better
+Engine Quality Improvement,-,0.25,-,Higher is better
+Move-Type Distance,-,NOT_AVAILABLE,-,Lower is better

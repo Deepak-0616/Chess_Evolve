@@ -40,7 +40,9 @@ const MoveList = ({ history }) => (
 const Play = () => {
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState('start');
-  const [modelType, setModelType] = useState('current');
+  const queryParams = new URLSearchParams(window.location.search);
+  const initialOpponent = queryParams.get('opponent') === 'peak-self' ? 'peak' : 'current';
+  const [modelType, setModelType] = useState(initialOpponent);
   const [sessionId, setSessionId] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | playing | gameover
   const [result, setResult] = useState('');
@@ -62,26 +64,37 @@ const Play = () => {
     setAiThinking(false);
 
     try {
-      const res = await createPlaySession({ modelType, playerColor });
-      setSessionId(res.data?.data?.id);
-    } catch {
-      setSessionId(`demo_${Date.now()}`);
-    }
+      const res = await createPlaySession({ 
+        opponentModelType: modelType === 'current' ? 'CURRENT_SELF' : 'PEAK_SELF', 
+        userColor: playerColor 
+      });
+      setSessionId(res.data?.session?.id);
+      
+      setStatus('playing');
+      setOrientation(playerColor);
 
-    setStatus('playing');
-    setOrientation(playerColor);
-
-    // If AI plays first (player is black)
-    if (playerColor === 'black') {
-      setTimeout(() => makeAiMove(newGame, `demo_${Date.now()}`), 800);
+      // If AI plays first (player is black)
+      if (playerColor === 'black' && res.data?.aiMove) {
+        const move = newGame.move(res.data.aiMove);
+        if (move) {
+          setGame(new Chess(newGame.fen()));
+          setFen(newGame.fen());
+          setLastMove({ from: move.from, to: move.to });
+          setHistory(prev => [...prev, move.san]);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus('idle');
+      return;
     }
   };
 
   const makeAiMove = useCallback(async (currentGame, sid) => {
     setAiThinking(true);
     try {
-      const res = await makeMove(sid, null); // null = AI moves
-      const aiMoveData = res.data?.data?.aiMove;
+      const res = await makeMove(sid, null);
+      const aiMoveData = res.data?.aiMove;
       if (aiMoveData) {
         const move = currentGame.move(aiMoveData);
         if (move) {
@@ -91,31 +104,9 @@ const Play = () => {
           setHistory(prev => [...prev, move.san]);
           checkGameEnd(currentGame);
         }
-      } else {
-        // Demo: random legal move
-        const moves = currentGame.moves({ verbose: true });
-        if (moves.length > 0) {
-          const aiMove = moves[Math.floor(Math.random() * moves.length)];
-          currentGame.move(aiMove);
-          setGame(new Chess(currentGame.fen()));
-          setFen(currentGame.fen());
-          setLastMove({ from: aiMove.from, to: aiMove.to });
-          setHistory(prev => [...prev, aiMove.san]);
-          checkGameEnd(currentGame);
-        }
       }
-    } catch {
-      // Demo fallback
-      const moves = currentGame.moves({ verbose: true });
-      if (moves.length > 0) {
-        const aiMove = moves[Math.floor(Math.random() * moves.length)];
-        currentGame.move(aiMove);
-        setGame(new Chess(currentGame.fen()));
-        setFen(currentGame.fen());
-        setLastMove({ from: aiMove.from, to: aiMove.to });
-        setHistory(prev => [...prev, aiMove.san]);
-        checkGameEnd(currentGame);
-      }
+    } catch (err) {
+      console.error(err);
     }
     setAiThinking(false);
   }, []);

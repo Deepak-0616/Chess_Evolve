@@ -25,6 +25,7 @@ export const trainCurrentSelf = () => apiClient.post('/models/current-self/train
 export const trainPeakSelf = () => apiClient.post('/models/peak-self/train');
 export const getCurrentSelfStatus = () => apiClient.get('/models/current-self/status');
 export const getPeakSelfStatus = () => apiClient.get('/models/peak-self/status');
+export const getEvolutionReport = () => apiClient.get('/evolution');
 
 // Play
 export const createPlaySession = (data) => apiClient.post('/play/sessions', data);
@@ -37,7 +38,11 @@ export const getTrainingRecs = () => apiClient.get('/training/recommendations');
 export const createTrainingSession = (data) => apiClient.post('/training/sessions', data);
 
 // Coach
-export const sendCoachMessage = (message) => apiClient.post('/coach/chat', { message });
+export const sendCoachMessage = (message, conversationId, gameId) => apiClient.post('/coach/chat', { message, conversationId, gameId });
+export const getCoachInsights = () => apiClient.get('/coach/insights');
+export const getCoachConversations = () => apiClient.get('/coach/conversations');
+export const getCoachConversation = (id) => apiClient.get(`/coach/conversations/${id}`);
+export const reviewGame = (gameId) => apiClient.post('/coach/game-review', { gameId });
 
 // Arena
 export const getArenaPlayers = () => apiClient.get('/arena/players');

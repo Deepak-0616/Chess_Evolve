@@ -3,7 +3,7 @@ import { prisma } from "../../utils/prisma.js";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
-import { currentSelfTrainingQueue } from '../../queues/trainingQueue.js';
+// import { currentSelfTrainingQueue } from '../../queues/trainingQueue.js';
 
 export class MLServiceBridge {
   static async triggerModelTraining(userId, modelType) {
@@ -21,6 +21,18 @@ export class MLServiceBridge {
         throw new Error(`No ${modelType} dataset found for user.`);
       }
 
+      let dependentModelVersionId = null;
+      if (modelType === "PEAK_SELF") {
+        const currentSelf = await prisma.mLModelVersion.findFirst({
+          where: { userId, modelType: "CURRENT_SELF", status: "READY" },
+          orderBy: { version: "desc" }
+        });
+        if (!currentSelf) {
+          throw new Error("Cannot train Peak Self without a READY Current Self model.");
+        }
+        dependentModelVersionId = currentSelf.id;
+      }
+
       // Upsert MLModelVersion
       const modelVersion = await prisma.mLModelVersion.upsert({
         where: { userId_modelType_version: { userId, modelType, version: 1 } },
@@ -32,13 +44,15 @@ export class MLServiceBridge {
           positionsUsed: latestDataset.totalPositions,
           status: "QUEUED",
           datasetVersion: latestDataset.version,
-          featureVersion: latestDataset.featureVersion
+          featureVersion: latestDataset.featureVersion,
+          dependentModelVersionId
         },
         update: {
           status: "QUEUED",
           gamesUsed: latestDataset.totalGames,
           positionsUsed: latestDataset.totalPositions,
-          datasetVersion: latestDataset.version
+          datasetVersion: latestDataset.version,
+          dependentModelVersionId
         },
       });
 

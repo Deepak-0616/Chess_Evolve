@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-10-05T09:05:40.472399",
+  "testSetSize": 10000,
+  "models": {
+    "currentSelf": {
+      "top1Accuracy": 0.85,
+      "averageCentipawnLoss": 24.2
+    },
+    "peakSelf": {
+      "top1Accuracy": 0.92,
+      "averageCentipawnLoss": 18.5
+    }
+  },
+  "evolutionMetrics": {
+    "weaknessReductionRate": 0.35,
+    "stylePreservation": 0.75,
+    "engineQualityImprovement": 0.07000000000000006
+  }
+}

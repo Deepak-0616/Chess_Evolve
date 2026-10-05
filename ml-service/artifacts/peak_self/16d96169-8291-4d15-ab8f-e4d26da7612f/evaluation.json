@@ -1,0 +1,1 @@
+{"status": "PASS", "reasons": ["Quality Gate PASSED. Top-1: 1.00. Weakness Reduced: 35.0%. No Style Collapse."], "metrics": {"engineRankDistance": 0.25, "moveTypeDistance": 0.1, "weaknessReductionRate": 0.35}}

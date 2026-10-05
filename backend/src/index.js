@@ -16,6 +16,7 @@ import profileRoutes from "./routes/profile.js";
 import stockfishRoutes from "./routes/stockfish.js";
 import featuresRoutes from "./routes/features.js";
 import datasetsRoutes from "./routes/datasets.js";
+import evolutionRoutes from "./routes/evolution.js";
 
 dotenv.config();
 
@@ -62,6 +63,7 @@ app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/stockfish", stockfishRoutes);
 app.use("/api/v1/ml/features", featuresRoutes);
 app.use("/api/v1/ml/datasets", datasetsRoutes);
+app.use("/api/v1/evolution", evolutionRoutes);
 
 // Global 404 handler
 app.use((_req, res) => {

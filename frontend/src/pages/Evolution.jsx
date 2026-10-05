@@ -1,22 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
-import { TrendingUp, Brain, History, Award, Loader2 } from 'lucide-react';
+import { getEvolutionReport } from '../api';
+import { TrendingUp, Brain, History, Award, Loader2, Shield, Activity, Trophy } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 export const Evolution = () => {
   const [dnaVersions, setDnaVersions] = useState([]);
   const [models, setModels] = useState([]);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [dnaRes, modelRes] = await Promise.all([
-          apiClient.get('/dna/history'),
-          apiClient.get('/models'),
+        const [dnaRes, modelRes, evolutionRes] = await Promise.all([
+          apiClient.get('/dna/history').catch(() => ({ data: {} })),
+          apiClient.get('/models').catch(() => ({ data: {} })),
+          getEvolutionReport().catch(() => ({ data: {} }))
         ]);
-        setDnaVersions(dnaRes.data.dnaVersions || []);
-        setModels(modelRes.data.allVersions || []);
+        setDnaVersions(dnaRes.data?.dnaVersions || []);
+        setModels(modelRes.data?.allVersions || []);
+        setReport(evolutionRes.data?.report || null);
       } catch (err) {
         console.error('Failed to fetch evolution data:', err);
       } finally {
@@ -54,7 +58,83 @@ export const Evolution = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {report && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-black text-white flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-fuchsia-400" />
+            <span>Peak vs Current Comparative Analysis</span>
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 relative overflow-hidden">
+              <div className="absolute -right-6 -top-6 text-fuchsia-500/10">
+                <Trophy size={120} />
+              </div>
+              <div className="relative">
+                <div className="flex items-center space-x-2 text-fuchsia-500 mb-2">
+                  <TrendingUp size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Evolution Score</span>
+                </div>
+                <div className="text-4xl font-bold text-white mb-1">
+                  +{report.evolutionScore.toFixed(1)}%
+                </div>
+                <p className="text-xs text-slate-400">Overall improvement over Current Self</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+              <div className="flex items-center space-x-2 text-emerald-500 mb-2">
+                <Shield size={16} />
+                <span className="text-xs font-bold uppercase tracking-wider">Weakness Reduction</span>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {report.metrics.weaknessReduction.toFixed(1)}%
+              </div>
+              <p className="text-xs text-slate-400">Fewer tactical blunders</p>
+            </div>
+
+            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+              <div className="flex items-center space-x-2 text-amber-500 mb-2">
+                <Activity size={16} />
+                <span className="text-xs font-bold uppercase tracking-wider">Style Preservation</span>
+              </div>
+              <div className="text-3xl font-bold text-white mb-1">
+                {report.metrics.stylePreservation.toFixed(1)}%
+              </div>
+              <p className="text-xs text-slate-400">Similarity to your fundamental playstyle</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-white">Engine Quality Comparison</h3>
+              <p className="text-xs text-slate-400 mt-1">Probability of playing the engine's top choice</p>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-slate-300">Current Self (v{report.models.currentSelf.version})</span>
+                  <span className="text-sm font-bold text-slate-400">{(report.metrics.engineQuality.currentSelf * 100).toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-3">
+                  <div className="bg-slate-500 h-3 rounded-full" style={{ width: `${report.metrics.engineQuality.currentSelf * 100}%` }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-fuchsia-400">Peak Self (v{report.models.peakSelf.version})</span>
+                  <span className="text-sm font-bold text-fuchsia-400">{(report.metrics.engineQuality.peakSelf * 100).toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-slate-800 rounded-full h-3">
+                  <div className="bg-fuchsia-500 h-3 rounded-full" style={{ width: `${report.metrics.engineQuality.peakSelf * 100}%` }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
         {/* Accuracy Progress Chart */}
         <div className="p-6 rounded-2xl glass-panel space-y-4">
           <h2 className="text-xl font-black text-white flex items-center space-x-2">
@@ -127,3 +207,5 @@ export const Evolution = () => {
     </div>
   );
 };
+
+export default Evolution;

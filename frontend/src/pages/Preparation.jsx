@@ -383,13 +383,12 @@ export const Preparation = () => {
 
                       {peakModelJob.status === 'READY' && (
                         <div className="mt-6 pt-4 border-t border-slate-700">
-                          <button
-                            disabled
-                            className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-slate-700 opacity-50 cursor-not-allowed"
-                            title="Peak Gameplay is coming in Phase 5"
+                          <a
+                            href="/play?opponent=peak-self"
+                            className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-fuchsia-600 hover:bg-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-500 transition-colors"
                           >
-                            ⚔️ Peak Gameplay Coming Soon
-                          </button>
+                            ⚔️ Play Against Peak Self
+                          </a>
                         </div>
                       )}
                     </div>

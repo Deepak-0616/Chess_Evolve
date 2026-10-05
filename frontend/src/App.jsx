@@ -9,9 +9,11 @@ import Connect from './pages/Connect';
 import Dashboard from './pages/Dashboard';
 import Games from './pages/Games';
 import DNA from './pages/DNA';
+import Evolution from './pages/Evolution';
 import Training from './pages/Training';
 import Coach from './pages/Coach';
 import Arena from './pages/Arena';
+import ArenaMatch from './pages/ArenaMatch';
 import Play from './pages/Play';
 import Profile from './pages/Profile';
 import { Preparation } from './pages/Preparation';
@@ -49,10 +51,12 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
     <Route path="/games" element={<Protected><Games /></Protected>} />
     <Route path="/dna" element={<Protected><DNA /></Protected>} />
+    <Route path="/evolution" element={<Protected><Evolution /></Protected>} />
     <Route path="/preparation" element={<Protected><Preparation /></Protected>} />
     <Route path="/training" element={<Protected><Training /></Protected>} />
     <Route path="/coach" element={<Protected><Coach /></Protected>} />
     <Route path="/arena" element={<Protected><Arena /></Protected>} />
+    <Route path="/arena/:matchId" element={<Protected><ArenaMatch /></Protected>} />
     <Route path="/play" element={<Protected><Play /></Protected>} />
     <Route path="/profile" element={<Protected><Profile /></Protected>} />
     <Route path="*" element={<Navigate to="/" replace />} />

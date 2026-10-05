@@ -1,11 +1,13 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from .models.current_self.inference import CurrentSelfInferenceEngine
+from .models.peak_self.inference import PeakSelfInferenceEngine
 from .models.current_self.registry import ModelRegistry
 
 router = APIRouter(prefix="/api/v1/ml")
-inference_engine = CurrentSelfInferenceEngine()
+current_self_engine = CurrentSelfInferenceEngine()
+peak_self_engine = PeakSelfInferenceEngine()
 
 class InferenceRequest(BaseModel):
     user_id: str
@@ -13,35 +15,35 @@ class InferenceRequest(BaseModel):
     candidates: List[Dict[str, Any]]
     move_number: int = 1
     game_phase: str = "MIDDLEGAME"
-    model_version_id: str = None
+    model_version_id: Optional[str] = None
+    model_type: str = "CURRENT_SELF"
 
 @router.post("/predict")
 def predict(req: InferenceRequest):
-    # 1. Fetch active model metadata from DB
     registry = ModelRegistry()
     with registry.engine.connect() as conn:
         if req.model_version_id:
             query = """
-                SELECT id, version, "artifactPath", "featureVersion", "datasetVersion"
+                SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
                 FROM "MLModelVersion"
                 WHERE id = :mvid AND "userId" = :uid
             """
             params = {"uid": req.user_id, "mvid": req.model_version_id}
         else:
             query = """
-                SELECT id, version, "artifactPath", "featureVersion", "datasetVersion"
+                SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
                 FROM "MLModelVersion"
-                WHERE "userId" = :uid AND "modelType" = 'CURRENT_SELF' AND status = 'READY'
+                WHERE "userId" = :uid AND "modelType" = :mtype AND status = 'READY'
                 ORDER BY version DESC LIMIT 1
             """
-            params = {"uid": req.user_id}
+            params = {"uid": req.user_id, "mtype": req.model_type}
             
         result = conn.execute(registry.text(query), params).first()
         
     if not result:
-        raise HTTPException(status_code=404, detail="No valid Current Self model found for this request.")
+        raise HTTPException(status_code=404, detail=f"No valid {req.model_type} model found for this request.")
         
-    model_version_id, version, artifact_path, feature_version, dataset_version = result
+    model_version_id, version, artifact_path, feature_version, dataset_version, dependent_model_id, actual_model_type = result
     
     if not artifact_path:
         raise HTTPException(status_code=500, detail="Active model has no artifact path.")
@@ -97,16 +99,58 @@ def predict(req: InferenceRequest):
         cand_moves.append(cand.get("move"))
         
     try:
-        prediction = inference_engine.predict(
-            user_id=req.user_id,
-            model_version=version,
-            artifact_path=artifact_path,
-            db_config=db_config,
-            position_features=pos_list,
-            candidate_features=cand_lists,
-            candidate_moves=cand_moves
-        )
-        
+        if actual_model_type == "CURRENT_SELF":
+            prediction = current_self_engine.predict(
+                user_id=req.user_id,
+                model_version=version,
+                artifact_path=artifact_path,
+                db_config=db_config,
+                position_features=pos_list,
+                candidate_features=cand_lists,
+                candidate_moves=cand_moves
+            )
+        elif actual_model_type == "PEAK_SELF":
+            if not dependent_model_id:
+                raise ValueError("Peak Self model is missing dependent Current Self model.")
+                
+            # Fetch dependent Current Self model
+            with registry.engine.connect() as conn:
+                dep_result = conn.execute(registry.text("""
+                    SELECT version, "artifactPath" FROM "MLModelVersion" WHERE id = :depid
+                """), {"depid": dependent_model_id}).first()
+                if not dep_result or not dep_result[1]:
+                    raise ValueError("Dependent Current Self model artifact not found.")
+                dep_version, dep_artifact_path = dep_result
+                
+            # Predict base probability with Current Self
+            dep_prediction = current_self_engine.predict(
+                user_id=req.user_id,
+                model_version=dep_version,
+                artifact_path=dep_artifact_path,
+                db_config=db_config,
+                position_features=pos_list,
+                candidate_features=cand_lists,
+                candidate_moves=cand_moves
+            )
+            base_probs = dep_prediction.get("moveProbabilities", {})
+            
+            # Append base probability to candidate features
+            for i, cand_move in enumerate(cand_moves):
+                cand_lists[i].append(base_probs.get(cand_move, 0.0))
+                
+            # Predict Peak Self
+            prediction = peak_self_engine.predict(
+                user_id=req.user_id,
+                model_version=version,
+                artifact_path=artifact_path,
+                db_config=db_config,
+                position_features=pos_list,
+                candidate_features=cand_lists,
+                candidate_moves=cand_moves
+            )
+        else:
+            raise ValueError("Unsupported model type.")
+            
         # Enrich prediction with engine rank of the chosen move
         chosen = prediction.get("recommendedMove")
         chosen_rank = 1

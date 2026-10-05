@@ -1,0 +1,62 @@
+[
+    {
+        "userId": "b2ea5969-f4a9-4fb6-9228-10a3bd42adcf",
+        "modelType": "CURRENT_SELF",
+        "version": 1,
+        "status": "READY",
+        "datasetVersion": "v1",
+        "featureVersion": "v1",
+        "gamesUsed": 39,
+        "positionsUsed": 5592,
+        "dependentModelVersionId": null,
+        "evaluationStatus": "PASS",
+        "qualityGatePassed": "YES",
+        "artifactExists": "EXISTS",
+        "artifactLoadable": true
+    },
+    {
+        "userId": "08ec59f6-a73d-47bc-9325-7105f082b534",
+        "modelType": "CURRENT_SELF",
+        "version": 1,
+        "status": "READY",
+        "datasetVersion": "v1",
+        "featureVersion": "v1",
+        "gamesUsed": 8,
+        "positionsUsed": 906,
+        "dependentModelVersionId": null,
+        "evaluationStatus": "PASS",
+        "qualityGatePassed": "YES",
+        "artifactExists": "EXISTS",
+        "artifactLoadable": true
+    },
+    {
+        "userId": "08ec59f6-a73d-47bc-9325-7105f082b534",
+        "modelType": "PEAK_SELF",
+        "version": 1,
+        "status": "READY",
+        "datasetVersion": "v1",
+        "featureVersion": "v1",
+        "gamesUsed": 8,
+        "positionsUsed": 906,
+        "dependentModelVersionId": "cmuv7y5cu0f1t4vnao2plw7pw",
+        "evaluationStatus": "PASS",
+        "qualityGatePassed": "YES",
+        "artifactExists": "EXISTS",
+        "artifactLoadable": true
+    },
+    {
+        "userId": "b2ea5969-f4a9-4fb6-9228-10a3bd42adcf",
+        "modelType": "PEAK_SELF",
+        "version": 1,
+        "status": "READY",
+        "datasetVersion": "v1",
+        "featureVersion": "v1",
+        "gamesUsed": 39,
+        "positionsUsed": 5592,
+        "dependentModelVersionId": "cmuunbgq80007m5syoow8fu7o",
+        "evaluationStatus": "PASS",
+        "qualityGatePassed": "YES",
+        "artifactExists": "EXISTS",
+        "artifactLoadable": true
+    }
+]

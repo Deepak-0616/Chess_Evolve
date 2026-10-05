@@ -1,0 +1,29 @@
+{
+  "evaluation": {
+    "timestamp": "2026-10-05T12:47:10.752180",
+    "datasetVersion": "v1",
+    "featureVersion": "v1",
+    "failureReason": null
+  },
+  "currentSelf": {
+    "modelVersion": "1",
+    "metrics": {
+      "top1": 0.20666666666666667,
+      "top3": 0.6866666666666666,
+      "mrr": 0.47777777989705406,
+      "logLoss": "NOT_AVAILABLE"
+    }
+  },
+  "peakSelf": {
+    "modelVersion": "1",
+    "metrics": {
+      "top1": 1.0,
+      "top3": 1.15,
+      "mrr": 1.1,
+      "logLoss": 0.002498000394552946,
+      "weaknessReduction": 0.35,
+      "engineQualityImprovement": 0.25,
+      "stylePreservation": "NOT_AVAILABLE"
+    }
+  }
+}

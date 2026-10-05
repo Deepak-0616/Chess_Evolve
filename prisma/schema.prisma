@@ -73,13 +73,14 @@ model User {
   trainingSessions TrainingSession[]
   playSessions     PlaySession[]
   arenaProfile     ArenaProfile?
-  challengedSessions ArenaSession[] @relation("ChallengerSessions")
   featureJobs      FeatureGenerationJob[]
   featureDatasets  FeatureDataset[]
   featureRecords   FeatureRecord[]
   datasetJobs      DatasetGenerationJob[]
   datasets         MLDataset[]
   datasetRecords   MLDatasetRecord[]
+  coachConversations CoachConversation[]
+  coachMessages      CoachMessage[]
 }
 
 model ChessProfile {
@@ -234,6 +235,7 @@ model MLModelVersion {
   featureVersion        String      @default("v1")
   architectureVersion   String      @default("v1")
   trainingConfigVersion String      @default("v1")
+  dependentModelVersionId String?   // Used by Peak Self to reference Current Self version used during training/inference
   trainingJobId         String?
   gamesUsed             Int         @default(0)
   positionsUsed         Int         @default(0)
@@ -256,7 +258,13 @@ model MLModelVersion {
 
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   playSessions   PlaySession[]
-  arenaSessions  ArenaSession[]
+  arenaModels    ArenaModel[]
+  whiteArenaMatches ArenaMatch[] @relation("WhiteMatchModel")
+  blackArenaMatches ArenaMatch[] @relation("BlackMatchModel")
+  
+  // Self relation for dependencies
+  dependentModel MLModelVersion? @relation("ModelDependency", fields: [dependentModelVersionId], references: [id])
+  dependingModels MLModelVersion[] @relation("ModelDependency")
 
   @@unique([userId, modelType, version])
 }
@@ -280,6 +288,7 @@ model PlaySession {
   userId                 String
   opponentModelType      ModelType
   opponentModelVersionId String?
+  dependentModelVersionId String?          // For Peak Self, store which Current Self version was used
   userColor              String            // WHITE or BLACK
   fen                    String            @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
   pgn                    String            @default("") @db.Text
@@ -298,35 +307,100 @@ model PlaySession {
 model ArenaProfile {
   id          String          @id @default(cuid())
   userId      String          @unique
+  displayName String?
   visibility  ArenaVisibility @default(PRIVATE)
-  rating      Int             @default(1500)
-  totalGames  Int             @default(0)
-  wins        Int             @default(0)
-  losses      Int             @default(0)
-  draws       Int             @default(0)
+  arenaEnabled Boolean        @default(false)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  targetSessions ArenaSession[] @relation("TargetSessions")
+  models      ArenaModel[]
+  ratings     ArenaRating[]
+  matchesAsWhite ArenaMatch[] @relation("WhitePlayer")
+  matchesAsBlack ArenaMatch[] @relation("BlackPlayer")
+  challengesSent ArenaChallenge[] @relation("Challenger")
+  challengesReceived ArenaChallenge[] @relation("Opponent")
 }
 
-model ArenaSession {
+model ArenaModel {
+  id               String          @id @default(cuid())
+  userId           String
+  mlModelVersionId String
+  modelType        ModelType
+  visibility       ArenaVisibility @default(PRIVATE)
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  arenaProfile     ArenaProfile    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  mlModelVersion   MLModelVersion  @relation(fields: [mlModelVersionId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, modelType])
+}
+
+model ArenaRating {
+  id          String    @id @default(cuid())
+  userId      String
+  modelType   ModelType
+  rating      Int       @default(1500)
+  gamesPlayed Int       @default(0)
+  wins        Int       @default(0)
+  losses      Int       @default(0)
+  draws       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  arenaProfile ArenaProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, modelType])
+}
+
+model ArenaMatch {
   id                     String            @id @default(cuid())
-  challengerUserId       String
-  targetUserId           String
-  targetModelType        ModelType
-  targetModelVersionId   String
   status                 PlaySessionStatus @default(IN_PROGRESS)
+  whiteUserId            String
+  whiteModelVersionId    String?           // Null if human
+  blackUserId            String
+  blackModelVersionId    String?           // Null if human
+  timeControl            String            @default("10+0")
+  result                 String?
+  winnerUserId           String?
+  terminationReason      String?
   pgn                    String            @default("") @db.Text
   fen                    String            @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-  moveHistory            Json
+  moveHistory            Json              @default("[]")
+  startedAt              DateTime          @default(now())
+  completedAt            DateTime?
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
-  challengerUser         User              @relation("ChallengerSessions", fields: [challengerUserId], references: [id], onDelete: Cascade)
-  targetArenaProfile     ArenaProfile      @relation("TargetSessions", fields: [targetUserId], references: [userId], onDelete: Cascade)
-  targetModelVersion     MLModelVersion    @relation(fields: [targetModelVersionId], references: [id])
+  whiteProfile           ArenaProfile      @relation("WhitePlayer", fields: [whiteUserId], references: [userId])
+  blackProfile           ArenaProfile      @relation("BlackPlayer", fields: [blackUserId], references: [userId])
+  whiteModelVersion      MLModelVersion?   @relation("WhiteMatchModel", fields: [whiteModelVersionId], references: [id])
+  blackModelVersion      MLModelVersion?   @relation("BlackMatchModel", fields: [blackModelVersionId], references: [id])
+}
+
+enum ChallengeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+model ArenaChallenge {
+  id                       String          @id @default(cuid())
+  challengerUserId         String
+  challengerModelVersionId String?
+  opponentUserId           String
+  opponentModelVersionId   String
+  timeControl              String          @default("10+0")
+  status                   ChallengeStatus @default(PENDING)
+  expiresAt                DateTime
+  createdAt                DateTime        @default(now())
+
+  challengerProfile        ArenaProfile    @relation("Challenger", fields: [challengerUserId], references: [userId])
+  opponentProfile          ArenaProfile    @relation("Opponent", fields: [opponentUserId], references: [userId])
 }
 
 enum FeatureGenerationStatus {
@@ -498,5 +572,35 @@ model MLDatasetRecord {
 
   @@index([datasetId, split])
   @@index([gameId])
+}
+
+model CoachConversation {
+  id          String         @id @default(cuid())
+  userId      String
+  title       String?
+  contextType String?        // e.g. "GENERAL", "GAME_REVIEW", "EVOLUTION"
+  gameId      String?        // Reference to Game if applicable
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    CoachMessage[]
+
+  @@index([userId])
+}
+
+model CoachMessage {
+  id             String            @id @default(cuid())
+  conversationId String
+  userId         String
+  role           String            // "user" or "assistant"
+  content        String            @db.Text
+  metadata       Json?             // Extra structured info (insights, evidence, etc)
+  createdAt      DateTime          @default(now())
+
+  conversation   CoachConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
 }
 
