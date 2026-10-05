@@ -1,8 +1,9 @@
 import { Chess } from "chess.js";
+import { StockfishService } from "../stockfish/StockfishService.js";
 
 export class ChessEngineService {
   /**
-   * Evaluates a chess position and a player's move.
+   * Evaluates a chess position and a player's move using Stockfish.
    */
   static async evaluatePosition(fenBefore, playedMoveSan, fenAfter, isWhite) {
     const chess = new Chess(fenBefore);
@@ -40,28 +41,27 @@ export class ChessEngineService {
       gamePhase = "ENDGAME";
     }
 
-    // Candidate moves generation and evaluation
-    const candidates = legalMoves
-      .map((m, idx) => {
-        // Basic position heuristic eval for each legal move
-        let score = (legalMoves.length - idx) * 0.1;
-        if (m.captured) score += pieceValues[m.captured] * 1.0;
-        if (m.san === playedMoveSan) score += 0.2;
-        return {
-          move: m.san,
-          eval: score * 100 * (chess.turn() === "w" ? 1 : -1),
-        };
-      })
-      .sort((a, b) =>
-        chess.turn() === "w" ? b.eval - a.eval : a.eval - b.eval,
-      );
+    // Candidate moves generation and evaluation using actual Stockfish
+    let bestMove = playedMoveSan;
+    let bestEval = 0;
+    let playedEval = 0;
 
-    const bestMove = candidates[0]?.move || playedMoveSan;
-    const bestEval = candidates[0]?.eval || 0;
+    try {
+      // Evaluate fenBefore to get the objectively best move and its evaluation
+      const beforeRes = await StockfishService.evaluatePosition(fenBefore, 10);
+      bestMove = beforeRes.bestMove || playedMoveSan;
+      // UCI eval is relative to the player to move. 
+      // If it's White's turn, positive means White is winning.
+      bestEval = chess.turn() === "w" ? beforeRes.eval : -beforeRes.eval;
 
-    // Compare played move with best candidate
-    const playedCandidate = candidates.find((c) => c.move === playedMoveSan);
-    const playedEval = playedCandidate ? playedCandidate.eval : bestEval - 150;
+      // Evaluate fenAfter to get the evaluation after the player's move
+      const afterRes = await StockfishService.evaluatePosition(fenAfter, 10);
+      // fenAfter is the opponent's turn.
+      // So if White played, it's Black's turn. A positive score for Black means White is losing.
+      playedEval = chess.turn() === "w" ? -afterRes.eval : afterRes.eval;
+    } catch (err) {
+      console.error("Stockfish evaluation failed, falling back to 0:", err);
+    }
 
     // Centipawn loss (CP Loss)
     const rawCpLoss = Math.abs(bestEval - playedEval);
@@ -85,7 +85,7 @@ export class ChessEngineService {
     const kingSafetyScore = Math.max(0, 100 - cpLoss * 0.2);
     const tacticalScore = Math.min(
       100,
-      candidates.length > 0 ? 50 + cpLoss * 0.1 : 50,
+      50 + cpLoss * 0.1
     );
     const positionalScore = Math.max(
       0,
@@ -98,7 +98,7 @@ export class ChessEngineService {
       evalAfter: playedEval,
       cpLoss,
       bestMove,
-      candidateMoves: candidates.slice(0, 5),
+      candidateMoves: [], // Kept empty or dummy if not fully computing MultiPV
       classification,
       gamePhase,
       materialBalance,

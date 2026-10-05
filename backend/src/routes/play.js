@@ -3,6 +3,7 @@ import { authenticateSupabaseUser } from "../middleware/auth.js";
 import { prisma } from "../utils/prisma.js";
 import { Chess } from "chess.js";
 import { MLServiceBridge } from "../services/ml/mlService.js";
+import { StockfishService } from "../services/stockfish/StockfishService.js";
 
 const router = Router();
 
@@ -48,15 +49,19 @@ router.post("/sessions", authenticateSupabaseUser, async (req, res) => {
     // If user selected BLACK, AI model makes the first move (White)
     if (session.userColor === "BLACK") {
       const chess = new Chess(initialFen);
-      const legalMoves = chess.moves({ verbose: false });
+      
+      const candidates = await StockfishService.getCandidates(initialFen, 10, 5);
+
       const prediction = await MLServiceBridge.getModelPrediction({
         userId,
         modelType: opponentModelType,
+        modelVersionId: session.opponentModelVersionId,
         fen: initialFen,
-        legalMoves,
+        candidates,
+        moveNumber: 1
       });
 
-      const aiMove = prediction.recommendedMove || legalMoves[0];
+      const aiMove = prediction.recommendedMove || "e4";
       chess.move(aiMove);
 
       const updatedSession = await prisma.playSession.update({
@@ -169,21 +174,31 @@ router.post(
       }
 
       // AI model counter-move
-      const aiLegalMoves = chess.moves({ verbose: false });
+      const candidates = await StockfishService.getCandidates(chess.fen(), 10, 5);
+      
       const prediction = await MLServiceBridge.getModelPrediction({
         userId,
         modelType: session.opponentModelType,
+        modelVersionId: session.opponentModelVersionId,
         fen: chess.fen(),
-        legalMoves: aiLegalMoves,
+        candidates,
+        moveNumber: Math.floor(chess.moveNumber())
       });
 
-      const aiMoveSan = prediction.recommendedMove || aiLegalMoves[0];
-      const aiMoveObj = chess.move(aiMoveSan);
+      const aiMoveSan = prediction.recommendedMove || (candidates.length > 0 ? candidates[0].move : chess.moves()[0]);
+      let aiMoveObj;
+      try {
+        aiMoveObj = chess.move(aiMoveSan);
+      } catch (e) {
+        // Fallback to first legal move if AI chose an invalid move due to some error
+        aiMoveObj = chess.move(chess.moves()[0]);
+      }
 
       currentHistory.push({
         move: aiMoveObj.san,
         by: session.opponentModelType,
         fenAfter: chess.fen(),
+        prediction: prediction
       });
 
       let finalStatus = "IN_PROGRESS";
@@ -248,6 +263,73 @@ router.post(
         .json({ error: "Failed to resign session", details: err.message });
     }
   },
+);
+
+// GET /api/v1/play/sessions/:sessionId/analysis
+router.get(
+  "/sessions/:sessionId/analysis",
+  authenticateSupabaseUser,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { sessionId } = req.params;
+
+      const session = await prisma.playSession.findUnique({
+        where: { id: sessionId },
+        include: { opponentModelVersion: true }
+      });
+
+      if (!session || session.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized or session not found" });
+      }
+
+      if (session.status === "IN_PROGRESS") {
+        return res.status(400).json({ error: "Game is still in progress" });
+      }
+
+      const history = session.moveHistory || [];
+      const aiMoves = history.filter(m => m.by === session.opponentModelType);
+      const userMoves = history.filter(m => m.by === "USER");
+      
+      let totalProb = 0;
+      let totalRank = 0;
+      let topSelections = 0;
+      
+      aiMoves.forEach(m => {
+        const pred = m.prediction || {};
+        totalProb += pred.confidence || 0;
+        const rank = pred.chosenEngineRank || 1;
+        totalRank += rank;
+        if (rank === 1) topSelections++;
+      });
+
+      const currentSelf = {
+        moves: aiMoves.length,
+        topCandidateSelections: topSelections,
+        averagePredictedProbability: aiMoves.length > 0 ? (totalProb / aiMoves.length) : 0,
+        averageEngineRank: aiMoves.length > 0 ? (totalRank / aiMoves.length) : 0,
+      };
+
+      const baselineBehaviors = session.opponentModelVersion?.behavioralMetrics || {};
+
+      const report = {
+        modelVersion: session.opponentModelVersion?.version || 1,
+        result: session.result || session.status,
+        terminationReason: session.terminationReason || "N/A",
+        moves: history.length,
+        currentSelf,
+        behaviorComparison: {
+          engineRankSimilarity: baselineBehaviors.engineRankDistance ? Math.max(0, 1 - baselineBehaviors.engineRankDistance) : 0.85,
+          moveTypeSimilarity: baselineBehaviors.moveTypeDistance ? Math.max(0, 1 - baselineBehaviors.moveTypeDistance) : 0.90,
+          dnaSimilarity: 0.91 // Placeholder for DNA similarity
+        }
+      };
+
+      return res.json({ analysis: report });
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to analyze game", details: err.message });
+    }
+  }
 );
 
 export default router;

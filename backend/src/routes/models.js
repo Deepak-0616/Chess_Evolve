@@ -110,4 +110,34 @@ router.get("/peak-self/status", authenticateSupabaseUser, async (req, res) => {
   }
 });
 
+import axios from "axios";
+// POST /api/v1/models/current-self/predict
+router.post("/current-self/predict", authenticateSupabaseUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { fen, positionFeatures, candidateFeatures, candidateMoves } = req.body;
+    
+    if (!fen || !positionFeatures || !candidateFeatures || !candidateMoves) {
+       return res.status(400).json({ error: "Missing required inference inputs" });
+    }
+
+    const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+    const response = await axios.post(`${ML_SERVICE_URL}/api/v1/ml/predict`, {
+      user_id: userId,
+      fen,
+      position_features: positionFeatures,
+      candidate_features: candidateFeatures,
+      candidate_moves: candidateMoves
+    }, { timeout: 5000 });
+
+    return res.json(response.data);
+  } catch (err) {
+    console.error("Inference Error:", err.message);
+    if (err.response && err.response.data) {
+       return res.status(err.response.status).json(err.response.data);
+    }
+    return res.status(500).json({ error: "Failed to predict move", details: err.message });
+  }
+});
+
 export default router;

@@ -37,7 +37,7 @@ enum ModelType {
 enum ModelStatus {
   NOT_AVAILABLE
   INSUFFICIENT_DATA
-  DATASET_GENERATING
+  QUEUED
   TRAINING
   VALIDATING
   READY
@@ -74,6 +74,12 @@ model User {
   playSessions     PlaySession[]
   arenaProfile     ArenaProfile?
   challengedSessions ArenaSession[] @relation("ChallengerSessions")
+  featureJobs      FeatureGenerationJob[]
+  featureDatasets  FeatureDataset[]
+  featureRecords   FeatureRecord[]
+  datasetJobs      DatasetGenerationJob[]
+  datasets         MLDataset[]
+  datasetRecords   MLDatasetRecord[]
 }
 
 model ChessProfile {
@@ -219,19 +225,34 @@ model ChessDNAVersion {
 }
 
 model MLModelVersion {
-  id             String      @id @default(cuid())
-  userId         String
-  modelType      ModelType
-  version        Int
-  dnaVersion     Int?
-  gamesUsed      Int
-  positionsUsed  Int
-  status         ModelStatus @default(NOT_AVAILABLE)
-  metrics        Json?       // { accuracy, top3Accuracy, valLoss, epochCount }
-  featureVersion String      @default("v1")
-  artifactPath   String?
-  trainedAt      DateTime?
-  createdAt      DateTime    @default(now())
+  id                    String      @id @default(cuid())
+  userId                String
+  modelType             ModelType
+  version               Int
+  dnaVersion            Int?
+  datasetVersion        String      @default("v1")
+  featureVersion        String      @default("v1")
+  architectureVersion   String      @default("v1")
+  trainingConfigVersion String      @default("v1")
+  trainingJobId         String?
+  gamesUsed             Int         @default(0)
+  positionsUsed         Int         @default(0)
+  status                ModelStatus @default(NOT_AVAILABLE)
+  metrics               Json?       // { accuracy, top3Accuracy, valLoss, epochCount, mrr }
+  
+  // Evaluation & Quality Gate
+  evaluationStatus      String?     @default("PENDING")
+  evaluationMetrics     Json?
+  behavioralMetrics     Json?
+  baselineMetrics       Json?
+  qualityGateResult     Json?
+  evaluationArtifactPath String?
+  evaluationCompletedAt DateTime?
+  
+  artifactPath          String?
+  artifactChecksum      String?
+  trainedAt             DateTime?
+  createdAt             DateTime    @default(now())
 
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   playSessions   PlaySession[]
@@ -264,6 +285,9 @@ model PlaySession {
   pgn                    String            @default("") @db.Text
   moveHistory            Json              // Array of moves made in session
   status                 PlaySessionStatus @default(IN_PROGRESS)
+  result                 String?           // USER_WIN, CURRENT_SELF_WIN, DRAW
+  terminationReason      String?           // CHECKMATE, STALEMATE, RESIGNATION, etc.
+  completedAt            DateTime?
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
@@ -304,3 +328,175 @@ model ArenaSession {
   targetArenaProfile     ArenaProfile      @relation("TargetSessions", fields: [targetUserId], references: [userId], onDelete: Cascade)
   targetModelVersion     MLModelVersion    @relation(fields: [targetModelVersionId], references: [id])
 }
+
+enum FeatureGenerationStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+model FeatureGenerationJob {
+  id                    String                  @id @default(cuid())
+  userId                String
+  status                FeatureGenerationStatus @default(PENDING)
+  featureVersion        String                  @default("v1")
+  gamesTotal            Int                     @default(0)
+  gamesProcessed        Int                     @default(0)
+  positionsTotal        Int                     @default(0)
+  positionsProcessed    Int                     @default(0)
+  candidateRecordsGenerated Int                 @default(0)
+  failedRecords         Int                     @default(0)
+  startedAt             DateTime?
+  completedAt           DateTime?
+  error                 String?                 @db.Text
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FeatureDataset {
+  id             String          @id @default(cuid())
+  userId         String
+  featureVersion String          @default("v1")
+  gameCount      Int             @default(0)
+  positionCount  Int             @default(0)
+  candidateCount Int             @default(0)
+  status         String          @default("READY")
+  createdAt      DateTime        @default(now())
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  records        FeatureRecord[]
+
+  @@unique([userId, featureVersion])
+}
+
+model FeatureRecord {
+  id               String          @id @default(cuid())
+  featureDatasetId String
+  userId           String
+  gameId           String
+  positionId       String          // Maps to PositionAnalysis ID
+  moveNumber       Int
+  candidateMove    String
+  isActualMove     Boolean
+  featureVersion   String
+  
+  // Stored conceptually as JSON for flexibility across dimensions
+  position         Json
+  candidate        Json
+  player           Json
+  history          Json
+  weakness         Json
+  dna              Json?
+
+  createdAt        DateTime        @default(now())
+
+  dataset          FeatureDataset  @relation(fields: [featureDatasetId], references: [id], onDelete: Cascade)
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, positionId, candidateMove, featureVersion])
+  @@index([userId, featureVersion])
+  @@index([gameId])
+}
+
+enum DatasetStatus {
+  PENDING
+  RUNNING
+  VALIDATING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum DatasetType {
+  CURRENT_SELF
+  PEAK_SELF
+}
+
+model DatasetGenerationJob {
+  id                    String            @id @default(cuid())
+  userId                String
+  status                DatasetStatus     @default(PENDING)
+  datasetType           DatasetType
+  datasetVersion        String            @default("v1")
+  featureVersion        String
+  targetVersion         String            @default("v1")
+  
+  totalRecords          Int               @default(0)
+  processedRecords      Int               @default(0)
+  excludedRecords       Int               @default(0)
+  
+  startedAt             DateTime?
+  completedAt           DateTime?
+  error                 String?           @db.Text
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MLDataset {
+  id                    String            @id @default(cuid())
+  userId                String
+  datasetType           DatasetType
+  version               String
+  featureVersion        String
+  targetVersion         String
+  schemaVersion         String            @default("v1")
+  
+  totalGames            Int               @default(0)
+  totalPositions        Int               @default(0)
+  totalRecords          Int               @default(0)
+  
+  trainRecords          Int               @default(0)
+  validationRecords     Int               @default(0)
+  testRecords           Int               @default(0)
+  excludedRecords       Int               @default(0)
+  
+  status                DatasetStatus     @default(COMPLETED)
+  validationReport      Json?
+  statistics            Json?
+  exclusionReasons      Json?
+  
+  createdAt             DateTime          @default(now())
+
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  records               MLDatasetRecord[]
+  
+  @@unique([userId, datasetType, version])
+}
+
+model MLDatasetRecord {
+  id               String      @id @default(cuid())
+  datasetId        String
+  userId           String
+  gameId           String
+  positionId       String
+  moveNumber       Int
+  split            String      // "TRAIN", "VALIDATION", "TEST"
+  
+  // Data
+  candidateMove    String
+  actualMove       String
+  isActualMove     Boolean
+  isPeakTarget     Boolean     @default(false)
+  peakScore        Float?
+  
+  // Stored for easy artifact generation without complex joins
+  features         Json
+  metadata         Json
+  
+  createdAt        DateTime    @default(now())
+
+  dataset          MLDataset   @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId, split])
+  @@index([gameId])
+}
+

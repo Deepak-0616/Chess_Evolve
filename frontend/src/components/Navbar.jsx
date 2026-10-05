@@ -23,6 +23,7 @@ export const Navbar = () => {
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Games', path: '/games', icon: Swords },
     { label: 'Chess DNA', path: '/dna', icon: Dna },
+    { label: 'Preparation', path: '/preparation', icon: Bot },
     { label: 'Evolution', path: '/evolution', icon: TrendingUp },
     { label: 'Training', path: '/training', icon: GraduationCap },
     { label: 'AI Coach', path: '/coach', icon: MessageSquare },

@@ -1,0 +1,20 @@
+{
+    "datasetVersion": "v1",
+    "totalExamples": 0,
+    "validExamples": 0,
+    "excludedExamples": 0,
+    "stockfishTop1Rate": 0,
+    "targetEngineRank": {},
+    "targetConfidence": {
+        "mean": 0,
+        "median": 0,
+        "min": 0,
+        "max": 0
+    },
+    "reasons": {
+        "engineQuality": 0,
+        "styleCompatibility": 0,
+        "weaknessCorrection": 0,
+        "preferenceCompatibility": 0
+    }
+}

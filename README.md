@@ -8,8 +8,8 @@ Generic chess engines like Stockfish calculate objective best moves but do not r
 
 ## 3. Product Vision
 To empower every chess player with a personal AI decision ecosystem:
-- **Current Self**: Predicts your actual decision probabilities in any position.
-- **Peak Self**: Optimizes candidate move selection for higher accuracy while strictly preserving your unique playing identity signature.
+- **Current Self**: Predicts your actual decision probabilities in any position. It learns to replicate how you *actually* play, capturing stylistic preferences, strengths, and characteristic weaknesses.
+- **Peak Self**: Learns how you *should* play on your best day. It trains on "Peak Targets" (which balances engine quality with your style) while treating the Current Self's probability distribution as a foundational input. This prevents the model from collapsing into raw Stockfish and keeps the moves feeling human.
 - **AI Arena**: Allows community players to test their skills against discoverable user models without exposing private game records or raw model binaries.
 
 ## 4. Features

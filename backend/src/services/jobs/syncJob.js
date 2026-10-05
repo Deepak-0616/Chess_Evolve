@@ -130,7 +130,7 @@ export class AccountSyncManager {
           chessProfileId: chessProfileRecord.id,
           analyzed: false,
         },
-        take: 500, // Process in safe batch sizes
+        // Process all available games to ensure ML model trains on complete history
       });
 
       for (const game of unanalyzedGames) {

@@ -98,24 +98,8 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
         .json({ error: "No connected Chess.com profile found for this user" });
     }
 
-    // Aggregate stats from games for the recent games list ONLY
-    const games = await prisma.game.findMany({
-      where: { chessProfileId: chessProfile.id },
-      orderBy: { playedAt: "desc" },
-      take: 5,
-    });
-
-    const recentGames = games.map((g) => ({
-      id: g.id,
-      result:
-        g.result === "WIN" ? "win" : g.result === "LOSS" ? "loss" : "draw",
-      opponent: g.opponentUsername,
-      color: g.userColor === "WHITE" ? "White" : "Black",
-      rating: g.userRating,
-      date: new Date(g.playedAt).toLocaleDateString(),
-      opening: "Standard Play",
-    }));
-
+    // We skip local DB lookup entirely to ensure instant sync accuracy
+    
     // Fetch live true stats directly from Chess.com to guarantee instant accuracy
     let liveStats = { 
       overall: { wins: 0, losses: 0, draws: 0, totalGames: 0 },
@@ -123,11 +107,23 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       blitz: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 },
       bullet: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 }
     };
+    
+    let liveRecentGames = [];
     try {
       const statsRes = await fetch(`https://api.chess.com/pub/player/${chessProfile.chessUsername}/stats`);
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         
+        // Calculate overall totals from ALL chess_* categories (including daily, variants)
+        for (const [key, category] of Object.entries(statsData)) {
+          if (key.startsWith('chess_') && category.record) {
+            liveStats.overall.wins += category.record.win || 0;
+            liveStats.overall.losses += category.record.loss || 0;
+            liveStats.overall.draws += category.record.draw || 0;
+            liveStats.overall.totalGames += (category.record.win || 0) + (category.record.loss || 0) + (category.record.draw || 0);
+          }
+        }
+
         ['rapid', 'blitz', 'bullet'].forEach(tc => {
           const category = statsData[`chess_${tc}`];
           if (category) {
@@ -137,11 +133,6 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
             liveStats[tc].losses = category.record?.loss || 0;
             liveStats[tc].draws = category.record?.draw || 0;
             liveStats[tc].totalGames = liveStats[tc].wins + liveStats[tc].losses + liveStats[tc].draws;
-            
-            liveStats.overall.wins += liveStats[tc].wins;
-            liveStats.overall.losses += liveStats[tc].losses;
-            liveStats.overall.draws += liveStats[tc].draws;
-            liveStats.overall.totalGames += liveStats[tc].totalGames;
           }
         });
       }
@@ -149,10 +140,46 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       console.error("Failed to fetch live stats from Chess.com:", e);
     }
 
+    try {
+      const archRes = await fetch(`https://api.chess.com/pub/player/${chessProfile.chessUsername}/games/archives`);
+      if (archRes.ok) {
+        const archData = await archRes.json();
+        if (archData.archives && archData.archives.length > 0) {
+          const lastArchUrl = archData.archives[archData.archives.length - 1];
+          const gamesRes = await fetch(lastArchUrl);
+          if (gamesRes.ok) {
+            const gamesData = await gamesRes.json();
+            const lastFive = (gamesData.games || []).slice(-5).reverse();
+            
+            liveRecentGames = lastFive.map(g => {
+              const lowerTarget = chessProfile.chessUsername.toLowerCase();
+              const isWhite = g.white.username.toLowerCase() === lowerTarget;
+              const userResultStr = isWhite ? g.white.result : g.black.result;
+              let result = "draw";
+              if (userResultStr === "win") result = "win";
+              else if (["checkmated", "timeout", "resigned", "abandoned", "lose"].includes(userResultStr)) result = "loss";
+
+              return {
+                id: g.url,
+                result,
+                opponent: isWhite ? g.black.username : g.white.username,
+                color: isWhite ? "White" : "Black",
+                rating: isWhite ? g.white.rating : g.black.rating,
+                date: new Date(g.end_time * 1000).toLocaleDateString(),
+                opening: "Standard Play"
+              };
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch recent games:", e);
+    }
+
     const enrichedProfile = {
       ...chessProfile,
       stats: liveStats,
-      recentGames,
+      recentGames: liveRecentGames,
     };
 
     return res.json({ data: enrichedProfile });

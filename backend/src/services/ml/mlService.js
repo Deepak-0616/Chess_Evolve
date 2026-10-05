@@ -3,106 +3,63 @@ import { prisma } from "../../utils/prisma.js";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
+import { currentSelfTrainingQueue } from '../../queues/trainingQueue.js';
+
 export class MLServiceBridge {
-  /**
-   * Triggers dataset generation & model training on the Python ML service for a user.
-   */
   static async triggerModelTraining(userId, modelType) {
     try {
-      // Find analyzed positions count for user
-      const profile = await prisma.chessProfile.findUnique({
-        where: { userId },
-        include: { games: { where: { analyzed: true } } },
+      if (modelType !== "CURRENT_SELF" && modelType !== "PEAK_SELF") {
+        throw new Error("Invalid model type");
+      }
+      
+      const latestDataset = await prisma.mLDataset.findFirst({
+        where: { userId, datasetType: modelType },
+        orderBy: { version: "desc" }
       });
-
-      const gamesCount = profile?.games.length || 0;
-      const positionsCount = gamesCount * 30; // average 30 plies per game
-
-      if (gamesCount < 1) {
-        // Mark model version as INSUFFICIENT_DATA
-        await prisma.mLModelVersion.upsert({
-          where: {
-            userId_modelType_version: { userId, modelType, version: 1 },
-          },
-          create: {
-            userId,
-            modelType,
-            version: 1,
-            gamesUsed: gamesCount,
-            positionsUsed: positionsCount,
-            status: "INSUFFICIENT_DATA",
-            featureVersion: "v1",
-          },
-          update: {
-            status: "INSUFFICIENT_DATA",
-            gamesUsed: gamesCount,
-            positionsUsed: positionsCount,
-          },
-        });
-        return { jobId: "none", status: "INSUFFICIENT_DATA" };
+      
+      if (!latestDataset) {
+        throw new Error(`No ${modelType} dataset found for user.`);
       }
 
-      // Update status to DATASET_GENERATING
-      await prisma.mLModelVersion.upsert({
+      // Upsert MLModelVersion
+      const modelVersion = await prisma.mLModelVersion.upsert({
         where: { userId_modelType_version: { userId, modelType, version: 1 } },
         create: {
           userId,
           modelType,
           version: 1,
-          gamesUsed: gamesCount,
-          positionsUsed: positionsCount,
-          status: "TRAINING",
-          featureVersion: "v1",
+          gamesUsed: latestDataset.totalGames,
+          positionsUsed: latestDataset.totalPositions,
+          status: "QUEUED",
+          datasetVersion: latestDataset.version,
+          featureVersion: latestDataset.featureVersion
         },
         update: {
-          status: "TRAINING",
-          gamesUsed: gamesCount,
-          positionsUsed: positionsCount,
+          status: "QUEUED",
+          gamesUsed: latestDataset.totalGames,
+          positionsUsed: latestDataset.totalPositions,
+          datasetVersion: latestDataset.version
         },
       });
 
       // Send training request to FastAPI ML Service
-      const res = await axios
-        .post(
-          `${ML_SERVICE_URL}/api/v1/train`,
+      try {
+        const endpoint = modelType === "CURRENT_SELF" ? "/api/v1/ml/train/current-self" : "/api/v1/ml/train/peak-self";
+        await axios.post(
+          `${ML_SERVICE_URL}${endpoint}`,
           {
             user_id: userId,
-            model_type: modelType,
-            games_count: gamesCount,
-            positions_count: positionsCount,
+            model_version_id: modelVersion.id,
+            dataset_id: latestDataset.id
           },
-          { timeout: 10000 },
-        )
-        .catch((err) => {
-          console.warn(
-            "FastAPI ML Service not reachable, setting local training fallback:",
-            err.message,
-          );
-          return {
-            data: {
-              status: "READY",
-              metrics: { accuracy: 0.88, top3_accuracy: 0.96 },
-            },
-          };
-        });
+          { timeout: 5000 }
+        );
+      } catch (err) {
+        console.warn("FastAPI ML Service train request failed:", err.message);
+        // We still queued it in DB, but the python worker might be down
+      }
 
-      // Update DB record to READY
-      const metrics = res.data.metrics || {
-        accuracy: 0.87,
-        top3Accuracy: 0.95,
-        loss: 0.24,
-      };
-      await prisma.mLModelVersion.update({
-        where: { userId_modelType_version: { userId, modelType, version: 1 } },
-        data: {
-          status: "READY",
-          metrics,
-          trainedAt: new Date(),
-          artifactPath: `models/${userId}_${modelType.toLowerCase()}_v1.pt`,
-        },
-      });
-
-      return { jobId: `train_${userId}_${modelType}`, status: "READY" };
+      return { jobId: modelVersion.id, status: "QUEUED" };
     } catch (err) {
       console.error("Error triggering model training:", err);
       return { jobId: "error", status: "FAILED" };
@@ -116,12 +73,14 @@ export class MLServiceBridge {
     try {
       const response = await axios
         .post(
-          `${ML_SERVICE_URL}/api/v1/predict`,
+          `${ML_SERVICE_URL}/api/v1/ml/predict`,
           {
             user_id: req.userId,
-            model_type: req.modelType,
             fen: req.fen,
-            legal_moves: req.legalMoves,
+            candidates: req.candidates,
+            move_number: req.moveNumber || 1,
+            game_phase: req.gamePhase || "MIDDLEGAME",
+            model_version_id: req.modelVersionId,
           },
           { timeout: 5000 },
         )
@@ -131,24 +90,22 @@ export class MLServiceBridge {
         return response.data;
       }
     } catch (err) {
-      console.warn(
-        "ML Service prediction endpoint fallback to candidate evaluation",
-      );
+      console.warn("ML Service prediction endpoint fallback to candidate evaluation");
     }
 
     // High quality deterministic fallback decision if FastAPI service is spawning or compiling
-    const fallbackMove =
-      req.legalMoves.length > 0
-        ? req.legalMoves[Math.floor(Math.random() * req.legalMoves.length)]
+    const fallbackMove = req.candidates && req.candidates.length > 0
+        ? req.candidates[0].move
         : "e4";
     const moveProbs = {};
-    req.legalMoves.forEach((m, idx) => {
-      moveProbs[m] =
-        idx === 0 ? 0.6 : 0.4 / Math.max(req.legalMoves.length - 1, 1);
-    });
+    if (req.candidates) {
+      req.candidates.forEach((c, idx) => {
+        moveProbs[c.move] = idx === 0 ? 0.6 : 0.4 / Math.max(req.candidates.length - 1, 1);
+      });
+    }
 
     return {
-      recommendedMove: req.legalMoves[0] || fallbackMove,
+      recommendedMove: fallbackMove,
       confidence: 0.84,
       moveProbabilities: moveProbs,
       modelType: req.modelType,

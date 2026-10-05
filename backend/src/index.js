@@ -13,6 +13,9 @@ import arenaRoutes from "./routes/arena.js";
 import trainingRoutes from "./routes/training.js";
 import coachRoutes from "./routes/coach.js";
 import profileRoutes from "./routes/profile.js";
+import stockfishRoutes from "./routes/stockfish.js";
+import featuresRoutes from "./routes/features.js";
+import datasetsRoutes from "./routes/datasets.js";
 
 dotenv.config();
 
@@ -56,6 +59,9 @@ app.use("/api/v1/arena", arenaRoutes);
 app.use("/api/v1/training", trainingRoutes);
 app.use("/api/v1/coach", coachRoutes);
 app.use("/api/v1/profile", profileRoutes);
+app.use("/api/v1/stockfish", stockfishRoutes);
+app.use("/api/v1/ml/features", featuresRoutes);
+app.use("/api/v1/ml/datasets", datasetsRoutes);
 
 // Global 404 handler
 app.use((_req, res) => {

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import torch
 import os
 
@@ -85,6 +85,36 @@ def predict_move(req: PredictRequest):
         "modelType": req.model_type,
         "modelVersion": 1
     }
+
+from app.features.feature_pipeline import extract_features_for_batch
+
+class FeatureGenerateRequest(BaseModel):
+    batch: List[Dict[str, Any]]
+    feature_version: str = "v1"
+
+@app.post("/api/v1/ml/features/generate")
+def generate_features(req: FeatureGenerateRequest):
+    try:
+        records = extract_features_for_batch(req.batch, feature_version=req.feature_version)
+        return {"success": True, "records": records, "count": len(records)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+from app.datasets.dataset_pipeline import build_datasets_from_batch
+from app.datasets.schemas import DatasetGenerationRequest
+
+@app.post("/api/v1/ml/datasets/generate")
+def generate_datasets(req: DatasetGenerationRequest):
+    try:
+        records = build_datasets_from_batch(req)
+        return {"success": True, "records": records, "count": len(records)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+from app.train_api import router as train_router
+from app.inference_api import router as inference_router
+app.include_router(train_router)
+app.include_router(inference_router)
 
 if __name__ == "__main__":
     import uvicorn

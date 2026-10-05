@@ -14,6 +14,7 @@ import Coach from './pages/Coach';
 import Arena from './pages/Arena';
 import Play from './pages/Play';
 import Profile from './pages/Profile';
+import { Preparation } from './pages/Preparation';
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center" style={{ background: '#080808' }}>
@@ -48,6 +49,7 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
     <Route path="/games" element={<Protected><Games /></Protected>} />
     <Route path="/dna" element={<Protected><DNA /></Protected>} />
+    <Route path="/preparation" element={<Protected><Preparation /></Protected>} />
     <Route path="/training" element={<Protected><Training /></Protected>} />
     <Route path="/coach" element={<Protected><Coach /></Protected>} />
     <Route path="/arena" element={<Protected><Arena /></Protected>} />
