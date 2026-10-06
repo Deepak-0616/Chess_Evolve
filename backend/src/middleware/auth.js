@@ -30,7 +30,11 @@ export const authenticateSupabaseUser = async (req, res, next) => {
       userId = data.user.id;
       email = data.user.email;
       displayName =
-        data.user.user_metadata?.full_name || data.user.email?.split("@")[0];
+        data.user.user_metadata?.full_name ||
+        data.user.user_metadata?.name ||
+        data.user.user_metadata?.display_name ||
+        data.user.email?.split("@")[0] ||
+        "User";
     } else {
       // Fallback dev JWT decoding when Supabase credentials aren't linked yet
       try {
@@ -38,10 +42,18 @@ export const authenticateSupabaseUser = async (req, res, next) => {
         if (decoded && decoded.sub) {
           userId = decoded.sub;
           email = decoded.email;
-          displayName = decoded.name;
+          displayName =
+            decoded.user_metadata?.full_name ||
+            decoded.user_metadata?.name ||
+            decoded.user_metadata?.display_name ||
+            decoded.name ||
+            decoded.display_name ||
+            decoded.email?.split("@")[0] ||
+            "User";
         } else {
           // Standard dev test user UUID fallback (derived dynamically from token string hash, NOT hardcoded)
           userId = `user_${Buffer.from(token).toString("hex").slice(0, 16)}`;
+          displayName = "User";
         }
       } catch {
         return res
@@ -66,8 +78,14 @@ export const authenticateSupabaseUser = async (req, res, next) => {
         data: {
           id: userId,
           email: email || `${userId}@user.local`,
-          displayName: displayName || "Chess Evolution Player",
+          displayName: displayName || "User",
         },
+      });
+    } else if (!userRecord.displayName && displayName) {
+      // Only initialize display name if missing/empty. Do NOT overwrite existing manually edited name!
+      userRecord = await prisma.user.update({
+        where: { id: userId },
+        data: { displayName },
       });
     }
 

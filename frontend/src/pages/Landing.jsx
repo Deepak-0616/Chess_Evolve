@@ -1,32 +1,12 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
 import { Crown } from 'lucide-react';
+import SignInForm from '../components/auth/SignInForm';
+import SignUpForm from '../components/auth/SignUpForm';
 
 const Landing = () => {
-  const { signUpWithEmail, signInWithEmail } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
-  const [error, setError] = useState('');
-
-  const handleAuth = async (e) => {
-    e.preventDefault();
-    if (!email || !password) return;
-    setLoading(true);
-    setError('');
-    try {
-      if (isLogin) {
-        await signInWithEmail(email, password);
-      } else {
-        await signUpWithEmail(email, password);
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: '#080808' }}>
@@ -58,6 +38,25 @@ const Landing = () => {
             <div className="text-[10px] tracking-wider uppercase" style={{ color: '#4A4A4A' }}>AI Platform</div>
           </div>
         </div>
+
+        <div className="flex items-center space-x-3">
+          <Link
+            to="/login"
+            className="text-xs font-semibold px-4 py-2 rounded-xl text-[#F5F0E0] hover:text-[#D4AF37] transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link
+            to="/signup"
+            className="text-xs font-bold px-4 py-2 rounded-xl transition-all"
+            style={{
+              background: 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8960C 100%)',
+              color: '#080808',
+            }}
+          >
+            Get Started
+          </Link>
+        </div>
       </nav>
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
@@ -79,51 +78,28 @@ const Landing = () => {
           Play against your Current Self, battle your Peak Self, and evolve your game with precision insights.
         </p>
 
-        <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-2xl p-6 w-full max-w-sm mb-12 shadow-2xl">
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div>
-              <input
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
-                required
-              />
-            </div>
-            <div>
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full bg-[#111] border border-[#333] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
-                required
-              />
-            </div>
-            {error && <div className="text-red-400 text-xs text-left">{error}</div>}
-            
-            <button
-              type="submit"
-              disabled={loading || !email || !password}
-              className="w-full flex items-center justify-center py-3 rounded-xl font-bold text-sm transition-all duration-200"
-              style={{
-                background: (loading || !email || !password) ? '#1A1A1A' : 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8960C 100%)',
-                color: (loading || !email || !password) ? '#4A4A4A' : '#080808',
-              }}
-            >
-              {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
-            </button>
-          </form>
-          
-          <button 
-            onClick={() => setIsLogin(!isLogin)} 
-            className="text-xs text-[#6B6B6B] mt-4 hover:text-[#D4AF37] transition-colors"
-          >
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-          </button>
-        </div>
+        <div className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-2xl p-6 sm:p-8 w-full max-w-sm mb-12 shadow-2xl backdrop-blur-xl">
+          <div className="mb-5 text-left">
+            <h2 className="text-lg font-bold font-display" style={{ color: '#F5F0E0' }}>
+              {isLogin ? 'Sign In to Your Account' : 'Create an Account'}
+            </h2>
+            <p className="text-xs text-[#6B6B6B] mt-0.5">
+              {isLogin ? 'Welcome back! Enter your credentials' : 'Start your neural chess journey'}
+            </p>
+          </div>
 
+          {isLogin ? (
+            <SignInForm
+              onToggleMode={() => setIsLogin(false)}
+              onSuccess={() => navigate('/dashboard')}
+            />
+          ) : (
+            <SignUpForm
+              onToggleMode={() => setIsLogin(true)}
+              onSuccess={() => navigate('/connect')}
+            />
+          )}
+        </div>
       </main>
 
       <footer className="relative z-10 py-6 text-center text-xs" style={{ color: '#2A2A2A', borderTop: '1px solid #111' }}>

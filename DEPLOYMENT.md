@@ -54,13 +54,41 @@ npm run prisma:migrate:deploy
 ```
 
 ### 2.3 Google OAuth Configuration
-1. In Google Cloud Console, create an OAuth 2.0 Client ID for Web Application.
-2. Add Authorized Redirect URI:
-   `https://<YOUR-SUPABASE-PROJECT-REF>.supabase.co/auth/v1/callback`
-3. In Supabase Dashboard -> `Authentication -> Providers -> Google`:
-   - Enable Google provider.
-   - Enter `Client ID` and `Client Secret`.
-   - Add your production frontend domain to `URL Configuration -> Site URL` and `Redirect URLs`.
+
+#### Step 1: Google Cloud Console Configuration
+1. Open [Google Cloud Console -> APIs & Services -> Credentials](https://console.cloud.google.com/apis/credentials).
+2. Configure **OAuth Consent Screen**:
+   - User Type: **External**
+   - App Name: `Chess Evolve`
+   - User support email & Developer contact email.
+   - Scopes: `.../auth/userinfo.email`, `.../auth/userinfo.profile`, `openid`.
+3. Create **OAuth 2.0 Client ID**:
+   - Application Type: **Web Application**
+   - Name: `Chess Evolve Web Client`
+   - **Authorized JavaScript origins**:
+     - Development: `http://localhost:3000`
+     - Production: `https://app.chessevolve.com` (or your production domain)
+   - **Authorized redirect URIs** (Must use your Supabase Auth callback):
+     - `https://jflaxfptqwnqxshzevqa.supabase.co/auth/v1/callback`
+4. Copy the generated **Client ID** and **Client Secret**.
+
+#### Step 2: Supabase Dashboard Configuration
+1. Open [Supabase Dashboard](https://supabase.com/dashboard/project/jflaxfptqwnqxshzevqa) -> **Authentication** -> **Providers** -> **Google**.
+2. Toggle **Enable Sign in with Google** to ON.
+3. Paste:
+   - **Client ID**: `<Your-Google-Client-ID>`
+   - **Client Secret**: `<Your-Google-Client-Secret>`
+4. Save Changes.
+
+#### Step 3: Supabase URL Configuration
+1. Navigate to **Authentication** -> **URL Configuration**:
+   - **Site URL**: `http://localhost:3000` (for local dev) or `https://app.chessevolve.com` (for production).
+   - **Redirect URLs**:
+     - `http://localhost:3000/auth/callback`
+     - `http://localhost:3000/**`
+     - `https://app.chessevolve.com/auth/callback`
+     - `https://app.chessevolve.com/**`
+2. Save changes.
 
 ---
 

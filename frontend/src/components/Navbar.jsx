@@ -82,7 +82,7 @@ export const Navbar = () => {
               {user.email?.charAt(0).toUpperCase() || 'P'}
             </div>
             <span className="text-xs font-semibold text-slate-300 hidden sm:inline">
-              {user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player'}
+              {user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Player'}
             </span>
           </Link>
 

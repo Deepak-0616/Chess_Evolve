@@ -5,6 +5,9 @@ import Layout from './components/Layout';
 
 // Pages
 import Landing from './pages/Landing';
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
+import AuthCallback from './pages/AuthCallback';
 import Connect from './pages/Connect';
 import Dashboard from './pages/Dashboard';
 import Games from './pages/Games';
@@ -34,7 +37,7 @@ const Spinner = () => (
 const Protected = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   return <Layout>{children}</Layout>;
 };
 
@@ -49,6 +52,9 @@ const PublicOnly = ({ children }) => {
 const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<PublicOnly><Landing /></PublicOnly>} />
+    <Route path="/login" element={<PublicOnly><SignIn /></PublicOnly>} />
+    <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
+    <Route path="/auth/callback" element={<AuthCallback />} />
     <Route path="/connect" element={<Protected><Connect /></Protected>} />
     <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
     <Route path="/games" element={<Protected><Games /></Protected>} />
