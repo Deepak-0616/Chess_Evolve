@@ -2,16 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getGames } from '../api';
 
-const ResultBadge = ({ result, isWhite }) => {
-  let text, style;
-  if (result === '1-0') {
-    if (isWhite) { text = 'Win'; style = { bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.25)' }; }
-    else { text = 'Loss'; style = { bg: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'rgba(239,68,68,0.25)' }; }
-  } else if (result === '0-1') {
-    if (!isWhite) { text = 'Win'; style = { bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.25)' }; }
-    else { text = 'Loss'; style = { bg: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'rgba(239,68,68,0.25)' }; }
-  } else {
-    text = 'Draw'; style = { bg: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: 'rgba(212,175,55,0.25)' };
+const ResultBadge = ({ result, resultText, isWhite }) => {
+  let text = 'Draw', style = { bg: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: 'rgba(212,175,55,0.25)' };
+  const rText = (resultText || '').toUpperCase();
+  if (rText === 'WIN' || (result === '1-0' && isWhite) || (result === '0-1' && !isWhite)) {
+    text = 'Win'; style = { bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.25)' };
+  } else if (rText === 'LOSS' || (result === '0-1' && isWhite) || (result === '1-0' && !isWhite)) {
+    text = 'Loss'; style = { bg: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'rgba(239,68,68,0.25)' };
   }
   return (
     <span className="px-2.5 py-0.5 rounded-full text-xs font-bold"
@@ -34,7 +31,7 @@ const Games = () => {
       setLoading(true);
       try {
         const res = await getGames({ page, limit: perPage });
-        setGames(res.data?.data?.games || []);
+        setGames(res.data?.games || res.data?.data?.games || []);
       } catch (err) {
         console.error('Failed to load games', err);
         setGames([]);
@@ -48,13 +45,14 @@ const Games = () => {
     const matchSearch = search === '' ||
       g.opening?.toLowerCase().includes(search.toLowerCase()) ||
       g.white?.toLowerCase().includes(search.toLowerCase()) ||
-      g.black?.toLowerCase().includes(search.toLowerCase());
+      g.black?.toLowerCase().includes(search.toLowerCase()) ||
+      g.opponent?.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
     if (resultFilter === 'all') return true;
-    const isWhite = g.white === 'You';
-    if (resultFilter === 'win') return (g.result === '1-0' && isWhite) || (g.result === '0-1' && !isWhite);
-    if (resultFilter === 'loss') return (g.result === '0-1' && isWhite) || (g.result === '1-0' && !isWhite);
-    if (resultFilter === 'draw') return g.result === '1/2-1/2';
+    const isWhite = g.isWhite !== undefined ? g.isWhite : (g.white === 'You' || g.userColor === 'WHITE');
+    if (resultFilter === 'win') return g.resultText === 'WIN' || (g.result === '1-0' && isWhite) || (g.result === '0-1' && !isWhite);
+    if (resultFilter === 'loss') return g.resultText === 'LOSS' || (g.result === '0-1' && isWhite) || (g.result === '1-0' && !isWhite);
+    if (resultFilter === 'draw') return g.resultText === 'DRAW' || g.result === '1/2-1/2';
     return true;
   });
 
@@ -121,12 +119,12 @@ const Games = () => {
         ) : (
           <div className="divide-y" style={{ divideColor: '#111' }}>
             {filtered.map((game, i) => {
-              const isWhite = game.white === 'You';
+              const isWhite = game.isWhite !== undefined ? game.isWhite : (game.white === 'You' || game.userColor === 'WHITE');
               return (
                 <div key={game.id || i}
                   className="grid grid-cols-12 gap-4 px-5 py-3 items-center hover:bg-white/[0.02] transition-colors group">
                   <div className="col-span-1">
-                    <ResultBadge result={game.result} isWhite={isWhite} />
+                    <ResultBadge result={game.result} resultText={game.resultText} isWhite={isWhite} />
                   </div>
                   <div className="col-span-3 text-sm" style={{ color: '#F5F0E0' }}>
                     <div className="truncate">{isWhite ? game.black : game.white}</div>

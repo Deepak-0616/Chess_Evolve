@@ -13,6 +13,7 @@ router.get("/players", authenticateSupabaseUser, async (req, res) => {
     const arenaProfiles = await prisma.arenaProfile.findMany({
       where: {
         visibility: { in: ["PUBLIC", "DISCOVERABLE"] },
+        arenaEnabled: true,
       },
       include: {
         user: {

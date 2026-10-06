@@ -208,7 +208,7 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       recentGames: liveRecentGames,
     };
 
-    return res.json({ data: enrichedProfile });
+    return res.json({ data: enrichedProfile, chessProfile: enrichedProfile });
   } catch (err) {
     return res
       .status(500)

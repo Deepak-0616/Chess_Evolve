@@ -89,6 +89,22 @@ export class PGNParser {
       // Return basic metadata even if full move replay had non-standard PGN annotations
     }
 
+    // Extract opening name and ECO if available
+    let openingEco = "A00";
+    let openingName = "Standard Chess";
+    if (game.pgn) {
+      const ecoMatch = game.pgn.match(/\[ECO "(.*?)"\]/);
+      if (ecoMatch) openingEco = ecoMatch[1];
+
+      const ecoUrlMatch = game.pgn.match(/\[ECOUrl "https:\/\/www\.chess\.com\/openings\/(.*?)"\]/);
+      if (ecoUrlMatch) {
+        openingName = decodeURIComponent(ecoUrlMatch[1].replace(/-/g, " ").replace(/\.{3}$/, ""));
+      } else {
+        const openingMatch = game.pgn.match(/\[Opening "(.*?)"\]/);
+        if (openingMatch) openingName = openingMatch[1];
+      }
+    }
+
     return {
       externalId,
       url: game.url,
@@ -108,6 +124,8 @@ export class PGNParser {
       endReason: userResultStr,
       playedAt,
       moves,
+      openingName,
+      openingEco,
     };
   }
 }

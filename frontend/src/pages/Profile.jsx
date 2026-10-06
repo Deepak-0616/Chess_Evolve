@@ -153,9 +153,9 @@ const Profile = () => {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Games Played', value: profile?.totalGames || '248' },
-          { label: 'Win Rate', value: `${profile?.winRate || 54}%` },
-          { label: 'Peak Rating', value: profile?.peakRating || '1,612' },
+          { label: 'Games Played', value: profile?.totalGames ?? '0' },
+          { label: 'Win Rate', value: `${profile?.winRate ?? 0}%` },
+          { label: 'Peak Rating', value: profile?.peakRating ?? '—' },
         ].map(({ label, value }) => (
           <div key={label} className="p-4 rounded-xl text-center" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
             <div className="text-xl font-black font-display" style={{

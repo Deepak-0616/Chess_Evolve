@@ -17,10 +17,15 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
     const currentSelf = models.find((m) => m.modelType === "CURRENT_SELF");
     const peakSelf = models.find((m) => m.modelType === "PEAK_SELF");
 
-    return res.json({
+    const payload = {
       currentSelf: currentSelf || { status: "NOT_AVAILABLE" },
       peakSelf: peakSelf || { status: "NOT_AVAILABLE" },
       allVersions: models,
+    };
+
+    return res.json({
+      ...payload,
+      models: payload,
     });
   } catch (err) {
     return res

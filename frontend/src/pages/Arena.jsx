@@ -43,9 +43,10 @@ const Arena = () => {
     }
   };
 
-  const filtered = players.filter(p =>
-    (p.user?.displayName || 'Unknown').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = players.filter(p => {
+    const name = p.displayName || p.user?.chessProfile?.chessUsername || p.user?.displayName || 'Unknown';
+    return name.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
     <div className="space-y-6">
@@ -114,7 +115,7 @@ const Arena = () => {
                       </div>
                     )}
                     <div>
-                      <div className="text-sm font-bold" style={{ color: '#F5F0E0' }}>{player.user?.displayName || 'Unknown Player'}</div>
+                      <div className="text-sm font-bold" style={{ color: '#F5F0E0' }}>{player.displayName || player.user?.chessProfile?.chessUsername || player.user?.displayName || 'Unknown Player'}</div>
                       <div className="text-[10px] mt-1 space-x-2">
                         {player.models?.map(m => (
                           <span key={m.id} className={`px-1.5 py-0.5 rounded ${m.modelType === 'PEAK_SELF' ? 'bg-fuchsia-500/20 text-fuchsia-400' : 'bg-emerald-500/20 text-emerald-400'}`}>

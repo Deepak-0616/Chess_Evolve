@@ -28,7 +28,7 @@ const DNA = () => {
       setLoading(true);
       try {
         const res = await getDNA();
-        setDnaData(res.data?.data || null);
+        setDnaData(res.data?.data || res.data?.dna || null);
       } catch (err) {
         console.error('Failed to load DNA', err);
         setDnaData(null);

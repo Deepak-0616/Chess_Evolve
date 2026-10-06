@@ -1,51 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Crown, Zap, Brain, Trophy, Dna, Swords, ChevronRight, Star } from 'lucide-react';
-
-const FeatureCard = ({ icon: Icon, title, desc }) => (
-  <div
-    className="p-5 rounded-2xl transition-all duration-300 hover:-translate-y-1 cursor-default"
-    style={{
-      background: 'linear-gradient(145deg, #141414 0%, #0F0F0F 100%)',
-      border: '1px solid #2A2A2A',
-    }}
-    onMouseEnter={e => {
-      e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)';
-      e.currentTarget.style.boxShadow = '0 0 25px rgba(212,175,55,0.08)';
-    }}
-    onMouseLeave={e => {
-      e.currentTarget.style.borderColor = '#2A2A2A';
-      e.currentTarget.style.boxShadow = 'none';
-    }}
-  >
-    <div
-      className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-      style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}
-    >
-      <Icon size={18} style={{ color: '#D4AF37' }} />
-    </div>
-    <h3 className="font-semibold text-sm mb-1.5" style={{ color: '#F5F0E0' }}>{title}</h3>
-    <p className="text-xs leading-relaxed" style={{ color: '#6B6B6B' }}>{desc}</p>
-  </div>
-);
-
-const StatBubble = ({ value, label }) => (
-  <div className="text-center">
-    <div
-      className="text-3xl font-black font-display"
-      style={{
-        background: 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8960C 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-      }}
-    >
-      {value}
-    </div>
-    <div className="text-xs mt-1" style={{ color: '#4A4A4A' }}>{label}</div>
-  </div>
-);
+import { Crown } from 'lucide-react';
 
 const Landing = () => {
   const { signUpWithEmail, signInWithEmail } = useAuth();
@@ -106,12 +61,6 @@ const Landing = () => {
       </nav>
 
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-        <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full mb-8 text-xs font-medium"
-          style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', color: '#D4AF37' }}>
-          <Zap size={12} />
-          <span>Powered by Neural Evolution Technology</span>
-        </div>
-
         <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-tight mb-6 max-w-4xl">
           <span style={{ color: '#F5F0E0' }}>Master Chess</span>
           <br />
@@ -175,11 +124,6 @@ const Landing = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl w-full">
-          <FeatureCard icon={Brain} title="Neural Self-Model" desc="Trains a unique neural network on your games, capturing your exact playing style and tendencies." />
-          <FeatureCard icon={Dna} title="Chess DNA Analysis" desc="Deep positional analysis reveals your tactical patterns, opening preferences, and endgame traits." />
-          <FeatureCard icon={Swords} title="Play Your AI Self" desc="Battle your Current or Peak Self to understand your strengths and expose hidden weaknesses." />
-        </div>
       </main>
 
       <footer className="relative z-10 py-6 text-center text-xs" style={{ color: '#2A2A2A', borderTop: '1px solid #111' }}>
