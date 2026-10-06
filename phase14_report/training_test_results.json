@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-10-05T14:34:46.881687+00:00",
+  "vitest_backend_tests": {
+    "suite": "src/tests/training.test.js & isolation.test.js",
+    "testsTotal": 11,
+    "testsPassed": 11,
+    "testsFailed": 0,
+    "status": "PASS"
+  },
+  "end_to_end_flow_tests": {
+    "suite": "backend/test_training_flow.js",
+    "testsTotal": 8,
+    "testsPassed": 8,
+    "testsFailed": 0,
+    "status": "PASS",
+    "tests": [
+      "TEST 1: Real Data Empty State Detection",
+      "TEST 2: Training Overview & Weakness Signal Extraction",
+      "TEST 3: Session Creation with ML Bridge Precomputation",
+      "TEST 4: Answer Sanitization & Anti-Leakage Audit",
+      "TEST 5: Chess Move Validation with chess.js & Deterministic Contrast",
+      "TEST 6: Cross-User Authorization & Isolation Audit",
+      "TEST 7: Session Completion & TrainingProgress Aggregation",
+      "TEST 8: Multi-User Personalization Diversity"
+    ]
+  },
+  "security_api_tests": {
+    "suite": "ml-service/test_training_security.py",
+    "testsTotal": 6,
+    "testsPassed": 6,
+    "testsFailed": 0,
+    "status": "PASS"
+  },
+  "frontend_production_build": {
+    "tool": "vite v5.4.21",
+    "exitCode": 0,
+    "status": "PASS",
+    "modulesTransformed": 2390
+  }
+}

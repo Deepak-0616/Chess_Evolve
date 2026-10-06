@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-10-05T16:14:21.514944+00:00",
+  "disclaimer": "Empirical correlation tracks training success and subsequent gameplay metrics. Correlation does not imply direct causation.",
+  "players": {
+    "KAKAROT0616": {
+      "trainingPositionSuccessRate": 100.0,
+      "trainingAttempts": 3,
+      "gameplayCplReductionPct": -36.6,
+      "sampleSize": 26091,
+      "causalityClaimed": false,
+      "scientificStatement": "Training drill accuracy was 100.0%. Across 26091 subsequent analyzed decisions, gameplay CPL changed by -36.6%."
+    },
+    "keshav-33450": {
+      "trainingPositionSuccessRate": 0.0,
+      "trainingAttempts": 0,
+      "gameplayCplReductionPct": -10.4,
+      "sampleSize": 3828,
+      "causalityClaimed": false,
+      "scientificStatement": "Training drill accuracy was 0.0%. Across 3828 subsequent analyzed decisions, gameplay CPL changed by -10.4%."
+    }
+  }
+}

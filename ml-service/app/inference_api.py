@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+from sqlalchemy import text
 from .models.current_self.inference import CurrentSelfInferenceEngine
 from .models.peak_self.inference import PeakSelfInferenceEngine
 from .models.current_self.registry import ModelRegistry
@@ -18,27 +19,36 @@ class InferenceRequest(BaseModel):
     model_version_id: Optional[str] = None
     model_type: str = "CURRENT_SELF"
 
+_MODEL_CACHE = {}
+_DEP_MODEL_CACHE = {}
+
 @router.post("/predict")
 def predict(req: InferenceRequest):
-    registry = ModelRegistry()
-    with registry.engine.connect() as conn:
-        if req.model_version_id:
-            query = """
-                SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
-                FROM "MLModelVersion"
-                WHERE id = :mvid AND "userId" = :uid
-            """
-            params = {"uid": req.user_id, "mvid": req.model_version_id}
-        else:
-            query = """
-                SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
-                FROM "MLModelVersion"
-                WHERE "userId" = :uid AND "modelType" = :mtype AND status = 'READY'
-                ORDER BY version DESC LIMIT 1
-            """
-            params = {"uid": req.user_id, "mtype": req.model_type}
-            
-        result = conn.execute(registry.text(query), params).first()
+    cache_key = (req.user_id, req.model_version_id or req.model_type)
+    result = _MODEL_CACHE.get(cache_key)
+    
+    if not result:
+        registry = ModelRegistry()
+        with registry.engine.connect() as conn:
+            if req.model_version_id:
+                query = """
+                    SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
+                    FROM "MLModelVersion"
+                    WHERE id = :mvid AND "userId" = :uid
+                """
+                params = {"uid": req.user_id, "mvid": req.model_version_id}
+            else:
+                query = """
+                    SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
+                    FROM "MLModelVersion"
+                    WHERE "userId" = :uid AND "modelType" = :mtype AND status = 'READY'
+                    ORDER BY version DESC LIMIT 1
+                """
+                params = {"uid": req.user_id, "mtype": req.model_type}
+                
+            result = conn.execute(text(query), params).first()
+            if result:
+                _MODEL_CACHE[cache_key] = result
         
     if not result:
         raise HTTPException(status_code=404, detail=f"No valid {req.model_type} model found for this request.")
@@ -114,13 +124,18 @@ def predict(req: InferenceRequest):
                 raise ValueError("Peak Self model is missing dependent Current Self model.")
                 
             # Fetch dependent Current Self model
-            with registry.engine.connect() as conn:
-                dep_result = conn.execute(registry.text("""
-                    SELECT version, "artifactPath" FROM "MLModelVersion" WHERE id = :depid
-                """), {"depid": dependent_model_id}).first()
-                if not dep_result or not dep_result[1]:
-                    raise ValueError("Dependent Current Self model artifact not found.")
-                dep_version, dep_artifact_path = dep_result
+            dep_result = _DEP_MODEL_CACHE.get(dependent_model_id)
+            if not dep_result:
+                with registry.engine.connect() as conn:
+                    dep_result = conn.execute(text("""
+                        SELECT version, "artifactPath" FROM "MLModelVersion" WHERE id = :depid
+                    """), {"depid": dependent_model_id}).first()
+                if dep_result:
+                    _DEP_MODEL_CACHE[dependent_model_id] = dep_result
+                    
+            if not dep_result or not dep_result[1]:
+                raise ValueError("Dependent Current Self model artifact not found.")
+            dep_version, dep_artifact_path = dep_result
                 
             # Predict base probability with Current Self
             dep_prediction = current_self_engine.predict(

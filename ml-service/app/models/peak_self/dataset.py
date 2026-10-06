@@ -51,7 +51,10 @@ class PeakSelfDataset(Dataset):
                     "features": features
                 })
                 
-        self.positions = list(grouped_data.values())
+        self.positions = [
+            p for p in grouped_data.values()
+            if any(c.get("isPeakTarget") for c in p["candidates"])
+        ]
 
     def __len__(self):
         return len(self.positions)
@@ -60,7 +63,7 @@ class PeakSelfDataset(Dataset):
         pos_data = self.positions[idx]
         candidates = pos_data["candidates"]
         
-        target_idx = -1
+        target_idx = 0
         pos_feat_tensor = None
         cand_feat_list = []
         

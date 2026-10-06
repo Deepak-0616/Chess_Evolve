@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { Brain, CheckCircle2, Loader2, Play, Database } from 'lucide-react';
+import { RetrainingDashboard } from '../components/RetrainingDashboard';
 
 export const Preparation = () => {
   const [featureJob, setFeatureJob] = useState(null);
@@ -128,6 +129,9 @@ export const Preparation = () => {
             <p className="text-slate-400 text-sm">Building versioned datasets from historical features</p>
           </div>
         </div>
+
+        {/* Phase 16: Continuous Model Retraining & Activation Pipeline */}
+        <RetrainingDashboard />
 
         {error && (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">

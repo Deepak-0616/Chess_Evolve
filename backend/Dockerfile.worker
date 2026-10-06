@@ -1,0 +1,33 @@
+# ==============================================================================
+# Production Dockerfile for Chess Evolve BullMQ Worker Daemon
+# ==============================================================================
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache python3 make g++
+
+COPY package*.json ./
+COPY prisma ./prisma/
+
+RUN npm ci
+RUN npx prisma generate --schema=./prisma/schema.prisma
+
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+RUN apk add --no-cache stockfish ca-certificates
+
+ENV NODE_ENV=production
+ENV STOCKFISH_PATH=/usr/bin/stockfish
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
+COPY prisma ./prisma
+COPY src ./src
+
+USER node
+
+CMD ["node", "src/worker.js"]

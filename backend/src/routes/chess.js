@@ -64,10 +64,25 @@ router.post("/profile/connect", authenticateSupabaseUser, async (req, res) => {
       update: {},
     });
 
-    // Trigger async full synchronization in background
-    AccountSyncManager.executeFullSync(userId, chessUsername).catch((err) => {
-      console.error("Background full sync error for user:", userId, err);
-    });
+    // Trigger async full synchronization via durable BullMQ syncQueue (or immediate fallback)
+    try {
+      const { syncQueue, safeEnqueue } = await import("../queues/index.js");
+      await safeEnqueue(
+        syncQueue,
+        "sync",
+        { userId, chessUsername },
+        { jobId: `sync_${userId}` },
+        () => {
+          AccountSyncManager.executeFullSync(userId, chessUsername).catch((err) => {
+            console.error("Background full sync fallback error for user:", userId, err);
+          });
+        }
+      );
+    } catch (queueErr) {
+      AccountSyncManager.executeFullSync(userId, chessUsername).catch((err) => {
+        console.error("Background full sync fallback error for user:", userId, err);
+      });
+    }
 
     return res.json({
       message:
@@ -103,6 +118,7 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
     // Fetch live true stats directly from Chess.com to guarantee instant accuracy
     let liveStats = { 
       overall: { wins: 0, losses: 0, draws: 0, totalGames: 0 },
+      all: { wins: 0, losses: 0, draws: 0, totalGames: 0, currentRating: 0, peakRating: 0 },
       rapid: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 },
       blitz: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 },
       bullet: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 }
@@ -135,6 +151,16 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
             liveStats[tc].totalGames = liveStats[tc].wins + liveStats[tc].losses + liveStats[tc].draws;
           }
         });
+
+        // Consolidate 'all' view
+        liveStats.all = {
+          wins: liveStats.overall.wins,
+          losses: liveStats.overall.losses,
+          draws: liveStats.overall.draws,
+          totalGames: liveStats.overall.totalGames,
+          currentRating: liveStats.rapid.currentRating || liveStats.blitz.currentRating || liveStats.bullet.currentRating || 0,
+          peakRating: Math.max(liveStats.rapid.peakRating || 0, liveStats.blitz.peakRating || 0, liveStats.bullet.peakRating || 0),
+        };
       }
     } catch (e) {
       console.error("Failed to fetch live stats from Chess.com:", e);
@@ -204,12 +230,30 @@ router.post("/sync", authenticateSupabaseUser, async (req, res) => {
         .json({ error: "Please connect a Chess.com account before syncing" });
     }
 
-    AccountSyncManager.executeFullSync(
-      userId,
-      chessProfile.chessUsername,
-    ).catch((err) => {
-      console.error("Background sync retry error for user:", userId, err);
-    });
+    try {
+      const { syncQueue, safeEnqueue } = await import("../queues/index.js");
+      await safeEnqueue(
+        syncQueue,
+        "sync",
+        { userId, chessUsername: chessProfile.chessUsername },
+        { jobId: `sync_${userId}_${Date.now()}` },
+        () => {
+          AccountSyncManager.executeFullSync(
+            userId,
+            chessProfile.chessUsername,
+          ).catch((err) => {
+            console.error("Background sync fallback error for user:", userId, err);
+          });
+        }
+      );
+    } catch (queueErr) {
+      AccountSyncManager.executeFullSync(
+        userId,
+        chessProfile.chessUsername,
+      ).catch((err) => {
+        console.error("Background sync fallback error for user:", userId, err);
+      });
+    }
 
     return res.json({
       message: "Synchronization triggered successfully",

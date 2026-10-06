@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:5000/api/v1"
+    : "/api/v1");
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -22,7 +26,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('chess_evolve_session');
-      window.location.href = '/';
+      if (typeof window !== "undefined" && window.location.pathname !== '/' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    } else if (error.response?.status === 429) {
+      console.warn('[API] Rate limit exceeded. Please wait before retrying.');
     }
     return Promise.reject(error);
   }

@@ -1,0 +1,11 @@
+{
+  "jwtAuthentication": "ENFORCED",
+  "rlsPolicies": {
+    "ModelRetrainingJob": "ENABLED",
+    "ModelUpdateCandidate": "ENABLED",
+    "MLModelVersion": "ENABLED",
+    "EvolutionSnapshot": "ENABLED"
+  },
+  "userIsolation": "VERIFIED",
+  "clientPrivilegeEscalationProtection": "VERIFIED"
+}

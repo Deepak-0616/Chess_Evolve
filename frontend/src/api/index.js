@@ -23,9 +23,17 @@ export const getDNAHistory = () => apiClient.get('/dna/history');
 export const getModels = () => apiClient.get('/models');
 export const trainCurrentSelf = () => apiClient.post('/models/current-self/train');
 export const trainPeakSelf = () => apiClient.post('/models/peak-self/train');
+export const rollbackModel = (data) => apiClient.post('/models/rollback', data);
 export const getCurrentSelfStatus = () => apiClient.get('/models/current-self/status');
 export const getPeakSelfStatus = () => apiClient.get('/models/peak-self/status');
 export const getEvolutionReport = () => apiClient.get('/evolution');
+export const getEvolutionOverview = () => apiClient.get('/evolution');
+export const getEvolutionTimeline = () => apiClient.get('/evolution/timeline');
+export const getEvolutionGameplay = () => apiClient.get('/evolution/gameplay');
+export const getEvolutionWeaknesses = () => apiClient.get('/evolution/weaknesses');
+export const getModelUpdateStatus = () => apiClient.get('/evolution/model-update-status');
+export const generateEvolutionSnapshot = (data) => apiClient.post('/evolution/snapshots/generate', data);
+export const getEvolutionSnapshots = () => apiClient.get('/evolution/snapshots');
 
 // Play
 export const createPlaySession = (data) => apiClient.post('/play/sessions', data);
@@ -35,7 +43,15 @@ export const resignSession = (id) => apiClient.post(`/play/sessions/${id}/resign
 
 // Training
 export const getTrainingRecs = () => apiClient.get('/training/recommendations');
+export const getTrainingOverview = () => apiClient.get('/training/overview');
+export const getTrainingPlan = () => apiClient.get('/training/plan');
+export const getTrainingWeaknesses = () => apiClient.get('/training/weaknesses');
+export const getTrainingProgress = () => apiClient.get('/training/progress');
 export const createTrainingSession = (data) => apiClient.post('/training/sessions', data);
+export const getTrainingSession = (id) => apiClient.get(`/training/sessions/${id}`);
+export const getTrainingPosition = (id, index) => apiClient.get(`/training/sessions/${id}/positions/${index}`);
+export const submitTrainingAttempt = (id, data) => apiClient.post(`/training/sessions/${id}/attempt`, data);
+export const completeTrainingSession = (id) => apiClient.post(`/training/sessions/${id}/complete`);
 
 // Coach
 export const sendCoachMessage = (message, conversationId, gameId) => apiClient.post('/coach/chat', { message, conversationId, gameId });

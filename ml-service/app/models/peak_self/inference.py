@@ -57,8 +57,10 @@ class PeakSelfInferenceEngine:
         
         return {
             "recommendedMove": recommended_move,
+            "predictedMove": recommended_move,
             "confidence": confidence,
             "moveProbabilities": move_probs,
+            "probabilities": move_probs,
             "modelType": "PEAK_SELF",
             "modelVersion": model_version
         }

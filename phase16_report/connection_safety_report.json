@@ -1,0 +1,7 @@
+{
+  "centralizedEngine": "app.db.get_engine()",
+  "connectionPooling": "QueuePool (max_overflow=10, pool_size=5, pool_recycle=300)",
+  "connectionHoldingDuringTraining": "ZERO",
+  "emaxconnsessionErrors": "NONE",
+  "verified": true
+}

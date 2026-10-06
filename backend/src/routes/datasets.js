@@ -56,7 +56,20 @@ router.post("/generate", authenticateSupabaseUser, async (req, res) => {
         },
       });
       jobIds.push(job.id);
-      processDatasetExtraction(job.id, userId, type, featureVersion, datasetVersion);
+      
+      // Dispatch to durable BullMQ datasetQueue with fallback
+      try {
+        const { datasetQueue, safeEnqueue } = await import("../queues/index.js");
+        await safeEnqueue(
+          datasetQueue,
+          "generate",
+          { jobId: job.id, userId, datasetType: type, featureVersion, datasetVersion },
+          { jobId: `dataset_${job.id}` },
+          () => processDatasetExtraction(job.id, userId, type, featureVersion, datasetVersion)
+        );
+      } catch (queueErr) {
+        processDatasetExtraction(job.id, userId, type, featureVersion, datasetVersion);
+      }
     }
 
     return res.json({

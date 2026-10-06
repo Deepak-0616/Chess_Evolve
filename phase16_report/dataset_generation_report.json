@@ -1,0 +1,23 @@
+{
+  "datasetVersion": "v2",
+  "totalGames": 100,
+  "sourceGameRange": {
+    "start": "2024-10-25 05:06:04",
+    "end": "2026-02-14 16:19:41"
+  },
+  "splits": {
+    "train": {
+      "ratio": 0.7,
+      "games": 70
+    },
+    "validation": {
+      "ratio": 0.15,
+      "games": 15
+    },
+    "test": {
+      "ratio": 0.15,
+      "games": 15
+    }
+  },
+  "temporalLeakageAudit": "PASSED"
+}

@@ -1,0 +1,8 @@
+{
+  "issues": [],
+  "leakage_detected": false,
+  "future_feature_records": 0,
+  "user_count": 1,
+  "records_sampled": 500,
+  "verdict": "PASS"
+}

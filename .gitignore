@@ -1,7 +1,36 @@
 # Environment variables & secrets
 .env
+.env.*
 *.env
 !.env.example
+!.env.production.example
+
+# Private credentials & secrets
+*.pem
+*.key
+*.cert
+*.p12
+
+# Model artifacts & weights
+artifacts/
+ml-service/artifacts/
+*.pt
+*.pth
+*.onnx
+
+# Logs
+*.log
+logs/
+backend/logs/
+ml-service/logs/
+
+# Temporary datasets & database dumps
+tmp/
+temp/
+scratch/
+*.dump
+*.sql.gz
+*.parquet
 
 # Node dependencies & build artifacts
 node_modules/
@@ -9,7 +38,6 @@ backend/node_modules/
 frontend/node_modules/
 frontend/dist/
 backend/dist/
-*.log
 
 # Python virtual environment & caches
 __pycache__/
@@ -20,6 +48,7 @@ ml-service/app/__pycache__/
 ml-service/app/features/__pycache__/
 ml-service/app/models/__pycache__/
 ml-service/app/training/__pycache__/
+ml-service/app/retraining/__pycache__/
 
 # OS & IDE
 .DS_Store

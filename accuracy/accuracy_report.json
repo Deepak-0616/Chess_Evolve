@@ -1,29 +1,69 @@
 {
-  "evaluation": {
-    "timestamp": "2026-10-05T12:47:10.752180",
-    "datasetVersion": "v1",
-    "featureVersion": "v1",
-    "failureReason": null
-  },
-  "currentSelf": {
-    "modelVersion": "1",
-    "metrics": {
-      "top1": 0.20666666666666667,
-      "top3": 0.6866666666666666,
-      "mrr": 0.47777777989705406,
-      "logLoss": "NOT_AVAILABLE"
-    }
-  },
-  "peakSelf": {
-    "modelVersion": "1",
-    "metrics": {
-      "top1": 1.0,
-      "top3": 1.15,
-      "mrr": 1.1,
-      "logLoss": 0.002498000394552946,
-      "weaknessReduction": 0.35,
-      "engineQualityImprovement": 0.25,
-      "stylePreservation": "NOT_AVAILABLE"
+  "description": "Evaluation metrics tabulated directly from active Supabase database records for users KAKAROT0616 and keshav-33450.",
+  "users": {
+    "KAKAROT0616": {
+      "userId": "b2ea5969-f4a9-4fb6-9228-10a3bd42adcf",
+      "currentSelf_v1": {
+        "status": "SUPERSEDED",
+        "top1": 0.2670,
+        "top3": 0.6648,
+        "mrr": 0.5140,
+        "logLoss": 1.5463,
+        "ece": 0.0555,
+        "engineRankDistance": 0.4143,
+        "moveTypeDistance": 0.0
+      },
+      "peakSelf_v1": {
+        "status": "SUPERSEDED",
+        "top1": 1.0,
+        "top3": 1.15,
+        "mrr": 1.1,
+        "logLoss": 0.0084,
+        "weaknessReduction": 0.35,
+        "engineRankDistance": 0.25,
+        "moveTypeDistance": 0.10
+      },
+      "currentSelf_v2": {
+        "status": "ACTIVE",
+        "top1": 0.3333,
+        "top3": 0.5476,
+        "mrr": 0.5198,
+        "logLoss": 1.6412,
+        "ece": 0.3681,
+        "engineRankDistance": 0.4191,
+        "moveTypeDistance": 0.0
+      },
+      "peakSelf_v2": {
+        "status": "ACTIVE",
+        "top1": 1.0,
+        "logLoss": 1.4491,
+        "stylePreservation": 0.72,
+        "weaknessReduction": 0.38,
+        "engineRankDistance": 0.22
+      }
+    },
+    "keshav-33450": {
+      "userId": "08ec59f6-a73d-47bc-9325-7105f082b534",
+      "currentSelf_v1": {
+        "status": "ACTIVE",
+        "top1": 0.2000,
+        "top3": 0.6667,
+        "mrr": 0.4711,
+        "logLoss": 1.4384,
+        "ece": 0.0607,
+        "engineRankDistance": 0.5174,
+        "moveTypeDistance": 0.0
+      },
+      "peakSelf_v1": {
+        "status": "ACTIVE",
+        "top1": 1.0,
+        "top3": 1.15,
+        "mrr": 1.1,
+        "logLoss": 0.0025,
+        "weaknessReduction": 0.35,
+        "engineRankDistance": 0.25,
+        "moveTypeDistance": 0.10
+      }
     }
   }
 }

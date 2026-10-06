@@ -4,47 +4,39 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   TrendingUp, TrendingDown, Minus, Gamepad2, Target,
   Dna, Brain, RefreshCw, ArrowRight, Trophy, Zap,
-  CheckCircle, AlertCircle, Loader2, Link2
+  CheckCircle, AlertCircle, Loader2, Link2, Crown, Swords
 } from 'lucide-react';
 import { getChessProfile, getDNA, getModels, triggerSync } from '../api';
 
-const StatCard = ({ label, value, sub, trend, color, tabs, activeTab, onTabChange }) => (
+const StatCard = ({ label, value, sub, icon: Icon, color }) => (
   <div
-    className="p-5 rounded-2xl transition-all duration-200 hover:scale-[1.01]"
+    className="p-5 rounded-2xl flex flex-col justify-between min-h-[142px] transition-all duration-200 hover:scale-[1.01] hover:border-[#D4AF37]/30 group"
     style={{
-      background: 'linear-gradient(145deg, #141414 0%, #111111 100%)',
-      border: '1px solid #1A1A1A',
+      background: 'linear-gradient(145deg, #141414 0%, #101010 100%)',
+      border: '1px solid #1E1E1E',
       boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
     }}
   >
-    <div className="flex items-center justify-between mb-3">
-      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4A4A4A' }}>{label}</p>
-      {tabs ? (
-        <div className="flex space-x-1 bg-[#1A1A1A] rounded p-0.5">
-          {tabs.map(tab => (
-            <button
-              key={tab}
-              onClick={() => onTabChange(tab)}
-              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded transition-all ${
-                activeTab === tab ? 'bg-[#333] text-[#F5F0E0] shadow-sm' : 'text-[#6B6B6B] hover:text-[#D4AF37]'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="flex items-center">
-          {trend === 'up' && <TrendingUp size={14} style={{ color: '#4ade80' }} />}
-          {trend === 'down' && <TrendingDown size={14} style={{ color: '#f87171' }} />}
-          {trend === 'flat' && <Minus size={14} style={{ color: '#6B6B6B' }} />}
+    <div className="flex items-center justify-between">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-[#737373] group-hover:text-[#A0A0A0] transition-colors whitespace-nowrap">
+        {label}
+      </span>
+      {Icon && (
+        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#1A1A1A] group-hover:bg-[#222222] border border-[#252525] transition-colors">
+          <Icon size={14} style={{ color: color || '#D4AF37' }} />
         </div>
       )}
     </div>
-    <div className="text-3xl font-black font-display" style={{ color: color || '#F5F0E0' }}>
-      {value}
+
+    <div className="my-2">
+      <div className="text-3xl font-black font-display tracking-tight" style={{ color: color || '#F5F0E0' }}>
+        {value}
+      </div>
     </div>
-    {sub && <div className="text-xs mt-1.5" style={{ color: '#4A4A4A' }}>{sub}</div>}
+
+    <div className="text-xs font-medium text-[#5A5A5A] truncate">
+      {sub || '\u00A0'}
+    </div>
   </div>
 );
 
@@ -95,7 +87,7 @@ const Dashboard = () => {
   const [models, setModels] = useState(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState('idle');
-  const [timeControl, setTimeControl] = useState('rapid');
+  const [timeControl, setTimeControl] = useState('all');
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
@@ -138,15 +130,44 @@ const Dashboard = () => {
 
   const hasProfile = !!profile?.chessUsername;
 
-  const currentStats = profile?.stats?.[timeControl] || { wins: 0, losses: 0, draws: 0, totalGames: 0, currentRating: 0, peakRating: 0 };
-  const overallStats = profile?.stats?.overall || { wins: 0, losses: 0, draws: 0, totalGames: 0 };
-  
-  const stats = {
-    totalGames: overallStats.totalGames,
-    winRate: currentStats.totalGames ? Math.round((currentStats.wins / currentStats.totalGames) * 100) : 0,
-    currentRating: currentStats.currentRating || '—',
-    peakRating: currentStats.peakRating || '—',
-  };
+  const activeStats = (timeControl === 'all')
+    ? (profile?.stats?.all || {
+        wins: profile?.stats?.overall?.wins || 0,
+        losses: profile?.stats?.overall?.losses || 0,
+        draws: profile?.stats?.overall?.draws || 0,
+        totalGames: profile?.stats?.overall?.totalGames || 0,
+        currentRating: profile?.stats?.rapid?.currentRating || profile?.stats?.blitz?.currentRating || profile?.stats?.bullet?.currentRating || '—',
+        peakRating: Math.max(
+          profile?.stats?.rapid?.peakRating || 0,
+          profile?.stats?.blitz?.peakRating || 0,
+          profile?.stats?.bullet?.peakRating || 0
+        ) || '—',
+      })
+    : (profile?.stats?.[timeControl] || {
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        totalGames: 0,
+        currentRating: '—',
+        peakRating: '—',
+      });
+
+  const totalMatchesCount = activeStats.totalGames ?? 0;
+  const winRateVal = totalMatchesCount > 0 ? Math.round((activeStats.wins / totalMatchesCount) * 100) : 0;
+  const currentRatingVal = activeStats.currentRating || '—';
+  const peakRatingVal = activeStats.peakRating || '—';
+
+  const tcDisplayName = timeControl === 'all' ? 'All' : timeControl.charAt(0).toUpperCase() + timeControl.slice(1);
+  const totalMatchesSub = timeControl === 'all'
+    ? 'Across all time controls'
+    : `${tcDisplayName} matches played`;
+  const winRateSub = `${activeStats.wins}W · ${activeStats.losses}L · ${activeStats.draws}D`;
+  const currentRatingSub = timeControl === 'all'
+    ? 'Primary rating (Rapid)'
+    : `Active ${tcDisplayName} rating`;
+  const peakRatingSub = timeControl === 'all'
+    ? 'All-time best'
+    : `Peak ${tcDisplayName} rating`;
 
   const dnaSnippets = dna?.traits?.slice(0, 4) || [];
   const recentGames = profile?.recentGames || [];
@@ -193,18 +214,67 @@ const Dashboard = () => {
 
       {hasProfile && (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Matches" value={stats.totalGames.toLocaleString()} sub="Across all time controls" trend="flat" />
-            <StatCard label="Win Rate" value={`${stats.winRate}%`}
-              sub={`${currentStats.wins}W · ${currentStats.losses}L · ${currentStats.draws}D`}
-              tabs={['rapid', 'blitz', 'bullet']} activeTab={timeControl} onTabChange={setTimeControl}
-              color="#D4AF37" />
-            <StatCard label="Current Rating" value={stats.currentRating}
-              tabs={['rapid', 'blitz', 'bullet']} activeTab={timeControl} onTabChange={setTimeControl} />
-            <StatCard label="Peak Rating" value={stats.peakRating}
-              sub="All-time best"
-              tabs={['rapid', 'blitz', 'bullet']} activeTab={timeControl} onTabChange={setTimeControl}
-              color="#F0C040" />
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 rounded-full" style={{ background: '#D4AF37' }} />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#8A8A8A]">
+                  Performance Overview
+                </span>
+              </div>
+              
+              <div className="inline-flex items-center p-1 rounded-xl bg-[#121212] border border-[#222222] shadow-inner self-start sm:self-auto">
+                {[
+                  { id: 'all', label: 'ALL' },
+                  { id: 'rapid', label: 'RAPID' },
+                  { id: 'blitz', label: 'BLITZ' },
+                  { id: 'bullet', label: 'BULLET' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setTimeControl(tab.id)}
+                    className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all duration-200 tracking-wider ${
+                      timeControl === tab.id
+                        ? 'bg-[#D4AF37] text-black shadow-sm font-extrabold'
+                        : 'text-[#737373] hover:text-[#F5F0E0] hover:bg-[#1C1C1C]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                label="Total Matches"
+                value={totalMatchesCount.toLocaleString()}
+                sub={totalMatchesSub}
+                icon={Gamepad2}
+                color="#F5F0E0"
+              />
+              <StatCard
+                label="Win Rate"
+                value={`${winRateVal}%`}
+                sub={winRateSub}
+                icon={Trophy}
+                color="#D4AF37"
+              />
+              <StatCard
+                label="Current Rating"
+                value={currentRatingVal}
+                sub={currentRatingSub}
+                icon={TrendingUp}
+                color="#F5F0E0"
+              />
+              <StatCard
+                label="Peak Rating"
+                value={peakRatingVal}
+                sub={peakRatingSub}
+                icon={Crown}
+                color="#F0C040"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

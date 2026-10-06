@@ -1,209 +1,607 @@
 import React, { useEffect, useState } from 'react';
-import { apiClient } from '../api/client';
-import { getEvolutionReport } from '../api';
-import { TrendingUp, Brain, History, Award, Loader2, Shield, Activity, Trophy } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import {
+  TrendingUp,
+  Brain,
+  History,
+  Award,
+  Loader2,
+  Shield,
+  Activity,
+  Trophy,
+  Zap,
+  Target,
+  Sparkles,
+  Info,
+  Calendar,
+  ChevronRight,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid
+} from 'recharts';
+import {
+  getEvolutionOverview,
+  getEvolutionTimeline,
+  getEvolutionGameplay,
+  generateEvolutionSnapshot
+} from '../api';
+
+const CATEGORY_COLORS = {
+  TACTICAL: '#D4AF37',
+  DEFENSIVE: '#4ADE80',
+  POSITIONAL: '#60A5FA',
+  ENDGAME: '#F472B6',
+  OPENING: '#FBBF24',
+};
 
 export const Evolution = () => {
-  const [dnaVersions, setDnaVersions] = useState([]);
-  const [models, setModels] = useState([]);
-  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [overview, setOverview] = useState(null);
+  const [timeline, setTimeline] = useState([]);
+  const [quartiles, setQuartiles] = useState([]);
+  const [generatingSnapshot, setGeneratingSnapshot] = useState(false);
+  const [snapshotSuccess, setSnapshotSuccess] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'timeline' | 'correlation'
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const [dnaRes, modelRes, evolutionRes] = await Promise.all([
-          apiClient.get('/dna/history').catch(() => ({ data: {} })),
-          apiClient.get('/models').catch(() => ({ data: {} })),
-          getEvolutionReport().catch(() => ({ data: {} }))
-        ]);
-        setDnaVersions(dnaRes.data?.dnaVersions || []);
-        setModels(modelRes.data?.allVersions || []);
-        setReport(evolutionRes.data?.report || null);
-      } catch (err) {
-        console.error('Failed to fetch evolution data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
+    loadAllData();
   }, []);
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      const [ovRes, timeRes, qRes] = await Promise.all([
+        getEvolutionOverview().catch(() => ({ data: {} })),
+        getEvolutionTimeline().catch(() => ({ data: { events: [] } })),
+        getEvolutionGameplay().catch(() => ({ data: { quartiles: [] } })),
+      ]);
+
+      setOverview(ovRes.data || null);
+      setTimeline(timeRes.data?.events || []);
+      setQuartiles(qRes.data?.quartiles || []);
+    } catch (err) {
+      console.error('Failed to load evolution data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateSnapshot = async () => {
+    try {
+      setGeneratingSnapshot(true);
+      setSnapshotSuccess(null);
+      await generateEvolutionSnapshot({ sourceType: 'MANUAL', notes: 'Manual checkpoint from UI' });
+      setSnapshotSuccess('Historical snapshot created and permanently archived.');
+      loadAllData();
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    } finally {
+      setGeneratingSnapshot(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div
+            className="w-12 h-12 border-2 rounded-full animate-spin mx-auto"
+            style={{ borderColor: '#2A2A2A', borderTopColor: '#D4AF37' }}
+          />
+          <p className="text-sm font-medium" style={{ color: '#888' }}>
+            Aggregating longitudinal game cohorts & deliberate training records...
+          </p>
+        </div>
       </div>
     );
   }
 
-  // Sample historical evolution trends derived from real versions
-  const accuracyTrend = [
-    { month: 'Sync 1', accuracy: 74.2, cpLoss: 38.5 },
-    { month: 'Sync 2', accuracy: 78.5, cpLoss: 32.1 },
-    { month: 'Sync 3', accuracy: 82.1, cpLoss: 27.8 },
-    { month: 'Current', accuracy: 85.6, cpLoss: 24.2 },
-  ];
+  if (!overview || !overview.sufficientData) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-4">
+        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
+        <h2 className="text-xl font-bold text-neutral-100">Insufficient Data for Evolution Analysis</h2>
+        <p className="text-sm text-neutral-400 max-w-md mx-auto">
+          {overview?.message || 'Connect your Chess.com profile and synchronize your games to establish a historical baseline.'}
+        </p>
+      </div>
+    );
+  }
+
+  const {
+    cohorts,
+    gameplayImprovement,
+    trainingProgress,
+    correlation,
+    weaknessProgression,
+    modelComparison,
+    modelEligibility,
+    evolutionScore,
+    user
+  } = overview;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-black text-white flex items-center space-x-3">
-          <TrendingUp className="w-8 h-8 text-emerald-400" />
-          <span>Chess Style & Accuracy Evolution</span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Historical progression calculated across game sync batches and PyTorch model iterations
-        </p>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#D4AF37' }}>
+            <TrendingUp size={14} />
+            <span>Longitudinal Player Analytics</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: '#F5F0E0' }}>
+            Player Evolution & Progress
+          </h1>
+          <p className="text-xs md:text-sm mt-1" style={{ color: '#888' }}>
+            Tracking genuine gameplay progression for @{user?.chessUsername} across {user?.totalAnalyzedGames} analyzed games.
+          </p>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleGenerateSnapshot}
+            disabled={generatingSnapshot}
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:bg-neutral-800 disabled:opacity-50"
+            style={{ background: '#141414', border: '1px solid #2A2A2A', color: '#E0E0E0' }}
+          >
+            <RefreshCw size={13} className={generatingSnapshot ? 'animate-spin' : ''} />
+            <span>Archive Snapshot</span>
+          </button>
+        </div>
       </div>
 
-      {report && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-black text-white flex items-center space-x-2">
-            <Trophy className="w-5 h-5 text-fuchsia-400" />
-            <span>Peak vs Current Comparative Analysis</span>
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 relative overflow-hidden">
-              <div className="absolute -right-6 -top-6 text-fuchsia-500/10">
-                <Trophy size={120} />
+      {snapshotSuccess && (
+        <div className="p-3 rounded-xl border flex items-center space-x-2 text-xs text-emerald-400"
+          style={{ background: 'rgba(74,222,128,0.06)', borderColor: 'rgba(74,222,128,0.2)' }}>
+          <CheckCircle2 size={14} />
+          <span>{snapshotSuccess}</span>
+        </div>
+      )}
+
+      {/* Mandatory Honest Metric Distinction Banner */}
+      <div
+        className="p-5 rounded-2xl border flex items-start space-x-4"
+        style={{ background: '#0F1215', borderColor: '#1F2937' }}
+      >
+        <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#60A5FA' }} />
+        <div className="text-xs leading-relaxed space-y-1" style={{ color: '#9CA3AF' }}>
+          <p className="font-semibold text-neutral-200">
+            Gameplay Improvement vs. Deliberate Training Practice
+          </p>
+          <p>
+            <strong className="text-neutral-300">Gameplay Improvement</strong> is evaluated exclusively from newly analyzed Chess.com games (measuring reductions in Centipawn Loss and blunder rates). 
+            <strong className="text-neutral-300"> Training Improvement</strong> measures your accuracy on targeted decision drills. 
+            The system tracks correlation between deliberate practice and subsequent games without asserting unsupported causal claims.
+          </p>
+        </div>
+      </div>
+
+      {/* Primary KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Gameplay CPL Reduction */}
+        <div
+          className="p-6 rounded-2xl border relative overflow-hidden"
+          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+        >
+          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#60A5FA' }}>
+            Gameplay Avg CPL
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-3xl font-black text-neutral-100">
+              {cohorts.recent?.metrics?.avgCpl}
+            </span>
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{
+                background: gameplayImprovement.cplChangePct <= 0 ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)',
+                color: gameplayImprovement.cplChangePct <= 0 ? '#4ADE80' : '#EF4444',
+              }}
+            >
+              {gameplayImprovement.cplChangePct > 0 ? '+' : ''}
+              {gameplayImprovement.cplChangePct}%
+            </span>
+          </div>
+          <p className="text-[11px] text-neutral-500 mt-2">
+            Baseline: {cohorts.baseline?.metrics?.avgCpl} cp (N = {gameplayImprovement.sampleSizeBaseline} decisions)
+          </p>
+        </div>
+
+        {/* Gameplay Blunder Rate */}
+        <div
+          className="p-6 rounded-2xl border relative overflow-hidden"
+          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+        >
+          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#4ADE80' }}>
+            Gameplay Blunder Rate
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-3xl font-black text-neutral-100">
+              {cohorts.recent?.metrics?.blunderRate}%
+            </span>
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{
+                background: gameplayImprovement.blunderRateChangePct <= 0 ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)',
+                color: gameplayImprovement.blunderRateChangePct <= 0 ? '#4ADE80' : '#EF4444',
+              }}
+            >
+              {gameplayImprovement.blunderRateChangePct > 0 ? '+' : ''}
+              {gameplayImprovement.blunderRateChangePct}%
+            </span>
+          </div>
+          <p className="text-[11px] text-neutral-500 mt-2">
+            Baseline: {cohorts.baseline?.metrics?.blunderRate}% of moves
+          </p>
+        </div>
+
+        {/* Training Position Success Rate */}
+        <div
+          className="p-6 rounded-2xl border relative overflow-hidden"
+          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+        >
+          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#D4AF37' }}>
+            Training Drill Success
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-3xl font-black text-neutral-100" style={{ color: '#D4AF37' }}>
+              {Math.round(trainingProgress?.trainingSuccessRate || 0)}%
+            </span>
+            <span className="text-xs text-neutral-500">
+              ({trainingProgress?.totalPositionsSolved}/{trainingProgress?.totalPositionsAttempted})
+            </span>
+          </div>
+          <p className="text-[11px] text-neutral-500 mt-2">
+            Deliberate practice across {trainingProgress?.totalSessionsCompleted} sessions
+          </p>
+        </div>
+
+        {/* Retraining Eligibility */}
+        <div
+          className="p-6 rounded-2xl border relative overflow-hidden"
+          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+        >
+          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#A78BFA' }}>
+            Model Update Status
+          </div>
+          <div className="text-lg font-black text-neutral-100 truncate mt-1">
+            {modelEligibility?.status === 'RETRAINING_ELIGIBLE' ? (
+              <span className="text-emerald-400">Retraining Eligible</span>
+            ) : modelEligibility?.status === 'NEW_DATA_AVAILABLE' ? (
+              <span className="text-amber-400">New Data Available</span>
+            ) : (
+              <span className="text-neutral-400">Up to Date</span>
+            )}
+          </div>
+          <p className="text-[11px] text-neutral-500 mt-2">
+            +{modelEligibility?.newGamesSinceLastTrain || 0} games since last model training
+          </p>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center space-x-2 border-b" style={{ borderColor: '#222' }}>
+        {[
+          { id: 'overview', label: 'Longitudinal Cohorts & Charts' },
+          { id: 'correlation', label: 'Training → Gameplay Correlation' },
+          { id: 'timeline', label: 'Milestone Timeline' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="px-4 py-2.5 text-xs font-bold transition-all border-b-2"
+            style={{
+              borderColor: activeTab === tab.id ? '#D4AF37' : 'transparent',
+              color: activeTab === tab.id ? '#F5F0E0' : '#777',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB 1: Longitudinal Quartiles & Charts */}
+      {activeTab === 'overview' && (
+        <div className="space-y-8">
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Real CPL Reduction Across Quartiles */}
+            <div
+              className="p-6 rounded-2xl border space-y-4"
+              style={{ background: '#101010', borderColor: '#1F1F1F' }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-neutral-200">
+                    Average Centipawn Loss Trajectory
+                  </h3>
+                  <p className="text-[11px] text-neutral-500">
+                    Chronological quartiles across {user?.totalAnalyzedGames} analyzed games
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-emerald-400">
+                  {gameplayImprovement.cplChangePct}% Total Delta
+                </span>
               </div>
-              <div className="relative">
-                <div className="flex items-center space-x-2 text-fuchsia-500 mb-2">
-                  <TrendingUp size={16} />
-                  <span className="text-xs font-bold uppercase tracking-wider">Evolution Score</span>
-                </div>
-                <div className="text-4xl font-bold text-white mb-1">
-                  +{report.evolutionScore.toFixed(1)}%
-                </div>
-                <p className="text-xs text-slate-400">Overall improvement over Current Self</p>
+
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={quartiles}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                    <XAxis dataKey="cohort" tick={{ fill: '#888', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#888', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#141414', borderColor: '#2A2A2A', borderRadius: '12px', fontSize: '11px' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="avgCpl"
+                      name="Average CPL"
+                      stroke="#60A5FA"
+                      strokeWidth={3}
+                      dot={{ fill: '#60A5FA', r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-              <div className="flex items-center space-x-2 text-emerald-500 mb-2">
-                <Shield size={16} />
-                <span className="text-xs font-bold uppercase tracking-wider">Weakness Reduction</span>
+            {/* Error Rates vs Best Move Rate */}
+            <div
+              className="p-6 rounded-2xl border space-y-4"
+              style={{ background: '#101010', borderColor: '#1F1F1F' }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-neutral-200">
+                    Blunder Rate vs. Best Move Rate (%)
+                  </h3>
+                  <p className="text-[11px] text-neutral-500">
+                    Tactical discipline progression per chronological cohort
+                  </p>
+                </div>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">
-                {report.metrics.weaknessReduction.toFixed(1)}%
-              </div>
-              <p className="text-xs text-slate-400">Fewer tactical blunders</p>
-            </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-              <div className="flex items-center space-x-2 text-amber-500 mb-2">
-                <Activity size={16} />
-                <span className="text-xs font-bold uppercase tracking-wider">Style Preservation</span>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={quartiles}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                    <XAxis dataKey="cohort" tick={{ fill: '#888', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#888', fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#141414', borderColor: '#2A2A2A', borderRadius: '12px', fontSize: '11px' }}
+                    />
+                    <Bar dataKey="blunderRate" name="Blunder Rate %" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="bestMoveRate" name="Engine Best Move %" fill="#4ADE80" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              <div className="text-3xl font-bold text-white mb-1">
-                {report.metrics.stylePreservation.toFixed(1)}%
-              </div>
-              <p className="text-xs text-slate-400">Similarity to your fundamental playstyle</p>
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
-            <div className="p-6 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-white">Engine Quality Comparison</h3>
-              <p className="text-xs text-slate-400 mt-1">Probability of playing the engine's top choice</p>
+          {/* Current vs Peak Behavioral Gap */}
+          {modelComparison && (
+            <div
+              className="p-6 rounded-2xl border space-y-6"
+              style={{ background: '#101010', borderColor: '#1F1F1F' }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2 text-xs font-bold text-fuchsia-400 uppercase tracking-wider mb-1">
+                    <Trophy size={14} />
+                    <span>Behavioral Gap Analysis</span>
+                  </div>
+                  <h2 className="text-lg font-bold text-neutral-100">
+                    Current Self vs. Peak Self Divergence
+                  </h2>
+                </div>
+                {evolutionScore !== null && (
+                  <div className="text-right">
+                    <span className="text-xs text-neutral-500">Evolution Score</span>
+                    <div className="text-2xl font-black text-fuchsia-400">+{evolutionScore}%</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl border" style={{ background: '#141414', borderColor: '#222' }}>
+                  <div className="text-xs text-neutral-400 mb-1">Top-1 Accuracy Gap</div>
+                  <div className="text-2xl font-black text-neutral-100">
+                    +{modelComparison.behavioralGap.top1Delta}%
+                  </div>
+                  <p className="text-[10px] text-neutral-500 mt-1">
+                    Current Self: {modelComparison.currentSelf.top1Accuracy}% • Peak Self: {modelComparison.peakSelf.top1Accuracy}%
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border" style={{ background: '#141414', borderColor: '#222' }}>
+                  <div className="text-xs text-neutral-400 mb-1">Weakness Reduction Rate</div>
+                  <div className="text-2xl font-black text-emerald-400">
+                    {modelComparison.behavioralGap.weaknessReductionRate}%
+                  </div>
+                  <p className="text-[10px] text-neutral-500 mt-1">
+                    Fewer tactical mistakes selected by Peak Self
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl border" style={{ background: '#141414', borderColor: '#222' }}>
+                  <div className="text-xs text-neutral-400 mb-1">Style Preservation Rate</div>
+                  <div className="text-2xl font-black text-amber-400">
+                    {modelComparison.behavioralGap.stylePreservationRate}%
+                  </div>
+                  <p className="text-[10px] text-neutral-500 mt-1">
+                    Maintains user personality without generic style collapse
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-semibold text-slate-300">Current Self (v{report.models.currentSelf.version})</span>
-                  <span className="text-sm font-bold text-slate-400">{(report.metrics.engineQuality.currentSelf * 100).toFixed(1)}%</span>
+          )}
+
+          {/* Weakness Trajectories */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-neutral-200">DNA Weakness Trajectories</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {weaknessProgression.map((w, idx) => (
+                <div
+                  key={idx}
+                  className="p-5 rounded-2xl border space-y-3"
+                  style={{ background: '#101010', borderColor: '#1F1F1F' }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
+                        {w.category} Domain
+                      </span>
+                      <h3 className="text-sm font-bold text-neutral-100 mt-0.5">{w.weakness}</h3>
+                    </div>
+                    <span
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        background:
+                          w.status === 'IMPROVING'
+                            ? 'rgba(74,222,128,0.1)'
+                            : w.status === 'STABLE'
+                            ? 'rgba(234,179,8,0.1)'
+                            : 'rgba(239,68,68,0.1)',
+                        color:
+                          w.status === 'IMPROVING'
+                            ? '#4ADE80'
+                            : w.status === 'STABLE'
+                            ? '#EAB308'
+                            : '#EF4444',
+                      }}
+                    >
+                      {w.status}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-neutral-400">{w.trendDescription}</p>
+
+                  <div className="pt-2 border-t flex items-center justify-between text-[11px] text-neutral-500" style={{ borderColor: '#1A1A1A' }}>
+                    <span>Baseline Error: {w.baselineErrorRate}%</span>
+                    <span>→</span>
+                    <span className="text-neutral-300 font-semibold">Recent Error: {w.recentErrorRate}%</span>
+                    <span>•</span>
+                    <span>N = {w.sampleSize}</span>
+                  </div>
                 </div>
-                <div className="w-full bg-slate-800 rounded-full h-3">
-                  <div className="bg-slate-500 h-3 rounded-full" style={{ width: `${report.metrics.engineQuality.currentSelf * 100}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-semibold text-fuchsia-400">Peak Self (v{report.models.peakSelf.version})</span>
-                  <span className="text-sm font-bold text-fuchsia-400">{(report.metrics.engineQuality.peakSelf * 100).toFixed(1)}%</span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-3">
-                  <div className="bg-fuchsia-500 h-3 rounded-full" style={{ width: `${report.metrics.engineQuality.peakSelf * 100}%` }}></div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
-        {/* Accuracy Progress Chart */}
-        <div className="p-6 rounded-2xl glass-panel space-y-4">
-          <h2 className="text-xl font-black text-white flex items-center space-x-2">
-            <Award className="w-5 h-5 text-emerald-400" />
-            <span>Stockfish Accuracy Evolution</span>
-          </h2>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={accuracyTrend}>
-                <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 12 }} />
-                <YAxis domain={[60, 100]} tick={{ fill: '#94A3B8', fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: '#131B29', borderColor: '#334155' }} />
-                <Line type="monotone" dataKey="accuracy" stroke="#10B981" strokeWidth={3} />
-              </LineChart>
-            </ResponsiveContainer>
+      {/* TAB 2: Training -> Gameplay Correlation */}
+      {activeTab === 'correlation' && (
+        <div className="space-y-6">
+          <div
+            className="p-5 rounded-2xl border text-xs leading-relaxed space-y-2"
+            style={{ background: '#101010', borderColor: '#1F1F1F', color: '#9CA3AF' }}
+          >
+            <p className="font-bold text-neutral-200">Scientific Correlation Framework</p>
+            <p>{correlation.disclaimer}</p>
+          </div>
+
+          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: '#1F1F1F', background: '#0E0E0E' }}>
+            <table className="w-full text-left text-xs">
+              <thead className="border-b" style={{ borderColor: '#1F1F1F', background: '#141414', color: '#888' }}>
+                <tr>
+                  <th className="p-4">Category</th>
+                  <th className="p-4">Training Drills</th>
+                  <th className="p-4">Drill Success</th>
+                  <th className="p-4">Baseline CPL</th>
+                  <th className="p-4">Recent CPL</th>
+                  <th className="p-4">Gameplay CPL Delta</th>
+                  <th className="p-4">Sample Size</th>
+                  <th className="p-4">Evidence</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-900 text-neutral-300">
+                {correlation.categories.map((c) => (
+                  <tr key={c.category} className="hover:bg-neutral-900/30">
+                    <td className="p-4 font-bold text-neutral-100">{c.category}</td>
+                    <td className="p-4">{c.trainingPositionsAttempted} drills</td>
+                    <td className="p-4 font-bold" style={{ color: '#D4AF37' }}>
+                      {c.trainingPositionsAttempted > 0 ? `${c.trainingSuccessRate}%` : '—'}
+                    </td>
+                    <td className="p-4">{c.gameplayBaselineCpl} cp</td>
+                    <td className="p-4">{c.gameplayRecentCpl} cp</td>
+                    <td className="p-4 font-bold">
+                      <span
+                        style={{
+                          color: c.cplChangePct <= 0 ? '#4ADE80' : '#EF4444',
+                        }}
+                      >
+                        {c.cplChangePct > 0 ? '+' : ''}
+                        {c.cplChangePct}%
+                      </span>
+                    </td>
+                    <td className="p-4 text-neutral-500">N = {c.gameplaySampleSize}</td>
+                    <td className="p-4">
+                      <span
+                        className="px-2 py-0.5 rounded text-[10px] font-bold"
+                        style={{
+                          background: c.evidenceStatus === 'SUFFICIENT' ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
+                          color: c.evidenceStatus === 'SUFFICIENT' ? '#4ADE80' : '#888',
+                        }}
+                      >
+                        {c.evidenceStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
+      )}
 
-        {/* Centipawn Loss Reduction */}
-        <div className="p-6 rounded-2xl glass-panel space-y-4">
-          <h2 className="text-xl font-black text-white flex items-center space-x-2">
-            <TrendingUp className="w-5 h-5 text-indigo-400" />
-            <span>Average Centipawn Loss Reduction</span>
-          </h2>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={accuracyTrend}>
-                <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#94A3B8', fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: '#131B29', borderColor: '#334155' }} />
-                <Bar dataKey="cpLoss" fill="#6366F1" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      {/* TAB 3: Milestone Timeline */}
+      {activeTab === 'timeline' && (
+        <div className="space-y-6">
+          <div className="relative pl-6 border-l-2 space-y-8" style={{ borderColor: '#2A2A2A' }}>
+            {timeline.map((ev, idx) => (
+              <div key={idx} className="relative group">
+                {/* Dot */}
+                <div
+                  className="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full border-2 transition-all"
+                  style={{
+                    background: '#080808',
+                    borderColor:
+                      ev.type === 'MODEL_TRAINED'
+                        ? '#A78BFA'
+                        : ev.type === 'TRAINING_SESSION'
+                        ? '#D4AF37'
+                        : '#4ADE80',
+                  }}
+                />
 
-      {/* Model Version History Table */}
-      <div className="p-6 rounded-2xl glass-panel space-y-6">
-        <h2 className="text-xl font-black text-white flex items-center space-x-2">
-          <History className="w-5 h-5 text-emerald-400" />
-          <span>Trained ML Model Version Log</span>
-        </h2>
-
-        <div className="divide-y divide-white/5">
-          {models.map((m) => (
-            <div key={m.id} className="py-4 flex items-center justify-between">
-              <div>
-                <div className="text-base font-bold text-white">
-                  {m.modelType} (v{m.version})
-                </div>
-                <div className="text-xs text-slate-400">
-                  Games Used: {m.gamesUsed} • Positions: {m.positionsUsed} • Feature Version: {m.featureVersion}
+                <div
+                  className="p-5 rounded-2xl border space-y-2 transition-all hover:bg-neutral-900/40"
+                  style={{ background: '#101010', borderColor: '#1F1F1F' }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <span className="text-xs font-bold text-neutral-200">{ev.title}</span>
+                    <span className="text-[11px] text-neutral-500">
+                      {new Date(ev.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-400">{ev.description}</p>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded text-xs font-bold ${
-                m.status === 'READY' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300'
-              }`}>
-                {m.status}
-              </span>
-            </div>
-          ))}
-          {models.length === 0 && (
-            <div className="py-6 text-center text-xs text-slate-500">
-              No trained model versions archived yet.
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

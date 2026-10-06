@@ -1,0 +1,142 @@
+{
+  "registry": [
+    {
+      "id": "cmuunbgq80007m5syoow8fu7o",
+      "userId": "b2ea5969-f4a9-4fb6-9228-10a3bd42adcf",
+      "modelType": "CURRENT_SELF",
+      "version": 1,
+      "datasetVersion": "v1",
+      "featureVersion": "v1",
+      "architectureVersion": "v1",
+      "trainingConfigVersion": "v1",
+      "trainingJobId": null,
+      "status": "READY",
+      "evaluationStatus": "PASS",
+      "qualityGateResult": {
+        "status": "PASS",
+        "reasons": [
+          "Model passed all automated quality checks."
+        ]
+      },
+      "artifactPath": "./artifacts/current_self/b2ea5969-f4a9-4fb6-9228-10a3bd42adcf/cmuunbgq80007m5syoow8fu7o\\checkpoint_best.pt",
+      "trainedAt": "2026-10-05T12:21:23.853000",
+      "artifact_exists": true,
+      "artifact_loadable": true,
+      "has_nan_weights": false,
+      "metrics_present": true,
+      "eval_metrics_present": true,
+      "peak_dependency_valid": null,
+      "peak_dependency_ready": null,
+      "audit_status": "PASS"
+    },
+    {
+      "id": "cmuv7y5cu0f1t4vnao2plw7pw",
+      "userId": "08ec59f6-a73d-47bc-9325-7105f082b534",
+      "modelType": "CURRENT_SELF",
+      "version": 1,
+      "datasetVersion": "v1",
+      "featureVersion": "v1",
+      "architectureVersion": "v1",
+      "trainingConfigVersion": "v1",
+      "trainingJobId": null,
+      "status": "READY",
+      "evaluationStatus": "PASS",
+      "qualityGateResult": {
+        "status": "PASS",
+        "reasons": [
+          "Model passed all automated quality checks."
+        ]
+      },
+      "artifactPath": "./artifacts/current_self/08ec59f6-a73d-47bc-9325-7105f082b534/cmuv7y5cu0f1t4vnao2plw7pw\\checkpoint_best.pt",
+      "trainedAt": "2026-10-05T12:21:43.334000",
+      "artifact_exists": true,
+      "artifact_loadable": true,
+      "has_nan_weights": false,
+      "metrics_present": true,
+      "eval_metrics_present": true,
+      "peak_dependency_valid": null,
+      "peak_dependency_ready": null,
+      "audit_status": "PASS"
+    },
+    {
+      "id": "cmuv816ir0003pg8xv95x364e",
+      "userId": "08ec59f6-a73d-47bc-9325-7105f082b534",
+      "modelType": "PEAK_SELF",
+      "version": 1,
+      "datasetVersion": "v1",
+      "featureVersion": "v1",
+      "architectureVersion": "v1",
+      "trainingConfigVersion": "v1",
+      "trainingJobId": null,
+      "status": "READY",
+      "evaluationStatus": "PASS",
+      "qualityGateResult": {
+        "status": "PASS",
+        "reasons": [
+          "Quality Gate PASSED. Top-1: 1.00. Weakness Reduced: 35.0%. No Style Collapse."
+        ]
+      },
+      "artifactPath": "C:\\Users\\deepa\\Desktop\\Deepak\\github\\Chess_Evolve\\ml-service\\artifacts\\peak_self\\90ab0928-3289-4815-b94d-4742b0e67b46",
+      "trainedAt": "2026-10-05T12:24:02.405000",
+      "artifact_exists": true,
+      "artifact_loadable": true,
+      "has_nan_weights": false,
+      "metrics_present": true,
+      "eval_metrics_present": true,
+      "peak_dependency_valid": true,
+      "peak_dependency_ready": true,
+      "audit_status": "PASS"
+    },
+    {
+      "id": "cmuunbuko0009m5sy4zuj4ped",
+      "userId": "b2ea5969-f4a9-4fb6-9228-10a3bd42adcf",
+      "modelType": "PEAK_SELF",
+      "version": 1,
+      "datasetVersion": "v1",
+      "featureVersion": "v1",
+      "architectureVersion": "v1",
+      "trainingConfigVersion": "v1",
+      "trainingJobId": null,
+      "status": "READY",
+      "evaluationStatus": "PASS",
+      "qualityGateResult": {
+        "status": "PASS",
+        "reasons": [
+          "Quality Gate PASSED. Top-1: 1.00. Weakness Reduced: 35.0%. No Style Collapse."
+        ]
+      },
+      "artifactPath": "C:\\Users\\deepa\\Desktop\\Deepak\\github\\Chess_Evolve\\ml-service\\artifacts\\peak_self\\16d96169-8291-4d15-ab8f-e4d26da7612f",
+      "trainedAt": "2026-10-05T12:41:20.576000",
+      "artifact_exists": true,
+      "artifact_loadable": true,
+      "has_nan_weights": false,
+      "metrics_present": true,
+      "eval_metrics_present": true,
+      "peak_dependency_valid": true,
+      "peak_dependency_ready": true,
+      "audit_status": "PASS"
+    }
+  ],
+  "inference": {
+    "ml_service_up": true,
+    "results": [
+      {
+        "modelType": "CURRENT_SELF",
+        "modelId": "cmuunbgq80007m5syoow8fu7o",
+        "recommended_in_candidates": true,
+        "probs_normalized": true,
+        "has_nan": false,
+        "verdict": "PASS"
+      },
+      {
+        "modelType": "PEAK_SELF",
+        "modelId": "cmuv816ir0003pg8xv95x364e",
+        "dependentModelId": "cmuv7y5cu0f1t4vnao2plw7pw",
+        "recommended_in_candidates": true,
+        "probs_normalized": true,
+        "has_nan": false,
+        "verdict": "PASS"
+      }
+    ]
+  }
+}

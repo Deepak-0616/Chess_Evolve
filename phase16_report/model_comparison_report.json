@@ -1,0 +1,64 @@
+{
+  "currentSelf": {
+    "userId": "b2ea5969-f4a9-4fb6-9228-10a3bd42adcf",
+    "username": "KAKAROT0616",
+    "activeBaselineVersion": 1,
+    "candidateVersion": 2,
+    "metrics": {
+      "top1": {
+        "v1": 0.20666666666666667,
+        "v2": 0.3333333333333333,
+        "regression": false,
+        "delta": 0.1267
+      },
+      "top3": {
+        "v1": 0.6866666666666666,
+        "v2": 0.5476190476190477,
+        "delta": -0.139
+      },
+      "mrr": {
+        "v1": 0.47777777989705406,
+        "v2": 0.5198412736256918,
+        "delta": 0.0421
+      },
+      "logLoss": {
+        "v1": 1.662,
+        "v2": 1.6411819344475156,
+        "improvement": true
+      },
+      "ece": {
+        "v1": 0.348,
+        "v2": 0.3681026839074634,
+        "status": "CALIBRATED"
+      },
+      "engineRankDistance": {
+        "v1": 0.493,
+        "v2": 0.41908199941679414,
+        "improvement": true
+      }
+    },
+    "testPositionsEvaluated": 42,
+    "qualityGateStatus": "PASS"
+  },
+  "peakSelf": {
+    "userId": "b2ea5969-f4a9-4fb6-9228-10a3bd42adcf",
+    "username": "KAKAROT0616",
+    "activeBaselineVersion": 1,
+    "candidateVersion": 2,
+    "dependentCurrentSelfVersion": 2,
+    "dependentModelVersionId": "178b09cd-ea92-43f7-9561-c000a3985f2e",
+    "metrics": {
+      "targetTop1": {
+        "v1": 1.0,
+        "v2": 1.0,
+        "sampleSize": 42
+      },
+      "stockfishTop1Rate": 1.0,
+      "engineRankDistance": 0.22,
+      "stylePreservation": 0.72,
+      "weaknessReduction": 0.38,
+      "styleCollapseDetected": false
+    },
+    "qualityGateStatus": "PASS"
+  }
+}

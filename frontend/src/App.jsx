@@ -11,6 +11,8 @@ import Games from './pages/Games';
 import DNA from './pages/DNA';
 import Evolution from './pages/Evolution';
 import Training from './pages/Training';
+import TrainingSessionView from './pages/TrainingSessionView';
+import TrainingProgressView from './pages/TrainingProgressView';
 import Coach from './pages/Coach';
 import Arena from './pages/Arena';
 import ArenaMatch from './pages/ArenaMatch';
@@ -54,6 +56,8 @@ const AppRoutes = () => (
     <Route path="/evolution" element={<Protected><Evolution /></Protected>} />
     <Route path="/preparation" element={<Protected><Preparation /></Protected>} />
     <Route path="/training" element={<Protected><Training /></Protected>} />
+    <Route path="/training/session/:sessionId" element={<Protected><TrainingSessionView /></Protected>} />
+    <Route path="/training/progress" element={<Protected><TrainingProgressView /></Protected>} />
     <Route path="/coach" element={<Protected><Coach /></Protected>} />
     <Route path="/arena" element={<Protected><Arena /></Protected>} />
     <Route path="/arena/:matchId" element={<Protected><ArenaMatch /></Protected>} />

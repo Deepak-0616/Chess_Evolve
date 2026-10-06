@@ -1,0 +1,47 @@
+{
+  "tests": [
+    {
+      "test": "No auth on /play/sessions",
+      "verdict": "PASS",
+      "got": 401,
+      "expected": 401,
+      "secrets_leaked": false
+    },
+    {
+      "test": "No auth on /arena/players",
+      "verdict": "PASS",
+      "got": 401,
+      "expected": 401,
+      "secrets_leaked": false
+    },
+    {
+      "test": "No auth on /coach/insights",
+      "verdict": "PASS",
+      "got": 401,
+      "expected": 401,
+      "secrets_leaked": false
+    },
+    {
+      "test": "No auth on /evolution",
+      "verdict": "PASS",
+      "got": 401,
+      "expected": 401,
+      "secrets_leaked": false
+    },
+    {
+      "test": "Fake bearer token",
+      "verdict": "PASS",
+      "got": 401,
+      "expected": 401,
+      "secrets_leaked": false
+    },
+    {
+      "test": "No auth on /models",
+      "verdict": "PASS",
+      "got": 401,
+      "expected": 401,
+      "secrets_leaked": false
+    }
+  ],
+  "timestamp": "2026-10-05T13:45:30.928835"
+}

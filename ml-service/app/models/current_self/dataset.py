@@ -49,8 +49,11 @@ class CurrentSelfDataset(Dataset):
                     "features": features
                 })
         
-        # Convert to list of positions
-        self.positions = list(grouped_data.values())
+        # Convert to list of positions that have at least one actual move
+        self.positions = [
+            p for p in grouped_data.values()
+            if any(c.get("isActualMove") for c in p["candidates"])
+        ]
 
     def __len__(self):
         return len(self.positions)
@@ -58,17 +61,9 @@ class CurrentSelfDataset(Dataset):
     def __getitem__(self, idx):
         pos_data = self.positions[idx]
         
-        # We need to construct tensors
-        # 1. Position Features (Shared across all candidates in this position)
-        # 2. Candidate Features (Varies per candidate)
-        # 3. Target Label (Which candidate index is the actual move)
-        
         candidates = pos_data["candidates"]
         
-        # In a real scenario, we use config to dictate dimensionality. 
-        # For this phase, we extract the keys we know exist.
-        
-        target_idx = -1
+        target_idx = 0
         pos_feat_tensor = None
         cand_feat_list = []
         

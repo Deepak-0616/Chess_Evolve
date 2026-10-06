@@ -89,9 +89,14 @@ class CurrentSelfInferenceEngine:
         for i, cand in enumerate(scored_candidates):
             cand["rank"] = i + 1
             
+        move_probs = {c["move"]: c["probability"] for c in scored_candidates}
         return {
             "modelType": "CURRENT_SELF",
             "modelVersion": model_version,
             "predictedMove": scored_candidates[0]["move"],
+            "recommendedMove": scored_candidates[0]["move"],
+            "confidence": scored_candidates[0]["probability"],
+            "moveProbabilities": move_probs,
+            "probabilities": move_probs,
             "candidates": scored_candidates
         }

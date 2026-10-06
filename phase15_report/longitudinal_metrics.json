@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-10-05T16:14:21.505015+00:00",
+  "metricsByPlayer": {
+    "KAKAROT0616": {
+      "cohorts": {
+        "baseline": {
+          "decisions": 22289,
+          "avgCpl": 169.3
+        },
+        "recent": {
+          "decisions": 26091,
+          "avgCpl": 107.3
+        },
+        "cplDeltaPct": -36.6
+      },
+      "gameplayAccuracy": {
+        "blunderRatePct": 14.1,
+        "mistakeRatePct": 15.4,
+        "inaccuracyRatePct": 21.2,
+        "bestMoveRatePct": 28.4
+      }
+    },
+    "keshav-33450": {
+      "cohorts": {
+        "baseline": {
+          "decisions": 3760,
+          "avgCpl": 107.2
+        },
+        "recent": {
+          "decisions": 3828,
+          "avgCpl": 96.0
+        },
+        "cplDeltaPct": -10.4
+      },
+      "gameplayAccuracy": {
+        "blunderRatePct": 9.8,
+        "mistakeRatePct": 13.2,
+        "inaccuracyRatePct": 21.8,
+        "bestMoveRatePct": 31.9
+      }
+    }
+  }
+}

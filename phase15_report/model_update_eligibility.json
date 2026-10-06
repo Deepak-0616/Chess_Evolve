@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-10-05T16:14:21.514944+00:00",
+  "criteria": {
+    "minNewGames": 30,
+    "minNewPositions": 500,
+    "minDnaDivergencePct": 15.0
+  },
+  "eligibility": {
+    "KAKAROT0616": {
+      "status": "RETRAINING_ELIGIBLE",
+      "newGamesSinceLastTrain": 746,
+      "threshold": 30,
+      "eligible": true
+    },
+    "keshav-33450": {
+      "status": "NO_UPDATE_NEEDED",
+      "newGamesSinceLastTrain": 0,
+      "threshold": 30,
+      "eligible": false
+    }
+  }
+}

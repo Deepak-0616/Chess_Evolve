@@ -7,12 +7,15 @@ from app.models.current_self.evaluator import CurrentSelfEvaluator
 import os
 import traceback
 
+from typing import Optional
+
 router = APIRouter()
 
 class TrainRequest(BaseModel):
     model_version_id: str
     dataset_id: str
     user_id: str
+    run_sync: Optional[bool] = False
 
 def run_training_task(req: TrainRequest):
     registry = ModelRegistry()
@@ -59,6 +62,9 @@ def run_training_task(req: TrainRequest):
 @router.post("/api/v1/ml/train/current-self")
 def start_current_self_training(req: TrainRequest, background_tasks: BackgroundTasks):
     try:
+        if req.run_sync:
+            run_training_task(req)
+            return {"success": True, "message": "Training executed synchronously"}
         background_tasks.add_task(run_training_task, req)
         return {"success": True, "message": "Training queued"}
     except Exception as e:
@@ -119,8 +125,12 @@ def run_peak_training_task(req: TrainRequest):
 @router.post("/api/v1/ml/train/peak-self")
 def start_peak_self_training(req: TrainRequest, background_tasks: BackgroundTasks):
     try:
+        if req.run_sync:
+            run_peak_training_task(req)
+            return {"success": True, "message": "Peak Self Training executed synchronously"}
         background_tasks.add_task(run_peak_training_task, req)
         return {"success": True, "message": "Peak Self Training queued"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 

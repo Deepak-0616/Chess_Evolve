@@ -255,6 +255,9 @@ router.post("/matches/:matchId/moves", authenticateSupabaseUser, async (req, res
     });
 
     if (!match) return res.status(404).json({ error: "Match not found" });
+    if (match.whiteUserId !== userId && match.blackUserId !== userId) {
+      return res.status(403).json({ error: "Unauthorized: You are not a participant in this match." });
+    }
     if (match.status !== "IN_PROGRESS") return res.status(400).json({ error: "Match is not in progress" });
 
     const chess = new Chess(match.fen);
@@ -344,8 +347,37 @@ router.post("/matches/:matchId/moves", authenticateSupabaseUser, async (req, res
 
     // Handle rating updates if match is completed
     if (result && result !== "IN_PROGRESS") {
-      // Implement basic rating update if necessary (simplified for time)
-      // Transactional rating update logic...
+      try {
+        // Standard Elo rating update (K=32)
+        const K = 32;
+        const whiteRating = await prisma.arenaRating.findFirst({ where: { userId: match.whiteUserId }, orderBy: { createdAt: "desc" } });
+        const blackRating = await prisma.arenaRating.findFirst({ where: { userId: match.blackUserId }, orderBy: { createdAt: "desc" } });
+        
+        const whiteElo = whiteRating?.elo ?? 1200;
+        const blackElo = blackRating?.elo ?? 1200;
+        
+        const expectedWhite = 1 / (1 + Math.pow(10, (blackElo - whiteElo) / 400));
+        const expectedBlack = 1 - expectedWhite;
+        
+        let scoreWhite = 0.5; // DRAW
+        if (result === "WHITE_WON") scoreWhite = 1;
+        else if (result === "BLACK_WON") scoreWhite = 0;
+        
+        const newWhiteElo = Math.round(whiteElo + K * (scoreWhite - expectedWhite));
+        const newBlackElo = Math.round(blackElo + K * ((1 - scoreWhite) - expectedBlack));
+        
+        await prisma.$transaction([
+          prisma.arenaRating.create({
+            data: { userId: match.whiteUserId, elo: newWhiteElo, matchId, delta: newWhiteElo - whiteElo }
+          }),
+          prisma.arenaRating.create({
+            data: { userId: match.blackUserId, elo: newBlackElo, matchId, delta: newBlackElo - blackElo }
+          })
+        ]);
+      } catch (ratingErr) {
+        // Rating update failure should not block the move response — log and continue
+        console.error("Arena rating update failed:", ratingErr.message);
+      }
     }
 
     return res.json({
@@ -365,6 +397,9 @@ router.post("/matches/:matchId/resign", authenticateSupabaseUser, async (req, re
     const { matchId } = req.params;
     const match = await prisma.arenaMatch.findUnique({ where: { id: matchId } });
     if (!match) return res.status(404).json({ error: "Match not found" });
+    if (match.whiteUserId !== req.user.id && match.blackUserId !== req.user.id) {
+      return res.status(403).json({ error: "Unauthorized: You are not a participant in this match." });
+    }
 
     const updated = await prisma.arenaMatch.update({
       where: { id: matchId },

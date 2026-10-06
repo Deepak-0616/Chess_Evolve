@@ -31,6 +31,31 @@ class PredictRequest(BaseModel):
 def health_check():
     return {"status": "ok", "service": "Chess Evolve ML PyTorch Engine", "pytorch_version": torch.__version__}
 
+@app.get("/ready")
+def readiness_check():
+    from app.db import get_engine
+    from sqlalchemy import text
+    checks = {
+        "database": "unknown",
+        "pytorch": "healthy" if torch.__version__ else "unhealthy",
+        "storage": "healthy" if os.path.exists("./artifacts") or os.access(".", os.W_OK) else "degraded",
+    }
+    all_healthy = True
+
+    try:
+        engine = get_engine()
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1")).fetchone()
+            checks["database"] = "healthy"
+    except Exception as e:
+        checks["database"] = f"unhealthy: {str(e)}"
+        all_healthy = False
+
+    if not all_healthy:
+        raise HTTPException(status_code=503, detail={"status": "unhealthy", "checks": checks})
+
+    return {"status": "ready", "checks": checks}
+
 @app.post("/api/v1/train")
 def train_model(req: TrainRequest):
     try:
@@ -113,8 +138,10 @@ def generate_datasets(req: DatasetGenerationRequest):
 
 from app.train_api import router as train_router
 from app.inference_api import router as inference_router
+from app.retraining.router import router as retraining_router
 app.include_router(train_router)
 app.include_router(inference_router)
+app.include_router(retraining_router)
 
 if __name__ == "__main__":
     import uvicorn

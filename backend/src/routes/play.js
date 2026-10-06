@@ -14,15 +14,22 @@ router.post("/sessions", authenticateSupabaseUser, async (req, res) => {
     const { opponentModelType = "CURRENT_SELF", userColor = "WHITE" } =
       req.body;
 
-    // Check if model is READY
-    const model = await prisma.mLModelVersion.findFirst({
+    // Section 34: Resolve ACTIVE Current Self / Peak Self model only
+    const model = (await prisma.mLModelVersion.findFirst({
       where: {
         userId,
         modelType: opponentModelType,
-        status: "READY",
+        isActive: true,
       },
       orderBy: { version: "desc" },
-    });
+    })) || (await prisma.mLModelVersion.findFirst({
+      where: {
+        userId,
+        modelType: opponentModelType,
+        status: { in: ["ACTIVE", "READY"] },
+      },
+      orderBy: { version: "desc" },
+    }));
 
     if (!model) {
       return res.status(400).json({
@@ -320,9 +327,9 @@ router.get(
         moves: history.length,
         currentSelf,
         behaviorComparison: {
-          engineRankSimilarity: baselineBehaviors.engineRankDistance ? Math.max(0, 1 - baselineBehaviors.engineRankDistance) : 0.85,
-          moveTypeSimilarity: baselineBehaviors.moveTypeDistance ? Math.max(0, 1 - baselineBehaviors.moveTypeDistance) : 0.90,
-          dnaSimilarity: 0.91 // Placeholder for DNA similarity
+          engineRankSimilarity: baselineBehaviors.engineRankDistance != null ? Math.max(0, 1 - baselineBehaviors.engineRankDistance) : null,
+          moveTypeSimilarity: baselineBehaviors.moveTypeDistance != null ? Math.max(0, 1 - baselineBehaviors.moveTypeDistance) : null,
+          dnaSimilarity: null // Not calculable from session data alone — requires full DNA comparison pipeline
         }
       };
 

@@ -38,8 +38,19 @@ router.post("/generate", authenticateSupabaseUser, async (req, res) => {
       }
     });
 
-    // Process in background asynchronously
-    processFeatureExtraction(job.id, userId);
+    // Process via durable BullMQ featureQueue with fallback
+    try {
+      const { featureQueue, safeEnqueue } = await import("../queues/index.js");
+      await safeEnqueue(
+        featureQueue,
+        "extract",
+        { jobId: job.id, userId, featureVersion: "v1" },
+        { jobId: `feature_${job.id}` },
+        () => processFeatureExtraction(job.id, userId)
+      );
+    } catch (queueErr) {
+      processFeatureExtraction(job.id, userId);
+    }
 
     return res.json({ 
       message: "Feature extraction job queued successfully.", 

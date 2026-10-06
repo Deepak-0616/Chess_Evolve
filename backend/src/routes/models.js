@@ -140,4 +140,82 @@ router.post("/current-self/predict", authenticateSupabaseUser, async (req, res) 
   }
 });
 
+// GET /api/v1/models/history
+router.get("/history", authenticateSupabaseUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const models = await prisma.mLModelVersion.findMany({
+      where: { userId },
+      orderBy: [{ modelType: "asc" }, { version: "desc" }],
+      include: {
+        dependentModel: {
+          select: { id: true, version: true, modelType: true, status: true },
+        },
+      },
+    });
+
+    const retrainingJobs = await prisma.modelRetrainingJob.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return res.json({ models, retrainingJobs });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch model history", details: err.message });
+  }
+});
+
+// POST /api/v1/models/rollback
+router.post("/rollback", authenticateSupabaseUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { targetCurrentModelId, targetPeakModelId, targetVersion } = req.body;
+
+    let targetCurrentId = targetCurrentModelId;
+    let targetPeakId = targetPeakModelId;
+
+    // If targetVersion is supplied instead of ID, resolve it safely for this user
+    if (!targetCurrentId && targetVersion) {
+      const currentModel = await prisma.mLModelVersion.findFirst({
+        where: { userId, modelType: "CURRENT_SELF", version: parseInt(targetVersion, 10) },
+      });
+      if (!currentModel) {
+        return res.status(404).json({ error: `Current Self version ${targetVersion} not found for this user.` });
+      }
+      targetCurrentId = currentModel.id;
+    }
+
+    if (!targetCurrentId) {
+      return res.status(400).json({ error: "targetCurrentModelId or targetVersion is required." });
+    }
+
+    // Verify ownership server-side
+    const currentModelRecord = await prisma.mLModelVersion.findUnique({
+      where: { id: targetCurrentId },
+    });
+
+    if (!currentModelRecord || currentModelRecord.userId !== userId) {
+      return res.status(403).json({ error: "Target model not found or unauthorized." });
+    }
+
+    const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+    const mlResponse = await axios.post(
+      `${ML_SERVICE_URL}/api/v1/ml/retrain/rollback`,
+      {
+        user_id: userId,
+        target_current_id: targetCurrentId,
+        target_peak_id: targetPeakId || null,
+        operator: `AUTH_USER:${userId.slice(0, 8)}`,
+      },
+      { timeout: 15000 }
+    );
+
+    return res.json(mlResponse.data);
+  } catch (err) {
+    console.error("Model rollback error:", err.message);
+    const detail = err.response?.data?.detail || err.message;
+    return res.status(400).json({ error: "Model rollback failed", details: detail });
+  }
+});
+
 export default router;

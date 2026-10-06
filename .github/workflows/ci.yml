@@ -1,0 +1,121 @@
+name: Chess Evolve Production CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  schema-validation:
+    name: Prisma Schema & Migration Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Validate Prisma Schema
+        working-directory: backend
+        run: npx prisma validate --schema=../prisma/schema.prisma
+
+  backend-tests:
+    name: Backend Tests & Connection Safety
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run Backend Vitest Test Suite
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_ANON_KEY: placeholder-anon-key
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
+        run: npm test
+
+  ml-tests:
+    name: ML Service PyTorch & Pipeline Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: ml-service/requirements.txt
+
+      - name: Install ML Dependencies
+        working-directory: ml-service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run ML Pytest Suite
+        working-directory: ml-service
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
+        run: python -m pytest app/tests
+
+  frontend-build:
+    name: Frontend Production Build & SPA Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Production Bundle
+        working-directory: frontend
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-key
+          VITE_API_BASE_URL: /api/v1
+        run: npm run build
+
+  security-scan:
+    name: Secret & Credential Leakage Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for Uncommitted Secrets or Private Keys
+        run: |
+          if git grep -i "PRIVATE KEY-----" :!*.md :!*.example; then
+            echo "Private key detected in codebase!"
+            exit 1
+          fi
+          echo "No private keys detected."

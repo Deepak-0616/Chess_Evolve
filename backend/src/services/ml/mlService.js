@@ -56,21 +56,45 @@ export class MLServiceBridge {
         },
       });
 
-      // Send training request to FastAPI ML Service
+      // Dispatch to durable BullMQ trainingQueue with idempotency
       try {
+        const { trainingQueue, safeEnqueue } = await import("../../queues/index.js");
+        await safeEnqueue(
+          trainingQueue,
+          "train",
+          {
+            modelVersionId: modelVersion.id,
+            datasetId: latestDataset.id,
+            userId,
+            modelType,
+          },
+          { jobId: `train_${modelVersion.id}` },
+          async () => {
+            const endpoint = modelType === "CURRENT_SELF" ? "/api/v1/ml/train/current-self" : "/api/v1/ml/train/peak-self";
+            await axios.post(
+              `${ML_SERVICE_URL}${endpoint}`,
+              {
+                user_id: userId,
+                model_version_id: modelVersion.id,
+                dataset_id: latestDataset.id,
+              },
+              { timeout: 10000 }
+            );
+          }
+        );
+        console.log(`[MLServiceBridge] Training job dispatched for model ${modelVersion.id}`);
+      } catch (queueErr) {
+        console.warn("[MLServiceBridge] Queue dispatch fallback to direct HTTP:", queueErr.message);
         const endpoint = modelType === "CURRENT_SELF" ? "/api/v1/ml/train/current-self" : "/api/v1/ml/train/peak-self";
         await axios.post(
           `${ML_SERVICE_URL}${endpoint}`,
           {
             user_id: userId,
             model_version_id: modelVersion.id,
-            dataset_id: latestDataset.id
+            dataset_id: latestDataset.id,
           },
-          { timeout: 5000 }
+          { timeout: 10000 }
         );
-      } catch (err) {
-        console.warn("FastAPI ML Service train request failed:", err.message);
-        // We still queued it in DB, but the python worker might be down
       }
 
       return { jobId: modelVersion.id, status: "QUEUED" };
@@ -107,23 +131,24 @@ export class MLServiceBridge {
       console.warn("ML Service prediction endpoint fallback to candidate evaluation");
     }
 
-    // High quality deterministic fallback decision if FastAPI service is spawning or compiling
+    // Deterministic fallback to first Stockfish candidate when ML service is unavailable
+    // This is NOT a model prediction — it is a Stockfish fallback and is labeled as such
     const fallbackMove = req.candidates && req.candidates.length > 0
-        ? req.candidates[0].move
-        : "e4";
-    const moveProbs = {};
-    if (req.candidates) {
-      req.candidates.forEach((c, idx) => {
-        moveProbs[c.move] = idx === 0 ? 0.6 : 0.4 / Math.max(req.candidates.length - 1, 1);
-      });
+        ? (req.candidates[0].move || req.candidates[0])
+        : null;
+    
+    if (!fallbackMove) {
+      return { error: "No candidates available", recommendedMove: null, isFallback: true };
     }
-
+    
     return {
       recommendedMove: fallbackMove,
-      confidence: 0.84,
-      moveProbabilities: moveProbs,
+      confidence: null,           // NOT a model confidence — explicitly null
+      moveProbabilities: null,    // NOT model probabilities — explicitly null
       modelType: req.modelType,
-      modelVersion: 1,
+      modelVersion: null,
+      isFallback: true,
+      fallbackReason: "ML service prediction unavailable — using first Stockfish candidate"
     };
   }
 }

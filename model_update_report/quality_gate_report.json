@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-10-05T17:27:47.629350",
+  "currentSelfGate": {
+    "status": "PASS",
+    "modelId": "178b09cd-ea92-43f7-9561-c000a3985f2e",
+    "version": 2,
+    "reasons": [
+      "Current Self candidate passed all quality and regression checks."
+    ],
+    "artifactAudited": true,
+    "inferenceVerified": true
+  },
+  "peakSelfGate": {
+    "status": "PASS",
+    "modelId": "6745b5b8-c216-4521-81d2-558f02090088",
+    "version": 2,
+    "dependencyVerified": true,
+    "reasons": [
+      "Peak Self candidate passed all quality, style preservation, and dependency checks."
+    ],
+    "artifactAudited": true,
+    "inferenceVerified": true
+  }
+}
