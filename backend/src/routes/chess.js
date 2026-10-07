@@ -64,6 +64,11 @@ router.post("/profile/connect", authenticateSupabaseUser, async (req, res) => {
       update: {},
     });
 
+    // Ingest latest monthly games immediately so recent games and initial games are available right away
+    await AccountSyncManager.syncLatestGames(userId, chessUsername).catch((err) => {
+      console.warn("Initial recent games sync warning:", err.message);
+    });
+
     // Trigger async full synchronization via durable BullMQ syncQueue (or immediate fallback)
     try {
       const { syncQueue, safeEnqueue } = await import("../queues/index.js");
@@ -113,9 +118,15 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
         .json({ error: "No connected Chess.com profile found for this user" });
     }
 
-    // We skip local DB lookup entirely to ensure instant sync accuracy
-    
-    // Fetch live true stats directly from Chess.com to guarantee instant accuracy
+    // Auto-sync latest games if lastSyncedAt is older than 15s (ensures zero delay for recently finished games)
+    const lastSyncedTime = chessProfile.lastSyncedAt ? new Date(chessProfile.lastSyncedAt).getTime() : 0;
+    if (Date.now() - lastSyncedTime > 15000) {
+      await AccountSyncManager.syncLatestGames(userId, chessProfile.chessUsername).catch((e) => {
+        console.warn("Auto-sync recent games error on profile:", e.message);
+      });
+    }
+
+    // Fetch live true stats directly from Chess.com for ratings
     let liveStats = { 
       overall: { wins: 0, losses: 0, draws: 0, totalGames: 0 },
       all: { wins: 0, losses: 0, draws: 0, totalGames: 0, currentRating: 0, peakRating: 0 },
@@ -124,7 +135,6 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       bullet: { currentRating: 0, peakRating: 0, wins: 0, losses: 0, draws: 0, totalGames: 0 }
     };
     
-    let liveRecentGames = [];
     try {
       const statsRes = await fetch(`https://api.chess.com/pub/player/${chessProfile.chessUsername}/stats`);
       if (statsRes.ok) {
@@ -152,7 +162,6 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
           }
         });
 
-        // Consolidate 'all' view
         liveStats.all = {
           wins: liveStats.overall.wins,
           losses: liveStats.overall.losses,
@@ -166,41 +175,94 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       console.error("Failed to fetch live stats from Chess.com:", e);
     }
 
-    try {
-      const archRes = await fetch(`https://api.chess.com/pub/player/${chessProfile.chessUsername}/games/archives`);
-      if (archRes.ok) {
-        const archData = await archRes.json();
-        if (archData.archives && archData.archives.length > 0) {
-          const lastArchUrl = archData.archives[archData.archives.length - 1];
-          const gamesRes = await fetch(lastArchUrl);
-          if (gamesRes.ok) {
-            const gamesData = await gamesRes.json();
-            const lastFive = (gamesData.games || []).slice(-5).reverse();
-            
-            liveRecentGames = lastFive.map(g => {
-              const lowerTarget = chessProfile.chessUsername.toLowerCase();
-              const isWhite = g.white.username.toLowerCase() === lowerTarget;
-              const userResultStr = isWhite ? g.white.result : g.black.result;
-              let result = "draw";
-              if (userResultStr === "win") result = "win";
-              else if (["checkmated", "timeout", "resigned", "abandoned", "lose"].includes(userResultStr)) result = "loss";
+    // Query game counts from the database to guarantee total count and records match actual games
+    const [
+      dbGameCount, dbRatedCount, dbUnratedCount,
+      dbWins, dbLosses, dbDraws,
+      dbRapidTotal, dbRapidRated,
+      dbBlitzTotal, dbBlitzRated,
+      dbBulletTotal, dbBulletRated
+    ] = await Promise.all([
+      prisma.game.count({ where: { chessProfileId: chessProfile.id } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, rated: true } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, rated: false } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, result: "WIN" } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, result: "LOSS" } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, result: "DRAW" } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, timeClass: "rapid" } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, timeClass: "rapid", rated: true } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, timeClass: "blitz" } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, timeClass: "blitz", rated: true } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, timeClass: "bullet" } }),
+      prisma.game.count({ where: { chessProfileId: chessProfile.id, timeClass: "bullet", rated: true } }),
+    ]);
 
-              return {
-                id: g.url,
-                result,
-                opponent: isWhite ? g.black.username : g.white.username,
-                color: isWhite ? "White" : "Black",
-                rating: isWhite ? g.white.rating : g.black.rating,
-                date: new Date(g.end_time * 1000).toLocaleDateString(),
-                opening: "Standard Play"
-              };
-            });
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Failed to fetch recent games:", e);
-    }
+    // Save exact rated figures from Chess.com PubAPI
+    const pubRatedTotal = liveStats.overall.totalGames || dbRatedCount;
+    const pubRatedWins = liveStats.overall.wins;
+    const pubRatedLosses = liveStats.overall.losses;
+    const pubRatedDraws = liveStats.overall.draws;
+
+    // Attach both rated and total counts to overall & all
+    liveStats.overall.ratedGames = pubRatedTotal;
+    liveStats.overall.ratedWins = pubRatedWins;
+    liveStats.overall.ratedLosses = pubRatedLosses;
+    liveStats.overall.ratedDraws = pubRatedDraws;
+    liveStats.overall.totalGames = dbGameCount > 0 ? dbGameCount : pubRatedTotal;
+    liveStats.overall.unratedGames = dbUnratedCount;
+    liveStats.overall.totalWins = dbWins;
+    liveStats.overall.totalLosses = dbLosses;
+    liveStats.overall.totalDraws = dbDraws;
+
+    // Default wins/losses/draws represent rated record matching Chess.com Stats screen
+    liveStats.overall.wins = pubRatedWins;
+    liveStats.overall.losses = pubRatedLosses;
+    liveStats.overall.draws = pubRatedDraws;
+
+    liveStats.all = {
+      ...liveStats.overall,
+      currentRating: liveStats.rapid.currentRating || liveStats.blitz.currentRating || liveStats.bullet.currentRating || 0,
+      peakRating: Math.max(liveStats.rapid.peakRating || 0, liveStats.blitz.peakRating || 0, liveStats.bullet.peakRating || 0),
+    };
+
+    // Category specifics: preserve exact rated records and attach totals
+    const tcCounts = {
+      rapid: { total: dbRapidTotal, rated: dbRapidRated },
+      blitz: { total: dbBlitzTotal, rated: dbBlitzRated },
+      bullet: { total: dbBulletTotal, rated: dbBulletRated },
+    };
+
+    ['rapid', 'blitz', 'bullet'].forEach(tc => {
+      const counts = tcCounts[tc];
+      liveStats[tc].ratedGames = liveStats[tc].totalGames || counts.rated;
+      liveStats[tc].ratedWins = liveStats[tc].wins;
+      liveStats[tc].ratedLosses = liveStats[tc].losses;
+      liveStats[tc].ratedDraws = liveStats[tc].draws;
+      liveStats[tc].totalGames = counts.total > 0 ? counts.total : liveStats[tc].ratedGames;
+      liveStats[tc].unratedGames = Math.max(0, liveStats[tc].totalGames - liveStats[tc].ratedGames);
+    });
+
+    // Query recent games directly from the database for 100% consistency with Game History page
+    const recentDbGames = await prisma.game.findMany({
+      where: { chessProfileId: chessProfile.id },
+      orderBy: { playedAt: "desc" },
+      take: 5,
+      include: { gameAnalysis: true },
+    });
+
+    let liveRecentGames = recentDbGames.map((g) => {
+      const isWhite = g.userColor === "WHITE";
+      return {
+        id: g.id,
+        result: (g.result || "").toLowerCase(),
+        opponent: g.opponentUsername,
+        color: isWhite ? "White" : "Black",
+        rating: isWhite ? g.whiteRating : g.blackRating,
+        date: new Date(g.playedAt).toLocaleDateString(),
+        opening: g.gameAnalysis?.openingName || "Standard Play",
+        timeControl: g.timeClass ? g.timeClass.charAt(0).toUpperCase() + g.timeClass.slice(1) : g.timeControl,
+      };
+    });
 
     const enrichedProfile = {
       ...chessProfile,
@@ -230,6 +292,12 @@ router.post("/sync", authenticateSupabaseUser, async (req, res) => {
         .json({ error: "Please connect a Chess.com account before syncing" });
     }
 
+    // Fast sync latest games immediately
+    await AccountSyncManager.syncLatestGames(
+      userId,
+      chessProfile.chessUsername,
+    ).catch((e) => console.warn("Manual sync quick error:", e.message));
+
     try {
       const { syncQueue, safeEnqueue } = await import("../queues/index.js");
       await safeEnqueue(
@@ -256,16 +324,14 @@ router.post("/sync", authenticateSupabaseUser, async (req, res) => {
     }
 
     return res.json({
-      message: "Synchronization triggered successfully",
+      message: "Synchronization started successfully",
+      status: "SYNCING",
       jobId: `sync_${userId}`,
     });
   } catch (err) {
     return res
       .status(500)
-      .json({
-        error: "Failed to trigger synchronization",
-        details: err.message,
-      });
+      .json({ error: "Failed to trigger sync", details: err.message });
   }
 });
 

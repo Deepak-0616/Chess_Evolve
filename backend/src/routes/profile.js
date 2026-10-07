@@ -20,6 +20,7 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     let totalGames = 0;
+    let ratedGames = 0;
     let winRate = 0;
     let peakRating = "—";
 
@@ -45,6 +46,7 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
               maxRating = cat.best.rating;
             }
           }
+          ratedGames = total;
           totalGames = total;
           winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
           peakRating = maxRating ? maxRating.toLocaleString() : "—";
@@ -54,21 +56,21 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
       }
     }
 
-    // Fallback to local database counts if pubapi is unreachable
-    if (totalGames === 0 && user.chessProfile?.id) {
-      const dbGamesCount = await prisma.game.count({
-        where: { chessProfileId: user.chessProfile.id },
-      });
-      const winsCount = await prisma.game.count({
-        where: { chessProfileId: user.chessProfile.id, result: "WIN" },
-      });
-      totalGames = dbGamesCount;
-      winRate = dbGamesCount > 0 ? Math.round((winsCount / dbGamesCount) * 100) : 0;
+    // Check local database counts to ensure all archive games (including unrated/casual) are counted
+    if (user.chessProfile?.id) {
+      const [dbGamesCount, winsCount] = await Promise.all([
+        prisma.game.count({ where: { chessProfileId: user.chessProfile.id } }),
+        prisma.game.count({ where: { chessProfileId: user.chessProfile.id, result: "WIN" } }),
+      ]);
+      if (dbGamesCount > 0) {
+        totalGames = Math.max(dbGamesCount, totalGames);
+      }
     }
 
     const enrichedUser = {
       ...user,
       chessUsername: user.chessProfile?.chessUsername || null,
+      ratedGames: (ratedGames || totalGames) ? (ratedGames || totalGames).toLocaleString() : "0",
       totalGames: totalGames ? totalGames.toLocaleString() : "0",
       winRate: winRate,
       peakRating: peakRating,

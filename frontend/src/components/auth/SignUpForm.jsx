@@ -3,7 +3,7 @@ import { Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import GoogleButton from './GoogleButton';
 import {
-  validateDisplayName,
+  validateUsername,
   validateEmail,
   validatePassword,
   formatAuthError,
@@ -11,7 +11,7 @@ import {
 
 export const SignUpForm = ({ onToggleMode, onSuccess }) => {
   const { signUpWithEmail, signInWithGoogle } = useAuth();
-  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +29,7 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
     setError('');
 
     // Field validations
-    const nameResult = validateDisplayName(displayName);
+    const nameResult = validateUsername(username);
     if (!nameResult.valid) {
       setError(nameResult.error);
       return;
@@ -104,85 +104,68 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {/* 1. Display Name */}
+        {/* 1. Username */}
         <div>
-          <label
-            htmlFor="signup-display-name"
-            className="block text-xs font-medium text-[#A0A0A0] mb-1.5 text-left"
-          >
-            Display Name
-          </label>
           <input
-            id="signup-display-name"
+            id="signup-username"
             type="text"
-            autoComplete="name"
-            placeholder="Your chess handle or name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            autoComplete="username"
+            aria-label="Username"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             disabled={isBusy}
             required
             maxLength={50}
-            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl px-4 py-3 text-sm text-[#F5F0E0] placeholder-[#4A4A4A] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl px-4 py-3 text-sm text-[#F5F0E0] placeholder-[#555555] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
 
         {/* 2. Email Address */}
         <div>
-          <label
-            htmlFor="signup-email"
-            className="block text-xs font-medium text-[#A0A0A0] mb-1.5 text-left"
-          >
-            Email Address
-          </label>
           <input
             id="signup-email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            aria-label="Email Address"
+            placeholder="Email Address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isBusy}
             required
-            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl px-4 py-3 text-sm text-[#F5F0E0] placeholder-[#4A4A4A] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl px-4 py-3 text-sm text-[#F5F0E0] placeholder-[#555555] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
 
         {/* 3. Password */}
-        <div>
-          <label
-            htmlFor="signup-password"
-            className="block text-xs font-medium text-[#A0A0A0] mb-1.5 text-left"
+        <div className="relative">
+          <input
+            id="signup-password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            aria-label="Password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isBusy}
+            required
+            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl pl-4 pr-11 py-3 text-sm text-[#F5F0E0] placeholder-[#555555] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            disabled={isBusy}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#D4AF37] focus:outline-none transition-colors p-1 cursor-pointer"
           >
-            Password
-          </label>
-          <div className="relative">
-            <input
-              id="signup-password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="new-password"
-              placeholder="At least 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isBusy}
-              required
-              className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl pl-4 pr-11 py-3 text-sm text-[#F5F0E0] placeholder-[#4A4A4A] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              disabled={isBusy}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#D4AF37] focus:outline-none transition-colors p-1"
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
         </div>
 
         {error && (
           <div
             role="alert"
-            className="p-3 rounded-xl bg-red-950/30 border border-red-500/20 text-red-400 text-xs text-left animate-fadeIn"
+            className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-red-400 text-xs text-left animate-fadeIn"
           >
             {error}
           </div>
@@ -190,14 +173,14 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
 
         <button
           type="submit"
-          disabled={isBusy || !displayName || !email || !password}
-          className="w-full flex items-center justify-center py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-lg disabled:cursor-not-allowed"
+          disabled={isBusy || !username || !email || !password}
+          className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-lg disabled:cursor-not-allowed"
           style={{
             background:
-              isBusy || !displayName || !email || !password
+              isBusy || !username || !email || !password
                 ? '#1A1A1A'
                 : 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8960C 100%)',
-            color: isBusy || !displayName || !email || !password ? '#4A4A4A' : '#080808',
+            color: isBusy || !username || !email || !password ? '#4A4A4A' : '#080808',
           }}
         >
           {emailLoading ? (
@@ -212,7 +195,7 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
       </form>
 
       {/* Visual Divider */}
-      <div className="relative my-6">
+      <div className="relative my-3.5">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#1F1F1F]" />
         </div>
@@ -231,7 +214,7 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
       />
 
       {/* Navigation to Sign In */}
-      <div className="mt-6 text-center text-xs text-[#6B6B6B]">
+      <div className="mt-3.5 text-center text-xs text-[#6B6B6B]">
         Already have an account?{' '}
         <button
           type="button"

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticateSupabaseUser } from "../middleware/auth.js";
 import { prisma } from "../utils/prisma.js";
+import { AccountSyncManager } from "../services/jobs/syncJob.js";
 
 const router = Router();
 
@@ -31,7 +32,7 @@ router.get("/me", authenticateSupabaseUser, async (req, res) => {
 // POST /api/v1/auth/sync
 router.post("/sync", authenticateSupabaseUser, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: req.user.id },
       include: {
         chessProfile: true,
@@ -39,6 +40,22 @@ router.post("/sync", authenticateSupabaseUser, async (req, res) => {
         arenaProfile: true,
       },
     });
+
+    if (user?.chessProfile?.chessUsername) {
+      try {
+        await AccountSyncManager.syncLatestGames(user.id, user.chessProfile.chessUsername);
+        user = await prisma.user.findUnique({
+          where: { id: req.user.id },
+          include: {
+            chessProfile: true,
+            currentDna: true,
+            arenaProfile: true,
+          },
+        });
+      } catch (syncErr) {
+        console.warn("[auth/sync] Quick sync on login warning:", syncErr.message);
+      }
+    }
 
     return res.json({
       success: true,

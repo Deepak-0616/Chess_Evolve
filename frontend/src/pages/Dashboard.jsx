@@ -113,6 +113,14 @@ const Dashboard = () => {
     setSyncStatus('running');
     try {
       await triggerSync();
+      // Brief pause for backend fast sync to settle, then refresh all dashboard state
+      await new Promise(r => setTimeout(r, 1200));
+      const [pRes, dRes, mRes] = await Promise.allSettled([
+        getChessProfile(), getDNA(), getModels(),
+      ]);
+      if (pRes.status === 'fulfilled') setProfile(pRes.value.data?.chessProfile || pRes.value.data?.data || pRes.value.data);
+      if (dRes.status === 'fulfilled') setDna(dRes.value.data?.dna || dRes.value.data?.data || dRes.value.data);
+      if (mRes.status === 'fulfilled') setModels(mRes.value.data?.models || mRes.value.data);
       setSyncStatus('done');
       setTimeout(() => setSyncStatus('idle'), 4000);
     } catch {
@@ -131,11 +139,9 @@ const Dashboard = () => {
   const hasProfile = !!profile?.chessUsername;
 
   const activeStats = (timeControl === 'all')
-    ? (profile?.stats?.all || {
-        wins: profile?.stats?.overall?.wins || 0,
-        losses: profile?.stats?.overall?.losses || 0,
-        draws: profile?.stats?.overall?.draws || 0,
-        totalGames: profile?.stats?.overall?.totalGames || 0,
+    ? (profile?.stats?.all || profile?.stats?.overall || {
+        wins: 0, losses: 0, draws: 0, totalGames: 0,
+        ratedGames: 0, unratedGames: 0,
         currentRating: profile?.stats?.rapid?.currentRating || profile?.stats?.blitz?.currentRating || profile?.stats?.bullet?.currentRating || '—',
         peakRating: Math.max(
           profile?.stats?.rapid?.peakRating || 0,
@@ -144,24 +150,32 @@ const Dashboard = () => {
         ) || '—',
       })
     : (profile?.stats?.[timeControl] || {
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        totalGames: 0,
-        currentRating: '—',
-        peakRating: '—',
+        wins: 0, losses: 0, draws: 0, totalGames: 0,
+        ratedGames: 0, unratedGames: 0,
+        currentRating: '—', peakRating: '—',
       });
 
-  const totalMatchesCount = activeStats.totalGames ?? 0;
-  const winRateVal = totalMatchesCount > 0 ? Math.round((activeStats.wins / totalMatchesCount) * 100) : 0;
+  const ratedMatchesCount = activeStats.ratedGames ?? activeStats.totalGames ?? 0;
+  const totalMatchesCount = activeStats.totalGames ?? ratedMatchesCount;
+  const unratedMatchesCount = activeStats.unratedGames ?? Math.max(0, totalMatchesCount - ratedMatchesCount);
+
+  // Exact rated record matching Chess.com
+  const ratedWins = activeStats.ratedWins ?? activeStats.wins ?? 0;
+  const ratedLosses = activeStats.ratedLosses ?? activeStats.losses ?? 0;
+  const ratedDraws = activeStats.ratedDraws ?? activeStats.draws ?? 0;
+  const ratedWinRateVal = ratedMatchesCount > 0 ? Math.round((ratedWins / ratedMatchesCount) * 100) : 0;
+
   const currentRatingVal = activeStats.currentRating || '—';
   const peakRatingVal = activeStats.peakRating || '—';
 
   const tcDisplayName = timeControl === 'all' ? 'All' : timeControl.charAt(0).toUpperCase() + timeControl.slice(1);
-  const totalMatchesSub = timeControl === 'all'
-    ? 'Across all time controls'
-    : `${tcDisplayName} matches played`;
-  const winRateSub = `${activeStats.wins}W · ${activeStats.losses}L · ${activeStats.draws}D`;
+  const totalMatchesSub = unratedMatchesCount > 0
+    ? `${ratedMatchesCount.toLocaleString()} rated · ${unratedMatchesCount.toLocaleString()} casual`
+    : timeControl === 'all'
+    ? 'Across all rated time controls'
+    : `${tcDisplayName} rated matches`;
+
+  const winRateSub = `${ratedWins}W · ${ratedLosses}L · ${ratedDraws}D (Rated)`;
   const currentRatingSub = timeControl === 'all'
     ? 'Primary rating (Rapid)'
     : `Active ${tcDisplayName} rating`;
@@ -221,6 +235,9 @@ const Dashboard = () => {
                 <span className="text-xs font-bold uppercase tracking-wider text-[#8A8A8A]">
                   Performance Overview
                 </span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#161616] text-[#737373] border border-[#222]">
+                  Chess.com Parity
+                </span>
               </div>
               
               <div className="inline-flex items-center p-1 rounded-xl bg-[#121212] border border-[#222222] shadow-inner self-start sm:self-auto">
@@ -248,14 +265,23 @@ const Dashboard = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 label="Total Matches"
-                value={totalMatchesCount.toLocaleString()}
+                value={
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span>{ratedMatchesCount.toLocaleString()}</span>
+                    {unratedMatchesCount > 0 && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#1C1C1C] text-[#D4AF37] border border-[#D4AF37]/30 tracking-tight">
+                        / {totalMatchesCount.toLocaleString()} Total
+                      </span>
+                    )}
+                  </div>
+                }
                 sub={totalMatchesSub}
                 icon={Gamepad2}
                 color="#F5F0E0"
               />
               <StatCard
                 label="Win Rate"
-                value={`${winRateVal}%`}
+                value={`${ratedWinRateVal}%`}
                 sub={winRateSub}
                 icon={Trophy}
                 color="#D4AF37"

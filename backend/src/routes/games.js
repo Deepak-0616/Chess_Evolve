@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticateSupabaseUser } from "../middleware/auth.js";
 import { prisma } from "../utils/prisma.js";
+import { AccountSyncManager } from "../services/jobs/syncJob.js";
 
 const router = Router();
 
@@ -8,7 +9,7 @@ const router = Router();
 router.get("/", authenticateSupabaseUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { timeClass, result, limit = "50", page = "1" } = req.query;
+    const { timeClass, result, rated, limit = "50", page = "1" } = req.query;
 
     const userProfile = await prisma.chessProfile.findUnique({
       where: { userId },
@@ -16,6 +17,15 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
 
     if (!userProfile) {
       return res.json({ games: [], total: 0 });
+    }
+
+    // Auto-sync latest games on page 1 if not synced in the last 15s
+    const isInitialPage = (!page || page === "1") && !timeClass && !result && !rated;
+    const lastSyncedTime = userProfile.lastSyncedAt ? new Date(userProfile.lastSyncedAt).getTime() : 0;
+    if (isInitialPage && Date.now() - lastSyncedTime > 15000) {
+      await AccountSyncManager.syncLatestGames(userId, userProfile.chessUsername).catch((e) => {
+        console.warn("[games] Quick sync latest games error:", e.message);
+      });
     }
 
     const whereClause = {
@@ -27,6 +37,9 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
     }
     if (result && typeof result === "string") {
       whereClause.result = result.toUpperCase();
+    }
+    if (rated !== undefined && rated !== "all") {
+      whereClause.rated = rated === "true" || rated === true;
     }
 
     const pageSize = parseInt(limit, 10) || 50;
@@ -101,6 +114,7 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
         avgCpLoss: g.gameAnalysis?.avgCpLoss || 30.0,
         opening: openingName || "Standard Chess",
         openingEco: openingEco || "A00",
+        rated: g.rated !== false,
       };
     });
 

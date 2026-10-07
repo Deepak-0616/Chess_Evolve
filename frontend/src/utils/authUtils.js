@@ -1,19 +1,21 @@
-export const validateDisplayName = (raw) => {
+export const validateUsername = (raw) => {
   if (raw === undefined || raw === null || typeof raw !== 'string') {
-    return { valid: false, error: 'Display Name is required.' };
+    return { valid: false, error: 'Username is required.' };
   }
   const trimmed = raw.trim();
   if (trimmed.length === 0) {
-    return { valid: false, error: 'Display Name cannot be empty or whitespace only.' };
+    return { valid: false, error: 'Username cannot be empty or whitespace only.' };
   }
   if (trimmed.length < 2) {
-    return { valid: false, error: 'Display Name must be at least 2 characters.' };
+    return { valid: false, error: 'Username must be at least 2 characters.' };
   }
   if (trimmed.length > 50) {
-    return { valid: false, error: 'Display Name must not exceed 50 characters.' };
+    return { valid: false, error: 'Username must not exceed 50 characters.' };
   }
   return { valid: true, value: trimmed };
 };
+
+export const validateDisplayName = validateUsername;
 
 export const validateEmail = (email) => {
   if (!email || typeof email !== 'string') {
@@ -76,6 +78,14 @@ export const formatAuthError = (error, context = 'login') => {
     msg.includes('timeout')
   ) {
     return 'Unable to connect. Please check your connection and try again.';
+  }
+
+  if (
+    msg.includes('unsupported provider') ||
+    msg.includes('provider is not enabled') ||
+    msg.includes('provider_not_enabled')
+  ) {
+    return 'Google Sign-In is not enabled in your Supabase project. Please enable the Google provider in your Supabase Dashboard.';
   }
 
   if (

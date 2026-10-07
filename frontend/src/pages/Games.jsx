@@ -20,9 +20,11 @@ const ResultBadge = ({ result, resultText, isWhite }) => {
 
 const Games = () => {
   const [games, setGames] = useState([]);
+  const [totalGames, setTotalGames] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [resultFilter, setResultFilter] = useState('all');
+  const [ratedFilter, setRatedFilter] = useState('all'); // 'all', 'rated', 'casual'
   const [page, setPage] = useState(1);
   const perPage = 10;
 
@@ -30,42 +32,53 @@ const Games = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await getGames({ page, limit: perPage });
-        setGames(res.data?.games || res.data?.data?.games || []);
+        const params = { page, limit: perPage };
+        if (resultFilter !== 'all') {
+          params.result = resultFilter;
+        }
+        if (ratedFilter === 'rated') {
+          params.rated = true;
+        } else if (ratedFilter === 'casual') {
+          params.rated = false;
+        }
+        const res = await getGames(params);
+        const fetchedGames = res.data?.games || res.data?.data?.games || [];
+        setGames(fetchedGames);
+        setTotalGames(res.data?.total ?? fetchedGames.length);
       } catch (err) {
         console.error('Failed to load games', err);
         setGames([]);
+        setTotalGames(0);
       }
       setLoading(false);
     };
     load();
-  }, [page]);
+  }, [page, resultFilter, ratedFilter]);
 
   const filtered = games.filter(g => {
-    const matchSearch = search === '' ||
-      g.opening?.toLowerCase().includes(search.toLowerCase()) ||
-      g.white?.toLowerCase().includes(search.toLowerCase()) ||
-      g.black?.toLowerCase().includes(search.toLowerCase()) ||
-      g.opponent?.toLowerCase().includes(search.toLowerCase());
-    if (!matchSearch) return false;
-    if (resultFilter === 'all') return true;
-    const isWhite = g.isWhite !== undefined ? g.isWhite : (g.white === 'You' || g.userColor === 'WHITE');
-    if (resultFilter === 'win') return g.resultText === 'WIN' || (g.result === '1-0' && isWhite) || (g.result === '0-1' && !isWhite);
-    if (resultFilter === 'loss') return g.resultText === 'LOSS' || (g.result === '0-1' && isWhite) || (g.result === '1-0' && !isWhite);
-    if (resultFilter === 'draw') return g.resultText === 'DRAW' || g.result === '1/2-1/2';
-    return true;
+    if (!search) return true;
+    const term = search.toLowerCase();
+    return (
+      g.opening?.toLowerCase().includes(term) ||
+      g.white?.toLowerCase().includes(term) ||
+      g.black?.toLowerCase().includes(term) ||
+      g.opponent?.toLowerCase().includes(term) ||
+      g.opponentUsername?.toLowerCase().includes(term)
+    );
   });
+
+  const totalPages = Math.max(1, Math.ceil(totalGames / perPage));
 
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-bold font-display" style={{ color: '#F5F0E0' }}>Game History</h2>
         <p className="text-sm mt-0.5" style={{ color: '#4A4A4A' }}>
-          Browse and analyze your chess games
+          {totalGames > 0 ? `Browse and analyze your ${totalGames.toLocaleString()} chess games` : 'Browse and analyze your chess games'}
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#4A4A4A' }} />
           <input
@@ -79,18 +92,39 @@ const Games = () => {
             onBlur={e => e.currentTarget.style.borderColor = '#1A1A1A'}
           />
         </div>
-        <div className="flex gap-2">
-          {['all', 'win', 'loss', 'draw'].map(f => (
-            <button key={f} onClick={() => setResultFilter(f)}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold capitalize transition-all"
-              style={{
-                background: resultFilter === f ? 'rgba(212,175,55,0.12)' : '#0F0F0F',
-                color: resultFilter === f ? '#D4AF37' : '#6B6B6B',
-                border: `1px solid ${resultFilter === f ? 'rgba(212,175,55,0.3)' : '#1A1A1A'}`,
-              }}>
-              {f}
-            </button>
-          ))}
+        
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex gap-1.5 p-1 rounded-xl bg-[#0F0F0F] border border-[#1A1A1A]">
+            {[
+              { id: 'all', label: 'All Types' },
+              { id: 'rated', label: 'Rated' },
+              { id: 'casual', label: 'Casual' },
+            ].map(r => (
+              <button key={r.id} onClick={() => { setRatedFilter(r.id); setPage(1); }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                style={{
+                  background: ratedFilter === r.id ? 'rgba(212,175,55,0.15)' : 'transparent',
+                  color: ratedFilter === r.id ? '#D4AF37' : '#737373',
+                  border: ratedFilter === r.id ? '1px solid rgba(212,175,55,0.3)' : '1px solid transparent',
+                }}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-1.5 p-1 rounded-xl bg-[#0F0F0F] border border-[#1A1A1A]">
+            {['all', 'win', 'loss', 'draw'].map(f => (
+              <button key={f} onClick={() => { setResultFilter(f); setPage(1); }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all"
+                style={{
+                  background: resultFilter === f ? 'rgba(212,175,55,0.12)' : 'transparent',
+                  color: resultFilter === f ? '#D4AF37' : '#6B6B6B',
+                  border: resultFilter === f ? '1px solid rgba(212,175,55,0.3)' : '1px solid transparent',
+                }}>
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -131,7 +165,12 @@ const Games = () => {
                     <div className="text-xs" style={{ color: '#4A4A4A' }}>vs {isWhite ? '♔' : '♚'}</div>
                   </div>
                   <div className="col-span-3 text-xs truncate" style={{ color: '#6B6B6B' }}>{game.opening}</div>
-                  <div className="col-span-1 text-xs" style={{ color: '#4A4A4A' }}>{game.timeControl}</div>
+                  <div className="col-span-1 text-xs">
+                    <div style={{ color: '#C0C0C0' }}>{game.timeControl}</div>
+                    <div className="text-[10px] font-semibold" style={{ color: game.rated ? '#D4AF37' : '#666666' }}>
+                      {game.rated ? 'Rated' : 'Casual'}
+                    </div>
+                  </div>
                   <div className="col-span-1 text-xs text-center" style={{ color: '#6B6B6B' }}>{game.moves}</div>
                   <div className="col-span-1 text-center">
                     <span className="text-xs font-bold"
@@ -147,19 +186,24 @@ const Games = () => {
           </div>
         )}
 
-        {filtered.length > 0 && (
+        {games.length > 0 && (
           <div className="flex items-center justify-between px-5 py-3"
             style={{ borderTop: '1px solid #111' }}>
-            <span className="text-xs" style={{ color: '#4A4A4A' }}>{filtered.length} games on page</span>
+            <span className="text-xs" style={{ color: '#4A4A4A' }}>
+              Showing {((page - 1) * perPage) + 1}–{Math.min(page * perPage, totalGames)} of {totalGames.toLocaleString()} games
+            </span>
             <div className="flex items-center space-x-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                 className="p-1.5 rounded-lg transition-all"
                 style={{ color: page === 1 ? '#2A2A2A' : '#6B6B6B', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
                 <ChevronLeft size={14} />
               </button>
-              <span className="text-xs" style={{ color: '#4A4A4A' }}>Page {page}</span>
-              <button onClick={() => setPage(p => p + 1)}
-                className="p-1.5 rounded-lg transition-all" style={{ color: '#6B6B6B' }}>
+              <span className="text-xs" style={{ color: '#888888' }}>
+                Page <span style={{ color: '#F5F0E0', fontWeight: 'bold' }}>{page}</span> of {totalPages}
+              </span>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                className="p-1.5 rounded-lg transition-all"
+                style={{ color: page >= totalPages ? '#2A2A2A' : '#6B6B6B', cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}>
                 <ChevronRight size={14} />
               </button>
             </div>
