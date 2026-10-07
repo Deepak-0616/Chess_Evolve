@@ -42,19 +42,10 @@ router.post("/sync", authenticateSupabaseUser, async (req, res) => {
     });
 
     if (user?.chessProfile?.chessUsername) {
-      try {
-        await AccountSyncManager.syncLatestGames(user.id, user.chessProfile.chessUsername);
-        user = await prisma.user.findUnique({
-          where: { id: req.user.id },
-          include: {
-            chessProfile: true,
-            currentDna: true,
-            arenaProfile: true,
-          },
-        });
-      } catch (syncErr) {
+      // Trigger background sync non-blocking so login/auth callback responds instantaneously
+      AccountSyncManager.syncLatestGames(user.id, user.chessProfile.chessUsername).catch((syncErr) => {
         console.warn("[auth/sync] Quick sync on login warning:", syncErr.message);
-      }
+      });
     }
 
     return res.json({

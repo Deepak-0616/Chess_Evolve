@@ -64,8 +64,8 @@ router.post("/profile/connect", authenticateSupabaseUser, async (req, res) => {
       update: {},
     });
 
-    // Ingest latest monthly games immediately so recent games and initial games are available right away
-    await AccountSyncManager.syncLatestGames(userId, chessUsername).catch((err) => {
+    // Ingest latest monthly games in background so profile connect responds instantly (<200ms)
+    AccountSyncManager.syncLatestGames(userId, chessUsername).catch((err) => {
       console.warn("Initial recent games sync warning:", err.message);
     });
 
