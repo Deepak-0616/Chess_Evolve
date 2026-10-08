@@ -94,8 +94,8 @@ const Training = () => {
       <div className="min-h-[70vh] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-2 rounded-full animate-spin mx-auto"
-            style={{ borderColor: '#2A2A2A', borderTopColor: '#D4AF37' }} />
-          <p className="text-sm font-medium" style={{ color: '#888' }}>
+            style={{ borderColor: '#181A24', borderTopColor: '#C5A059' }} />
+          <p className="text-sm font-medium tracking-wide" style={{ color: '#7E8092' }}>
             Analyzing game mistakes & building personalized training...
           </p>
         </div>
@@ -107,32 +107,32 @@ const Training = () => {
   if (!overview?.sufficientData) {
     return (
       <div className="max-w-3xl mx-auto py-12 px-4">
-        <div className="p-8 rounded-3xl text-center space-y-6"
-          style={{ background: '#111', border: '1px solid #222' }}>
-          <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center"
-            style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
-            <AlertTriangle size={28} style={{ color: '#D4AF37' }} />
+        <div className="p-8 rounded-3xl text-center space-y-6 shadow-2xl"
+          style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
+          <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-sm"
+            style={{ background: 'rgba(197,160,89,0.12)', border: '1px solid rgba(197,160,89,0.25)' }}>
+            <AlertTriangle size={28} style={{ color: '#D4B46A' }} />
           </div>
           <div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: '#F5F0E0' }}>
+            <h2 className="text-xl font-bold mb-2" style={{ color: '#F3EFE6' }}>
               Personalized Training Needs More Data
             </h2>
-            <p className="text-sm max-w-md mx-auto leading-relaxed" style={{ color: '#888' }}>
+            <p className="text-sm max-w-md mx-auto leading-relaxed" style={{ color: '#7E8092' }}>
               {overview?.message || 'Not enough analyzed games yet to build a personalized training plan.'}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto text-left p-4 rounded-xl"
-            style={{ background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
+            style={{ background: '#0E1017', border: '1px solid #181A24' }}>
             <div>
-              <div className="text-xs text-neutral-500">Current Analyzed Positions</div>
-              <div className="text-lg font-bold" style={{ color: '#F5F0E0' }}>
+              <div className="text-xs text-[#7E8092]">Current Analyzed Positions</div>
+              <div className="text-lg font-bold" style={{ color: '#F3EFE6' }}>
                 {overview?.requirements?.currentPositions || 0}
               </div>
             </div>
             <div>
-              <div className="text-xs text-neutral-500">Required Positions</div>
-              <div className="text-lg font-bold" style={{ color: '#D4AF37' }}>
+              <div className="text-xs text-[#7E8092]">Required Positions</div>
+              <div className="text-lg font-bold" style={{ color: '#D4B46A' }}>
                 {overview?.requirements?.minimumPositions || 5}
               </div>
             </div>
@@ -142,7 +142,7 @@ const Training = () => {
             <button
               onClick={() => navigate('/connect')}
               className="px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg hover:brightness-110"
-              style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)', color: '#080808' }}>
+              style={{ background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)', color: '#040406' }}>
               Sync Chess.com Games
             </button>
           </div>
@@ -159,14 +159,14 @@ const Training = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#D4AF37' }}>
+          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#D4B46A' }}>
             <Sparkles size={14} />
             <span>AI-Driven Adaptive Drills</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: '#F5F0E0' }}>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display" style={{ color: '#F3EFE6' }}>
             Personalized Training
           </h1>
-          <p className="text-xs md:text-sm mt-1" style={{ color: '#888' }}>
+          <p className="text-xs md:text-sm mt-1" style={{ color: '#7E8092' }}>
             Targeting real decision errors from {user?.chessUsername || 'your'}'s Chess.com games with Current & Peak Self comparison.
           </p>
         </div>
@@ -174,9 +174,9 @@ const Training = () => {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => navigate('/training/progress')}
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all hover:bg-neutral-800"
-            style={{ background: '#141414', border: '1px solid #2A2A2A', color: '#E0E0E0' }}>
-            <BarChart2 size={14} style={{ color: '#D4AF37' }} />
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all hover:bg-[#181A26] shadow-sm"
+            style={{ background: '#0E1017', border: '1px solid #181A24', color: '#E4E2DC' }}>
+            <BarChart2 size={14} style={{ color: '#D4B46A' }} />
             <span>View Progress</span>
           </button>
         </div>
@@ -185,33 +185,33 @@ const Training = () => {
       {/* Hero: Active Plan Drill Banner */}
       <div className="p-6 md:p-8 rounded-3xl relative overflow-hidden transition-all shadow-2xl"
         style={{
-          background: 'linear-gradient(135deg, #18150D 0%, #0F0F0F 100%)',
-          border: '1px solid rgba(212,175,55,0.3)',
-          boxShadow: '0 10px 40px rgba(212,175,55,0.06)'
+          background: 'linear-gradient(145deg, #10121A 0%, #08090E 100%)',
+          border: '1px solid rgba(197, 160, 89, 0.28)',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.8), 0 0 30px rgba(197,160,89,0.06)'
         }}>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3 max-w-xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold"
-              style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.25)' }}>
+              style={{ background: 'rgba(197,160,89,0.14)', color: '#D4B46A', border: '1px solid rgba(197,160,89,0.3)' }}>
               <Target size={12} />
               <span>Recommended Training Focus</span>
             </div>
-            <h2 className="text-2xl font-bold" style={{ color: '#F5F0E0' }}>
+            <h2 className="text-2xl font-bold font-display" style={{ color: '#F3EFE6' }}>
               {activePlan?.targetWeakness || 'Middlegame Tactical Decision Making'}
             </h2>
-            <p className="text-xs md:text-sm leading-relaxed" style={{ color: '#A0A0A0' }}>
+            <p className="text-xs md:text-sm leading-relaxed" style={{ color: '#8A8D9F' }}>
               Generated from recurring blunder patterns in your played games. In this 5-position drill, compare your instinctive choices with Peak Self optimizations.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <span className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: '#111', color: '#888', border: '1px solid #222' }}>
-                Difficulty: <strong className="text-neutral-200">{activePlan?.difficulty || 'Intermediate'}</strong>
+              <span className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: '#0E1017', color: '#8A8D9F', border: '1px solid #181A24' }}>
+                Difficulty: <strong className="text-[#F3EFE6]">{activePlan?.difficulty || 'Intermediate'}</strong>
               </span>
-              <span className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: '#111', color: '#888', border: '1px solid #222' }}>
-                Category: <strong className="text-neutral-200">{CATEGORY_NAMES[activePlan?.focusCategory] || 'Tactical'}</strong>
+              <span className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: '#0E1017', color: '#8A8D9F', border: '1px solid #181A24' }}>
+                Category: <strong className="text-[#F3EFE6]">{CATEGORY_NAMES[activePlan?.focusCategory] || 'Tactical'}</strong>
               </span>
-              <span className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: '#111', color: '#888', border: '1px solid #222' }}>
-                Length: <strong className="text-neutral-200">5 Positions</strong>
+              <span className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: '#0E1017', color: '#8A8D9F', border: '1px solid #181A24' }}>
+                Length: <strong className="text-[#F3EFE6]">5 Positions</strong>
               </span>
             </div>
           </div>
@@ -222,9 +222,10 @@ const Training = () => {
               disabled={creating}
               className="w-full md:w-auto flex items-center justify-center space-x-3 px-8 py-4 rounded-2xl text-sm font-extrabold transition-all shadow-xl hover:scale-105"
               style={{
-                background: creating ? '#333' : 'linear-gradient(135deg, #D4AF37, #B8960C)',
-                color: creating ? '#888' : '#080808',
+                background: creating ? '#141620' : 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)',
+                color: creating ? '#555869' : '#040406',
                 cursor: creating ? 'not-allowed' : 'pointer',
+                boxShadow: creating ? 'none' : '0 4px 20px rgba(181, 141, 61, 0.28)',
               }}>
               <Play size={18} fill="currentColor" />
               <span>{creating ? 'Building Session...' : 'Start Recommended Drill'}</span>
@@ -238,10 +239,10 @@ const Training = () => {
         {/* Left 2 Cols: Category Selector */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold" style={{ color: '#F5F0E0' }}>
+            <h3 className="text-base font-bold font-display" style={{ color: '#F3EFE6' }}>
               Select Training Focus Area
             </h3>
-            <span className="text-xs" style={{ color: '#666' }}>All positions sourced from your actual games</span>
+            <span className="text-xs" style={{ color: '#7E8092' }}>All positions sourced from your actual games</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -256,33 +257,33 @@ const Training = () => {
                   onClick={() => setSelectedCategory(key)}
                   className="p-4 rounded-2xl cursor-pointer transition-all duration-200 flex flex-col justify-between"
                   style={{
-                    background: isSelected ? 'rgba(212,175,55,0.06)' : '#111',
-                    border: `1px solid ${isSelected ? 'rgba(212,175,55,0.4)' : '#1F1F1F'}`,
-                    boxShadow: isSelected ? '0 0 20px rgba(212,175,55,0.05)' : 'none',
+                    background: isSelected ? 'rgba(197,160,89,0.08)' : '#0B0C12',
+                    border: `1px solid ${isSelected ? 'rgba(197,160,89,0.45)' : '#181A24'}`,
+                    boxShadow: isSelected ? '0 0 25px rgba(197,160,89,0.1)' : 'none',
                   }}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
                         style={{
-                          background: isSelected ? 'rgba(212,175,55,0.2)' : '#1A1A1A',
-                          color: isSelected ? '#D4AF37' : '#888',
+                          background: isSelected ? 'rgba(197,160,89,0.2)' : '#141622',
+                          color: isSelected ? '#D4B46A' : '#7E8092',
                         }}>
                         <Icon size={18} />
                       </div>
                       <div>
-                        <div className="text-sm font-bold" style={{ color: isSelected ? '#F5F0E0' : '#DDD' }}>
+                        <div className="text-sm font-bold" style={{ color: isSelected ? '#F3EFE6' : '#D5D7E2' }}>
                           {name}
                         </div>
-                        <div className="text-xs text-neutral-500">
+                        <div className="text-xs text-[#7E8092]">
                           {catPerf ? `${catPerf.attempted} attempted • ${catPerf.successRate}% solved` : 'Not trained yet'}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-900">
-                    <span className="text-neutral-500">Curated from personal blunders</span>
-                    <span className="font-semibold" style={{ color: isSelected ? '#D4AF37' : '#555' }}>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-[#181A24]">
+                    <span className="text-[#7E8092]">Curated from personal blunders</span>
+                    <span className="font-semibold" style={{ color: isSelected ? '#D4B46A' : '#5A5D70' }}>
                       {isSelected ? 'Selected' : 'Select'}
                     </span>
                   </div>
@@ -293,13 +294,13 @@ const Training = () => {
 
           {/* Difficulty Selection */}
           <div className="p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-            style={{ background: '#111', border: '1px solid #1F1F1F' }}>
+            style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
             <div className="space-y-0.5">
-              <div className="text-xs font-bold" style={{ color: '#F5F0E0' }}>Session Difficulty</div>
-              <div className="text-xs text-neutral-500">Current adaptive recommendation: {progress?.currentDifficulty}</div>
+              <div className="text-xs font-bold" style={{ color: '#F3EFE6' }}>Session Difficulty</div>
+              <div className="text-xs text-[#7E8092]">Current adaptive recommendation: {progress?.currentDifficulty}</div>
             </div>
 
-            <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-neutral-950">
+            <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-[#08090D] border border-[#181A24]">
               {['EASY', 'INTERMEDIATE', 'HARD', 'EXPERT'].map((diff) => {
                 const isDiff = selectedDifficulty === diff;
                 return (
@@ -308,8 +309,8 @@ const Training = () => {
                     onClick={() => setSelectedDifficulty(diff)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                     style={{
-                      background: isDiff ? '#D4AF37' : 'transparent',
-                      color: isDiff ? '#080808' : '#777',
+                      background: isDiff ? 'linear-gradient(135deg, #B58D3D, #D4B46A)' : 'transparent',
+                      color: isDiff ? '#040406' : '#7E8092',
                     }}>
                     {diff.charAt(0) + diff.slice(1).toLowerCase()}
                   </button>
@@ -322,8 +323,8 @@ const Training = () => {
         {/* Right Col: Weaknesses & Model Comparison */}
         <div className="space-y-6">
           {/* Weaknesses Card */}
-          <div className="p-5 rounded-2xl space-y-4" style={{ background: '#111', border: '1px solid #1F1F1F' }}>
-            <div className="flex items-center space-x-2 text-xs font-bold" style={{ color: '#D4AF37' }}>
+          <div className="p-5 rounded-2xl space-y-4" style={{ background: '#0B0C12', border: '1px solid #181A24', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+            <div className="flex items-center space-x-2 text-xs font-bold" style={{ color: '#D4B46A' }}>
               <TrendingUp size={14} />
               <span>Recurring Chess DNA Weaknesses</span>
             </div>
@@ -331,33 +332,33 @@ const Training = () => {
             <div className="space-y-2">
               {weaknesses.map((w, idx) => (
                 <div key={idx} className="p-2.5 rounded-xl flex items-center justify-between text-xs"
-                  style={{ background: '#0A0A0A', border: '1px solid #1A1A1A' }}>
-                  <span className="font-medium text-neutral-300 truncate max-w-[200px]">{w}</span>
-                  <span className="text-neutral-500 text-[10px]">Rank #{idx + 1}</span>
+                  style={{ background: '#0E1017', border: '1px solid #181A24' }}>
+                  <span className="font-medium text-[#D5D7E2] truncate max-w-[200px]">{w}</span>
+                  <span className="text-[#7E8092] text-[10px]">Rank #{idx + 1}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Model Status Card */}
-          <div className="p-5 rounded-2xl space-y-3" style={{ background: '#111', border: '1px solid #1F1F1F' }}>
-            <div className="flex items-center space-x-2 text-xs font-bold" style={{ color: '#D4AF37' }}>
+          <div className="p-5 rounded-2xl space-y-3" style={{ background: '#0B0C12', border: '1px solid #181A24', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+            <div className="flex items-center space-x-2 text-xs font-bold" style={{ color: '#D4B46A' }}>
               <Brain size={14} />
               <span>AI Models Engaged</span>
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2 rounded-lg bg-neutral-950">
-                <span className="text-neutral-400">Current Self (v1)</span>
+              <div className="flex items-center justify-between p-2 rounded-lg bg-[#0E1017] border border-[#181A24]">
+                <span className="text-[#8A8D9F]">Current Self (v1)</span>
                 <span className="text-emerald-400 font-semibold">Ready • Predicts Style</span>
               </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-neutral-950">
-                <span className="text-neutral-400">Peak Self (v1)</span>
+              <div className="flex items-center justify-between p-2 rounded-lg bg-[#0E1017] border border-[#181A24]">
+                <span className="text-[#8A8D9F]">Peak Self (v1)</span>
                 <span className="text-emerald-400 font-semibold">Ready • Policy Optimizer</span>
               </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-neutral-950">
-                <span className="text-neutral-400">Stockfish Engine</span>
-                <span className="text-neutral-300 font-semibold">Evaluation Authority</span>
+              <div className="flex items-center justify-between p-2 rounded-lg bg-[#0E1017] border border-[#181A24]">
+                <span className="text-[#8A8D9F]">Stockfish Engine</span>
+                <span className="text-[#D5D7E2] font-semibold">Evaluation Authority</span>
               </div>
             </div>
           </div>
@@ -368,11 +369,11 @@ const Training = () => {
       {recentSessions && recentSessions.length > 0 && (
         <div className="space-y-4 pt-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold" style={{ color: '#F5F0E0' }}>Recent Training Sessions</h3>
+            <h3 className="text-base font-bold font-display" style={{ color: '#F3EFE6' }}>Recent Training Sessions</h3>
             <button
               onClick={() => navigate('/training/progress')}
               className="text-xs font-semibold hover:underline"
-              style={{ color: '#D4AF37' }}>
+              style={{ color: '#D4B46A' }}>
               View Complete History
             </button>
           </div>
@@ -382,18 +383,18 @@ const Training = () => {
               <div
                 key={s.id}
                 onClick={() => navigate(`/training/session/${s.id}`)}
-                className="p-4 rounded-xl cursor-pointer transition-all hover:bg-neutral-900 flex items-center justify-between"
-                style={{ background: '#111', border: '1px solid #1F1F1F' }}>
+                className="p-4 rounded-xl cursor-pointer transition-all hover:bg-[#141622] flex items-center justify-between"
+                style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
                 <div className="space-y-1">
-                  <div className="text-xs font-bold text-neutral-200 truncate max-w-[200px]">{s.title}</div>
-                  <div className="text-[11px] text-neutral-500">
+                  <div className="text-xs font-bold text-[#F3EFE6] truncate max-w-[200px]">{s.title}</div>
+                  <div className="text-[11px] text-[#7E8092]">
                     {s.positionsCompleted} / {s.positionsPlanned} positions • {s.status}
                   </div>
                 </div>
                 {s.score !== null && (
                   <div className="text-right">
                     <span className="text-xs font-extrabold px-2 py-1 rounded-md"
-                      style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37' }}>
+                      style={{ background: 'rgba(197,160,89,0.14)', color: '#D4B46A', border: '1px solid rgba(197,160,89,0.25)' }}>
                       {s.score}%
                     </span>
                   </div>

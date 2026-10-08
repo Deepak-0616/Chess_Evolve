@@ -37,7 +37,7 @@ import {
 } from '../api';
 
 const CATEGORY_COLORS = {
-  TACTICAL: '#D4AF37',
+  TACTICAL: '#C5A059',
   DEFENSIVE: '#4ADE80',
   POSITIONAL: '#60A5FA',
   ENDGAME: '#F472B6',
@@ -96,9 +96,9 @@ export const Evolution = () => {
         <div className="text-center space-y-4">
           <div
             className="w-12 h-12 border-2 rounded-full animate-spin mx-auto"
-            style={{ borderColor: '#2A2A2A', borderTopColor: '#D4AF37' }}
+            style={{ borderColor: '#181A24', borderTopColor: '#C5A059' }}
           />
-          <p className="text-sm font-medium" style={{ color: '#888' }}>
+          <p className="text-sm font-medium" style={{ color: '#7E8092' }}>
             Aggregating longitudinal game cohorts & deliberate training records...
           </p>
         </div>
@@ -110,7 +110,7 @@ export const Evolution = () => {
     return (
       <div className="max-w-4xl mx-auto py-16 px-4 text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
-        <h2 className="text-xl font-bold text-neutral-100">Insufficient Data for Evolution Analysis</h2>
+        <h2 className="text-xl font-bold text-[#F3EFE6]">Insufficient Data for Evolution Analysis</h2>
         <p className="text-sm text-neutral-400 max-w-md mx-auto">
           {overview?.message || 'Connect your Chess.com profile and synchronize your games to establish a historical baseline.'}
         </p>
@@ -135,14 +135,14 @@ export const Evolution = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#D4AF37' }}>
+          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#C5A059' }}>
             <TrendingUp size={14} />
             <span>Longitudinal Player Analytics</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: '#F5F0E0' }}>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: '#F3EFE6' }}>
             Player Evolution & Progress
           </h1>
-          <p className="text-xs md:text-sm mt-1" style={{ color: '#888' }}>
+          <p className="text-xs md:text-sm mt-1" style={{ color: '#7E8092' }}>
             Tracking genuine gameplay progression for @{user?.chessUsername} across {user?.totalAnalyzedGames} analyzed games.
           </p>
         </div>
@@ -151,8 +151,8 @@ export const Evolution = () => {
           <button
             onClick={handleGenerateSnapshot}
             disabled={generatingSnapshot}
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:bg-neutral-800 disabled:opacity-50"
-            style={{ background: '#141414', border: '1px solid #2A2A2A', color: '#E0E0E0' }}
+            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:bg-[#181A24] disabled:opacity-50"
+            style={{ background: '#141622', border: '1px solid #181A24', color: '#F3EFE6' }}
           >
             <RefreshCw size={13} className={generatingSnapshot ? 'animate-spin' : ''} />
             <span>Archive Snapshot</span>
@@ -171,11 +171,11 @@ export const Evolution = () => {
       {/* Mandatory Honest Metric Distinction Banner */}
       <div
         className="p-5 rounded-2xl border flex items-start space-x-4"
-        style={{ background: '#0F1215', borderColor: '#1F2937' }}
+        style={{ background: '#0B0C12', borderColor: '#181A24' }}
       >
         <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#60A5FA' }} />
         <div className="text-xs leading-relaxed space-y-1" style={{ color: '#9CA3AF' }}>
-          <p className="font-semibold text-neutral-200">
+          <p className="font-semibold text-[#F3EFE6]">
             Gameplay Improvement vs. Deliberate Training Practice
           </p>
           <p>
@@ -191,13 +191,13 @@ export const Evolution = () => {
         {/* Gameplay CPL Reduction */}
         <div
           className="p-6 rounded-2xl border relative overflow-hidden"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#60A5FA' }}>
             Gameplay Avg CPL
           </div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-black text-neutral-100">
+            <span className="text-3xl font-black text-[#F3EFE6]">
               {cohorts.recent?.metrics?.avgCpl}
             </span>
             <span
@@ -219,13 +219,13 @@ export const Evolution = () => {
         {/* Gameplay Blunder Rate */}
         <div
           className="p-6 rounded-2xl border relative overflow-hidden"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#4ADE80' }}>
             Gameplay Blunder Rate
           </div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-black text-neutral-100">
+            <span className="text-3xl font-black text-[#F3EFE6]">
               {cohorts.recent?.metrics?.blunderRate}%
             </span>
             <span
@@ -247,13 +247,13 @@ export const Evolution = () => {
         {/* Training Position Success Rate */}
         <div
           className="p-6 rounded-2xl border relative overflow-hidden"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
-          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#D4AF37' }}>
+          <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#C5A059' }}>
             Training Drill Success
           </div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-black text-neutral-100" style={{ color: '#D4AF37' }}>
+            <span className="text-3xl font-black text-[#C5A059]">
               {Math.round(trainingProgress?.trainingSuccessRate || 0)}%
             </span>
             <span className="text-xs text-neutral-500">
@@ -268,12 +268,12 @@ export const Evolution = () => {
         {/* Retraining Eligibility */}
         <div
           className="p-6 rounded-2xl border relative overflow-hidden"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#A78BFA' }}>
             Model Update Status
           </div>
-          <div className="text-lg font-black text-neutral-100 truncate mt-1">
+          <div className="text-lg font-black text-[#F3EFE6] truncate mt-1">
             {modelEligibility?.status === 'RETRAINING_ELIGIBLE' ? (
               <span className="text-emerald-400">Retraining Eligible</span>
             ) : modelEligibility?.status === 'NEW_DATA_AVAILABLE' ? (
@@ -289,7 +289,7 @@ export const Evolution = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center space-x-2 border-b" style={{ borderColor: '#222' }}>
+      <div className="flex items-center space-x-2 border-b" style={{ borderColor: '#181A24' }}>
         {[
           { id: 'overview', label: 'Longitudinal Cohorts & Charts' },
           { id: 'correlation', label: 'Training → Gameplay Correlation' },
@@ -300,8 +300,8 @@ export const Evolution = () => {
             onClick={() => setActiveTab(tab.id)}
             className="px-4 py-2.5 text-xs font-bold transition-all border-b-2"
             style={{
-              borderColor: activeTab === tab.id ? '#D4AF37' : 'transparent',
-              color: activeTab === tab.id ? '#F5F0E0' : '#777',
+              borderColor: activeTab === tab.id ? '#C5A059' : 'transparent',
+              color: activeTab === tab.id ? '#F3EFE6' : '#7E8092',
             }}
           >
             {tab.label}
@@ -530,7 +530,7 @@ export const Evolution = () => {
                   <tr key={c.category} className="hover:bg-neutral-900/30">
                     <td className="p-4 font-bold text-neutral-100">{c.category}</td>
                     <td className="p-4">{c.trainingPositionsAttempted} drills</td>
-                    <td className="p-4 font-bold" style={{ color: '#D4AF37' }}>
+                    <td className="p-4 font-bold" style={{ color: '#C5A059' }}>
                       {c.trainingPositionsAttempted > 0 ? `${c.trainingSuccessRate}%` : '—'}
                     </td>
                     <td className="p-4">{c.gameplayBaselineCpl} cp</td>
@@ -568,29 +568,29 @@ export const Evolution = () => {
       {/* TAB 3: Milestone Timeline */}
       {activeTab === 'timeline' && (
         <div className="space-y-6">
-          <div className="relative pl-6 border-l-2 space-y-8" style={{ borderColor: '#2A2A2A' }}>
+          <div className="relative pl-6 border-l-2 space-y-8" style={{ borderColor: '#181A24' }}>
             {timeline.map((ev, idx) => (
               <div key={idx} className="relative group">
                 {/* Dot */}
                 <div
                   className="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full border-2 transition-all"
                   style={{
-                    background: '#080808',
+                    background: '#040406',
                     borderColor:
                       ev.type === 'MODEL_TRAINED'
                         ? '#A78BFA'
                         : ev.type === 'TRAINING_SESSION'
-                        ? '#D4AF37'
+                        ? '#C5A059'
                         : '#4ADE80',
                   }}
                 />
 
                 <div
-                  className="p-5 rounded-2xl border space-y-2 transition-all hover:bg-neutral-900/40"
-                  style={{ background: '#101010', borderColor: '#1F1F1F' }}
+                  className="p-5 rounded-2xl border space-y-2 transition-all hover:bg-[#141622]/40"
+                  style={{ background: '#0B0C12', borderColor: '#181A24' }}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <span className="text-xs font-bold text-neutral-200">{ev.title}</span>
+                    <span className="text-xs font-bold text-[#F3EFE6]">{ev.title}</span>
                     <span className="text-[11px] text-neutral-500">
                       {new Date(ev.date).toLocaleDateString()}
                     </span>

@@ -5,30 +5,30 @@ import { Swords, RotateCcw, Flag, Brain, Loader2 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useParams, useNavigate } from 'react-router-dom';
 
-const LIGHT_SQUARE = '#FFFFFF';
-const DARK_SQUARE = '#1C1C1E';
-const SELECTED_SQUARE = 'rgba(212,175,55,0.35)';
-const LAST_MOVE_LIGHT = 'rgba(212,175,55,0.2)';
-const LAST_MOVE_DARK = 'rgba(212,175,55,0.3)';
+const LIGHT_SQUARE = '#E6E1D6';
+const DARK_SQUARE = '#181A24';
+const SELECTED_SQUARE = 'rgba(197, 160, 89, 0.35)';
+const LAST_MOVE_LIGHT = 'rgba(197, 160, 89, 0.2)';
+const LAST_MOVE_DARK = 'rgba(197, 160, 89, 0.3)';
 
 const MoveList = ({ history }) => (
   <div className="flex-1 overflow-y-auto p-3" style={{ maxHeight: '250px' }}>
     {history.length === 0 ? (
-      <p className="text-xs text-center py-6" style={{ color: '#3A3A3A' }}>No moves yet</p>
+      <p className="text-xs text-center py-6" style={{ color: '#7E8092' }}>No moves yet</p>
     ) : (
       <div className="grid grid-cols-2 gap-1">
         {Array.from({ length: Math.ceil(history.length / 2) }, (_, i) => (
           <React.Fragment key={i}>
             <div className="flex items-center space-x-2 px-2 py-1 rounded text-xs"
-              style={{ background: '#0A0A0A' }}>
-              <span style={{ color: '#3A3A3A' }}>{i + 1}.</span>
-              <span style={{ color: '#F5F0E0' }}>{history[i * 2]?.move || history[i * 2]}</span>
+              style={{ background: '#06070A', border: '1px solid #181A24' }}>
+              <span style={{ color: '#7E8092' }}>{i + 1}.</span>
+              <span style={{ color: '#F3EFE6' }}>{history[i * 2]?.move || history[i * 2]}</span>
             </div>
             {history[i * 2 + 1] && (
               <div className="flex items-center space-x-2 px-2 py-1 rounded text-xs"
-                style={{ background: '#0A0A0A' }}>
-                <span style={{ color: '#3A3A3A' }}>{i + 1}...</span>
-                <span style={{ color: '#C0A060' }}>{history[i * 2 + 1]?.move || history[i * 2 + 1]}</span>
+                style={{ background: '#06070A', border: '1px solid #181A24' }}>
+                <span style={{ color: '#7E8092' }}>{i + 1}...</span>
+                <span style={{ color: '#C5A059' }}>{history[i * 2 + 1]?.move || history[i * 2 + 1]}</span>
               </div>
             )}
           </React.Fragment>
@@ -198,21 +198,21 @@ const ArenaMatch = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <div className="rounded-2xl overflow-hidden p-4"
-            style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
+            style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
             
             {/* Top Player (Opponent) */}
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)' }}>
-                  <Brain size={11} style={{ color: '#080808' }} />
+                  style={{ background: 'linear-gradient(135deg, #B58D3D, #D4B46A)' }}>
+                  <Brain size={11} style={{ color: '#040406' }} />
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#C0A060' }}>
+                <span className="text-xs font-semibold" style={{ color: '#D4B46A' }}>
                   Opponent AI ({playerColor === 'white' ? 'Black' : 'White'})
                 </span>
                 {aiThinking && (
-                  <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#D4AF37' }}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse" style={{ background: '#D4AF37' }} />
+                  <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#C5A059' }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse" style={{ background: '#C5A059' }} />
                     <span>Thinking...</span>
                   </div>
                 )}
@@ -238,32 +238,32 @@ const ArenaMatch = () => {
             <div className="flex items-center justify-between mt-3 px-1">
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+                  style={{ background: '#141622', border: '1px solid #181A24' }}>
                   <span className="text-xs">👤</span>
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#6B6B6B' }}>You ({playerColor})</span>
+                <span className="text-xs font-semibold" style={{ color: '#7E8092' }}>You ({playerColor})</span>
               </div>
             </div>
           </div>
 
           {status === 'gameover' && (
             <div className="mt-3 p-4 rounded-xl text-center"
-              style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)' }}>
-              <p className="font-bold text-lg" style={{ color: '#D4AF37' }}>Game Over</p>
-              <p className="text-sm mt-1" style={{ color: '#6B6B6B' }}>{result}</p>
+              style={{ background: 'rgba(197, 160, 89, 0.08)', border: '1px solid rgba(197, 160, 89, 0.25)' }}>
+              <p className="font-bold text-lg" style={{ color: '#C5A059' }}>Game Over</p>
+              <p className="text-sm mt-1" style={{ color: '#7E8092' }}>{result}</p>
             </div>
           )}
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#111' }}>
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#4A4A4A' }}>Moves</span>
-              <span className="text-xs" style={{ color: '#3A3A3A' }}>{history.length} total</span>
+          <div className="rounded-2xl overflow-hidden" style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#181A24' }}>
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#7E8092' }}>Moves</span>
+              <span className="text-xs" style={{ color: '#7E8092' }}>{history.length} total</span>
             </div>
             <MoveList history={history} />
             {status === 'playing' && (
-              <div className="flex space-x-2 p-3 border-t" style={{ borderColor: '#111' }}>
+              <div className="flex space-x-2 p-3 border-t" style={{ borderColor: '#181A24' }}>
                 <button onClick={handleResign}
                   className="w-full flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-medium transition-all"
                   style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>

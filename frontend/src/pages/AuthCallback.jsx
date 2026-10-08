@@ -82,25 +82,25 @@ export const AuthCallback = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#080808' }}>
-        <div className="max-w-md w-full bg-[#0A0A0A] border border-[#2A2A2A] rounded-2xl p-8 text-center space-y-5 shadow-2xl">
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#040406' }}>
+        <div className="max-w-md w-full bg-[#0B0C12] border border-[#181A24] rounded-2xl p-8 text-center space-y-5 shadow-2xl">
           <div className="w-12 h-12 rounded-full bg-red-950/40 border border-red-500/30 flex items-center justify-center mx-auto text-red-400">
             <AlertCircle size={24} />
           </div>
-          <h2 className="text-xl font-bold font-display text-[#F5F0E0]">
+          <h2 className="text-xl font-bold font-display text-[#F3EFE6]">
             Authentication Incomplete
           </h2>
-          <p className="text-xs text-[#A0A0A0] leading-relaxed">
+          <p className="text-xs text-[#7E8092] leading-relaxed">
             {error}
           </p>
           <div className="pt-2">
             <button
               type="button"
               onClick={() => navigate('/login', { replace: true })}
-              className="py-2.5 px-6 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer"
+              className="py-2.5 px-6 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer shadow-lg hover:brightness-110"
               style={{
-                background: 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8960C 100%)',
-                color: '#080808',
+                background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)',
+                color: '#040406',
               }}
             >
               Return to Sign In
@@ -112,13 +112,13 @@ export const AuthCallback = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#080808' }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#040406' }}>
       <div className="text-center space-y-4">
-        <Loader2 size={36} className="animate-spin mx-auto text-[#D4AF37]" />
-        <h2 className="text-base font-bold font-display text-[#F5F0E0]">
+        <Loader2 size={36} className="animate-spin mx-auto text-[#C5A059]" />
+        <h2 className="text-base font-bold font-display text-[#F3EFE6]">
           Completing Secure Authentication...
         </h2>
-        <p className="text-xs text-[#6B6B6B]">
+        <p className="text-xs text-[#7E8092]">
           Connecting your Google profile to Chess Evolve
         </p>
       </div>

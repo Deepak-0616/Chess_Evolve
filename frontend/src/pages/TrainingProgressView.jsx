@@ -20,7 +20,7 @@ import {
 import { getTrainingProgress, getTrainingWeaknesses } from '../api';
 
 const CATEGORY_META = {
-  TACTICAL: { label: 'Tactical Calculation', icon: Target, color: '#D4AF37' },
+  TACTICAL: { label: 'Tactical Calculation', icon: Target, color: '#C5A059' },
   DEFENSIVE: { label: 'Defensive King Safety', icon: Shield, color: '#4ADE80' },
   POSITIONAL: { label: 'Positional Mastery', icon: Brain, color: '#60A5FA' },
   ENDGAME: { label: 'Endgame Technique', icon: Award, color: '#F472B6' },
@@ -63,9 +63,9 @@ export default function TrainingProgressView() {
         <div className="text-center space-y-4">
           <div
             className="w-12 h-12 border-2 rounded-full animate-spin mx-auto"
-            style={{ borderColor: '#2A2A2A', borderTopColor: '#D4AF37' }}
+            style={{ borderColor: '#181A24', borderTopColor: '#C5A059' }}
           />
-          <p className="text-sm font-medium" style={{ color: '#888' }}>
+          <p className="text-sm font-medium" style={{ color: '#7E8092' }}>
             Aggregating training metrics & session history...
           </p>
         </div>
@@ -78,15 +78,15 @@ export default function TrainingProgressView() {
       <div className="max-w-4xl mx-auto py-12 px-4">
         <div
           className="p-8 rounded-2xl border text-center space-y-4"
-          style={{ background: '#121212', borderColor: '#2A2A2A' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
-          <h2 className="text-lg font-bold text-neutral-100">Unable to Load Progress</h2>
+          <h2 className="text-lg font-bold text-[#F3EFE6]">Unable to Load Progress</h2>
           <p className="text-sm text-neutral-400">{error}</p>
           <button
             onClick={loadProgress}
             className="px-4 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: '#1C1C1C', border: '1px solid #333', color: '#D4AF37' }}
+            style={{ background: '#141622', border: '1px solid #181A24', color: '#C5A059' }}
           >
             Retry
           </button>
@@ -106,20 +106,20 @@ export default function TrainingProgressView() {
         <div>
           <button
             onClick={() => navigate('/training')}
-            className="inline-flex items-center space-x-2 text-xs font-medium mb-3 hover:text-neutral-200 transition-colors"
-            style={{ color: '#888' }}
+            className="inline-flex items-center space-x-2 text-xs font-medium mb-3 hover:text-[#F3EFE6] transition-colors"
+            style={{ color: '#7E8092' }}
           >
             <ArrowLeft size={14} />
             <span>Back to Training Dashboard</span>
           </button>
-          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#D4AF37' }}>
+          <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#C5A059' }}>
             <BarChart2 size={14} />
             <span>Deliberate Practice Analytics</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: '#F5F0E0' }}>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: '#F3EFE6' }}>
             Training Progress
           </h1>
-          <p className="text-xs md:text-sm mt-1" style={{ color: '#888' }}>
+          <p className="text-xs md:text-sm mt-1" style={{ color: '#7E8092' }}>
             Empirical evidence from your personalized decision training sessions.
           </p>
         </div>
@@ -129,8 +129,8 @@ export default function TrainingProgressView() {
             onClick={() => navigate('/training')}
             className="flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg hover:brightness-110"
             style={{
-              background: 'linear-gradient(135deg, #D4AF37 0%, #AA820A 100%)',
-              color: '#080808'
+              background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)',
+              color: '#040406'
             }}
           >
             <Sparkles size={14} />
@@ -142,11 +142,11 @@ export default function TrainingProgressView() {
       {/* Honest Distinction Banner */}
       <div
         className="p-5 rounded-2xl border flex items-start space-x-4"
-        style={{ background: '#0F1215', borderColor: '#1F2937' }}
+        style={{ background: '#0B0C12', borderColor: '#181A24' }}
       >
         <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#60A5FA' }} />
         <div className="text-xs leading-relaxed space-y-1" style={{ color: '#9CA3AF' }}>
-          <p className="font-semibold text-neutral-200">
+          <p className="font-semibold text-[#F3EFE6]">
             Training Improvement vs. Real Gameplay Impact
           </p>
           <p>
@@ -160,10 +160,10 @@ export default function TrainingProgressView() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div
           className="p-4 rounded-2xl border"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-medium text-neutral-500 mb-1">Sessions Completed</div>
-          <div className="text-2xl font-black text-neutral-100">
+          <div className="text-2xl font-black text-[#F3EFE6]">
             {progress?.totalSessionsCompleted || 0}
           </div>
           <div className="text-[10px] text-neutral-500 mt-1">Full drills finished</div>
@@ -171,10 +171,10 @@ export default function TrainingProgressView() {
 
         <div
           className="p-4 rounded-2xl border"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-medium text-neutral-500 mb-1">Positions Attempted</div>
-          <div className="text-2xl font-black text-neutral-100">
+          <div className="text-2xl font-black text-[#F3EFE6]">
             {progress?.totalPositionsAttempted || 0}
           </div>
           <div className="text-[10px] text-neutral-500 mt-1">Real game decisions</div>
@@ -182,7 +182,7 @@ export default function TrainingProgressView() {
 
         <div
           className="p-4 rounded-2xl border"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-medium text-neutral-500 mb-1">Positions Solved</div>
           <div className="text-2xl font-black" style={{ color: '#4ADE80' }}>
@@ -193,10 +193,10 @@ export default function TrainingProgressView() {
 
         <div
           className="p-4 rounded-2xl border"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-medium text-neutral-500 mb-1">Training Success Rate</div>
-          <div className="text-2xl font-black" style={{ color: '#D4AF37' }}>
+          <div className="text-2xl font-black" style={{ color: '#C5A059' }}>
             {Math.round(progress?.overallSuccessRate || 0)}%
           </div>
           <div className="text-[10px] text-neutral-500 mt-1">Accuracy on drills</div>
@@ -204,10 +204,10 @@ export default function TrainingProgressView() {
 
         <div
           className="p-4 rounded-2xl border"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-medium text-neutral-500 mb-1">Active Streak</div>
-          <div className="flex items-center space-x-1.5 text-2xl font-black text-neutral-100">
+          <div className="flex items-center space-x-1.5 text-2xl font-black text-[#F3EFE6]">
             <span>{progress?.streakDays || 0}</span>
             <Flame size={18} className="text-amber-500" />
           </div>
@@ -216,10 +216,10 @@ export default function TrainingProgressView() {
 
         <div
           className="p-4 rounded-2xl border"
-          style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+          style={{ background: '#0B0C12', borderColor: '#181A24' }}
         >
           <div className="text-xs font-medium text-neutral-500 mb-1">Adaptive Difficulty</div>
-          <div className="text-sm font-black uppercase tracking-wider mt-1" style={{ color: '#D4AF37' }}>
+          <div className="text-sm font-black uppercase tracking-wider mt-1" style={{ color: '#C5A059' }}>
             {progress?.currentDifficulty || 'INTERMEDIATE'}
           </div>
           <div className="text-[10px] text-neutral-500 mt-2">Adjusts dynamically</div>
@@ -228,7 +228,7 @@ export default function TrainingProgressView() {
 
       {/* Category Performance Breakdown */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-neutral-200">Category Mastery & Drill Accuracy</h2>
+        <h2 className="text-lg font-bold text-[#F3EFE6]">Category Mastery & Drill Accuracy</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(CATEGORY_META).map(([key, meta]) => {
             const Icon = meta.icon;
@@ -239,7 +239,7 @@ export default function TrainingProgressView() {
               <div
                 key={key}
                 className="p-5 rounded-2xl border transition-all"
-                style={{ background: '#101010', borderColor: '#1F1F1F' }}
+                style={{ background: '#0B0C12', borderColor: '#181A24' }}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
@@ -250,19 +250,19 @@ export default function TrainingProgressView() {
                       <Icon size={18} />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-neutral-200">{meta.label}</div>
+                      <div className="text-xs font-bold text-[#F3EFE6]">{meta.label}</div>
                       <div className="text-[10px] text-neutral-500">
                         {stats.attempted} attempted • {stats.solved} solved
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-lg font-black text-neutral-100">{rate}%</span>
+                    <span className="text-lg font-black text-[#F3EFE6]">{rate}%</span>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#1A1A1A' }}>
+                <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#181A24' }}>
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{
@@ -280,7 +280,7 @@ export default function TrainingProgressView() {
       {/* Recurring Weakness Progression */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-neutral-200">Targeted Weakness Evidence</h2>
+          <h2 className="text-lg font-bold text-[#F3EFE6]">Targeted Weakness Evidence</h2>
           <span className="text-xs text-neutral-500">From Chess DNA & Move Centipawn Loss</span>
         </div>
 
@@ -292,20 +292,20 @@ export default function TrainingProgressView() {
                 <div
                   key={idx}
                   className="p-5 rounded-2xl border flex flex-col justify-between space-y-3"
-                  style={{ background: '#101010', borderColor: '#222' }}
+                  style={{ background: '#0B0C12', borderColor: '#181A24' }}
                 >
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
                         Weakness #{idx + 1}
                       </span>
-                      <h3 className="text-sm font-bold text-neutral-100 mt-0.5">{w}</h3>
+                      <h3 className="text-sm font-bold text-[#F3EFE6] mt-0.5">{w}</h3>
                     </div>
                     <span
                       className="px-2.5 py-1 rounded-full text-[10px] font-bold"
                       style={{
                         background: prog.attempted > 0 ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
-                        color: prog.attempted > 0 ? '#4ADE80' : '#888'
+                        color: prog.attempted > 0 ? '#4ADE80' : '#7E8092'
                       }}
                     >
                       {prog.attempted > 0 ? `${prog.solved}/${prog.attempted} Drills Solved` : 'Needs Practice'}
@@ -330,7 +330,7 @@ export default function TrainingProgressView() {
         ) : (
           <div
             className="p-6 rounded-2xl border text-center text-xs text-neutral-500"
-            style={{ background: '#101010', borderColor: '#1F1F1F' }}
+            style={{ background: '#0B0C12', borderColor: '#181A24' }}
           >
             No recurring weaknesses identified yet. Synchronize more Chess.com games to generate DNA weakness metrics.
           </div>
@@ -339,21 +339,21 @@ export default function TrainingProgressView() {
 
       {/* Recent Training Session History */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-neutral-200">Recent Completed Sessions</h2>
+        <h2 className="text-lg font-bold text-[#F3EFE6]">Recent Completed Sessions</h2>
         {sessionHistory && sessionHistory.length > 0 ? (
-          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: '#222', background: '#0D0D0D' }}>
-            <div className="divide-y divide-neutral-900">
+          <div className="rounded-2xl border overflow-hidden" style={{ borderColor: '#181A24', background: '#0B0C12' }}>
+            <div className="divide-y divide-[#181A24]">
               {sessionHistory.map((s) => (
                 <div
                   key={s.id}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-neutral-900/40 transition-colors"
+                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#141622]/40 transition-colors"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm font-bold text-neutral-200">{s.title}</span>
+                      <span className="text-sm font-bold text-[#F3EFE6]">{s.title}</span>
                       <span
                         className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
-                        style={{ background: '#181818', color: '#D4AF37' }}
+                        style={{ background: '#141622', color: '#C5A059', border: '1px solid #181A24' }}
                       >
                         {s.category}
                       </span>
@@ -372,7 +372,7 @@ export default function TrainingProgressView() {
                       <div className="text-xs text-neutral-500">Session Score</div>
                       <div
                         className="text-lg font-black"
-                        style={{ color: s.score >= 60 ? '#4ADE80' : '#D4AF37' }}
+                        style={{ color: s.score >= 60 ? '#4ADE80' : '#C5A059' }}
                       >
                         {s.score}%
                       </div>
@@ -385,7 +385,7 @@ export default function TrainingProgressView() {
         ) : (
           <div
             className="p-8 rounded-2xl border text-center space-y-3"
-            style={{ background: '#0E0E0E', borderColor: '#1E1E1E' }}
+            style={{ background: '#0B0C12', borderColor: '#181A24' }}
           >
             <Calendar className="w-8 h-8 text-neutral-600 mx-auto" />
             <p className="text-xs text-neutral-400">
@@ -393,8 +393,8 @@ export default function TrainingProgressView() {
             </p>
             <button
               onClick={() => navigate('/training')}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-200"
-              style={{ background: '#1A1A1A', border: '1px solid #333' }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-[#F3EFE6]"
+              style={{ background: '#141622', border: '1px solid #181A24' }}
             >
               Start First Drill
             </button>

@@ -37,11 +37,11 @@ const Layout = ({ children }) => {
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#080808' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: '#040406' }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/70 lg:hidden"
+          className="fixed inset-0 z-20 bg-black/80 lg:hidden backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -54,45 +54,43 @@ const Layout = ({ children }) => {
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
         style={{
-          background: '#0A0A0A',
-          borderRight: '1px solid #1A1A1A',
+          background: '#08090D',
+          borderRight: '1px solid #161822',
         }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.04]">
+        <div className="flex items-center justify-between px-5 py-5 border-b border-[#161822]">
           <Link to="/dashboard" className="flex items-center space-x-3">
             <div className="relative w-9 h-9">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8960C 100%)' }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+                style={{ background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)' }}
               >
-                <Crown size={18} className="text-black" />
+                <Crown size={18} className="text-[#040406]" />
               </div>
               <div
                 className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full flex items-center justify-center"
-                style={{ background: '#080808', border: '1px solid #D4AF37' }}
+                style={{ background: '#040406', border: '1px solid #C5A059' }}
               >
-                <Zap size={7} style={{ color: '#D4AF37' }} />
+                <Zap size={7} style={{ color: '#C5A059' }} />
               </div>
             </div>
             <div>
-              <div className="text-sm font-bold font-display text-gold-gradient">Chess Evolve</div>
-              <div className="text-[10px]" style={{ color: '#4A4A4A' }}>AI Platform</div>
+              <div className="text-sm font-bold font-display text-gold-gradient tracking-wide">Chess Evolve</div>
+              <div className="text-[10px] tracking-wider uppercase" style={{ color: '#7E8092' }}>AI Platform</div>
             </div>
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1 rounded-lg"
-            style={{ color: '#4A4A4A' }}
+            style={{ color: '#7E8092' }}
           >
             <X size={16} />
           </button>
         </div>
 
-
-
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;
             return (
@@ -103,47 +101,48 @@ const Layout = ({ children }) => {
                 className={`
                   flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
                   ${isActive
-                    ? 'text-gold'
-                    : 'text-muted hover:text-text-secondary'
+                    ? 'font-bold'
+                    : 'hover:text-[#D4B46A] hover:bg-[rgba(197,160,89,0.06)]'
                   }
                 `}
                 style={isActive ? {
-                  background: 'rgba(212,175,55,0.1)',
-                  color: '#D4AF37',
-                  border: '1px solid rgba(212,175,55,0.18)',
+                  background: 'rgba(197, 160, 89, 0.12)',
+                  color: '#D4B46A',
+                  border: '1px solid rgba(197, 160, 89, 0.28)',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(197,160,89,0.15)',
                 } : {
-                  color: '#6B6B6B',
+                  color: '#8A8D9F',
                 }}
               >
-                <Icon size={16} />
+                <Icon size={16} style={{ color: isActive ? '#D4B46A' : undefined }} />
                 <span>{label}</span>
-                {isActive && <ChevronRight size={12} className="ml-auto opacity-60" />}
+                {isActive && <ChevronRight size={12} className="ml-auto opacity-70" />}
               </Link>
             );
           })}
         </nav>
 
         {/* User section */}
-        <div className="p-4 border-t border-white/[0.04]">
+        <div className="p-4 border-t border-[#161822]">
           <div className="flex items-center space-x-3 mb-3">
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)', color: '#080808' }}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-md"
+              style={{ background: 'linear-gradient(135deg, #B58D3D, #926E28)', color: '#040406' }}
             >
               {avatarInitial}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold truncate" style={{ color: '#F5F0E0' }}>{displayName}</div>
-              <div className="text-xs truncate" style={{ color: '#4A4A4A' }}>{user?.email}</div>
+              <div className="text-sm font-semibold truncate" style={{ color: '#F3EFE6' }}>{displayName}</div>
+              <div className="text-xs truncate" style={{ color: '#7E8092' }}>{user?.email}</div>
             </div>
           </div>
           <button
             onClick={handleSignOut}
             disabled={signingOut}
             className="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-sm transition-all"
-            style={{ color: '#6B6B6B' }}
+            style={{ color: '#7E8092' }}
             onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#6B6B6B'; e.currentTarget.style.background = 'transparent'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#7E8092'; e.currentTarget.style.background = 'transparent'; }}
           >
             <LogOut size={14} />
             <span>{signingOut ? 'Signing out...' : 'Sign Out'}</span>
@@ -155,28 +154,27 @@ const Layout = ({ children }) => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <header
-          className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid #1A1A1A', background: '#080808' }}
+          className="flex items-center justify-between px-5 py-4 flex-shrink-0 backdrop-blur-md"
+          style={{ borderBottom: '1px solid #161822', background: '#06070B' }}
         >
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg"
-              style={{ color: '#6B6B6B' }}
+              style={{ color: '#7E8092' }}
             >
               <Menu size={18} />
             </button>
             <div>
-              <h1 className="text-sm font-semibold capitalize" style={{ color: '#F5F0E0' }}>
+              <h1 className="text-sm font-semibold capitalize tracking-wide" style={{ color: '#F3EFE6' }}>
                 {navItems.find(n => n.path === location.pathname)?.label || 'Chess Evolve'}
               </h1>
             </div>
           </div>
-
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto" style={{ background: '#080808' }}>
+        <main className="flex-1 overflow-y-auto" style={{ background: '#040406' }}>
           <div className="max-w-7xl mx-auto p-5 md:p-6">
             {children}
           </div>

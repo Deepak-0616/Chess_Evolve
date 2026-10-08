@@ -39,15 +39,15 @@ export const GoogleButton = ({
       onClick={onClick}
       disabled={disabled || loading}
       aria-label="Continue with Google"
-      className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/40 ${
+      className={`w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-[#C5A059]/40 ${
         disabled || loading
-          ? 'bg-[#111111] text-[#4A4A4A] border-[#1F1F1F] cursor-not-allowed opacity-75'
-          : 'bg-[#121212] hover:bg-[#1A1A1A] text-[#F5F0E0] border-[#2A2A2A] hover:border-[#3D3D3D] active:scale-[0.99] cursor-pointer shadow-sm'
+          ? 'bg-[#0A0B10] text-[#555869] border-[#181A24] cursor-not-allowed opacity-75'
+          : 'bg-[#0D0E14] hover:bg-[#13151F] text-[#F3EFE6] border-[#1E202A] hover:border-[rgba(197,160,89,0.35)] active:scale-[0.99] cursor-pointer shadow-sm'
       } ${className}`}
     >
       {loading ? (
         <>
-          <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+          <Loader2 className="w-4 h-4 animate-spin text-[#C5A059]" />
           <span>Connecting to Google...</span>
         </>
       ) : (

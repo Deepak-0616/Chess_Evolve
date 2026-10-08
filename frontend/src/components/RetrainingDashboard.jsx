@@ -80,8 +80,8 @@ export const RetrainingDashboard = () => {
 
   if (loading && !data) {
     return (
-      <div className="bg-[#121212] border border-[#2A2A2A] rounded-2xl p-6 text-center text-slate-400">
-        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#D4AF37]" />
+      <div className="bg-[#0B0C12] border border-[#181A24] rounded-2xl p-6 text-center text-slate-400">
+        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#C5A059]" />
         Loading continuous retraining pipeline status...
       </div>
     );
@@ -102,14 +102,14 @@ export const RetrainingDashboard = () => {
   ];
 
   return (
-    <div className="bg-[#121212] border border-[#2A2A2A] rounded-2xl p-6 space-y-6 shadow-xl">
+    <div className="bg-[#0B0C12] border border-[#181A24] rounded-2xl p-6 space-y-6 shadow-xl">
       {/* Title */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2A2A2A] pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#181A24] pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <Layers className="w-6 h-6 text-[#D4AF37]" />
-            <h2 className="text-xl font-bold text-white tracking-wide">Continuous Model Retraining & Activation</h2>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30">
+            <Layers className="w-6 h-6 text-[#C5A059]" />
+            <h2 className="text-xl font-bold text-[#F3EFE6] tracking-wide">Continuous Model Retraining & Activation</h2>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#C5A059]/10 text-[#C5A059] border border-[#C5A059]/30">
               Phase 16 Pipeline
             </span>
           </div>
@@ -123,7 +123,7 @@ export const RetrainingDashboard = () => {
           <button
             onClick={() => handleTrigger(true)}
             disabled={triggering || job?.status === 'RUNNING'}
-            className="px-4 py-2 rounded-xl text-xs font-semibold border border-[#3A3A3A] bg-[#1A1A1A] hover:bg-[#252525] text-slate-300 transition-all disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-xs font-semibold border border-[#181A24] bg-[#141622] hover:bg-[#181A24] text-slate-300 transition-all disabled:opacity-50"
           >
             {triggering ? <RefreshCw className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
             Test Pipeline (Dry Run)
@@ -132,7 +132,7 @@ export const RetrainingDashboard = () => {
           <button
             onClick={() => handleTrigger(false)}
             disabled={triggering || job?.status === 'RUNNING' || eligibility?.status !== 'RETRAINING_ELIGIBLE'}
-            className="px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#D4AF37] to-[#AA8C2C] text-black hover:opacity-90 shadow-md transition-all disabled:opacity-40"
+            className="px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#B58D3D] via-[#D4B46A] to-[#926E28] text-[#040406] hover:opacity-90 shadow-md transition-all disabled:opacity-40"
           >
             {triggering ? <RefreshCw className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
             ⚡ Trigger Retraining
@@ -187,18 +187,18 @@ export const RetrainingDashboard = () => {
         </div>
 
         {/* Retraining Eligibility */}
-        <div className="bg-[#181818] border border-[#2A2A2A] rounded-xl p-4">
+        <div className="bg-[#08090D] border border-[#181A24] rounded-xl p-4">
           <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
             <span>ELIGIBILITY CRITERIA</span>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
               eligibility?.status === 'RETRAINING_ELIGIBLE'
-                ? 'bg-[#D4AF37]/20 text-[#D4AF37] border-[#D4AF37]/40'
+                ? 'bg-[#C5A059]/20 text-[#C5A059] border-[#C5A059]/40'
                 : 'bg-slate-800 text-slate-400 border-slate-700'
             }`}>
               {eligibility?.status || 'UNKNOWN'}
             </span>
           </div>
-          <div className="text-2xl font-bold text-white">
+          <div className="text-2xl font-bold text-[#F3EFE6]">
             +{eligibility?.newGamesSinceLastTrain || 0} <span className="text-sm font-normal text-slate-400">new games</span>
           </div>
           <div className="text-xs text-slate-400 mt-2">
@@ -209,7 +209,7 @@ export const RetrainingDashboard = () => {
 
       {/* Progress & Stage Tracker */}
       {job && (
-        <div className="bg-[#181818] border border-[#2A2A2A] rounded-xl p-5 space-y-4">
+        <div className="bg-[#08090D] border border-[#181A24] rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${
@@ -217,19 +217,19 @@ export const RetrainingDashboard = () => {
                 job.status === 'COMPLETED' ? 'bg-emerald-400' :
                 job.status === 'REJECTED' ? 'bg-rose-500' : 'bg-slate-500'
               }`} />
-              <span className="text-sm font-bold text-white">Job Stage: {job.stage || job.status}</span>
+              <span className="text-sm font-bold text-[#F3EFE6]">Job Stage: {job.stage || job.status}</span>
             </div>
             <span className="text-xs font-semibold text-slate-400">
-              Progress: <span className="text-white font-bold">{job.progressPct || 0}%</span>
+              Progress: <span className="text-[#F3EFE6] font-bold">{job.progressPct || 0}%</span>
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-[#2A2A2A] h-2.5 rounded-full overflow-hidden">
+          <div className="w-full bg-[#181A24] h-2.5 rounded-full overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ${
                 job.status === 'REJECTED' ? 'bg-rose-500' :
-                job.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#D4AF37] to-amber-400'
+                job.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-gradient-to-r from-[#B58D3D] to-[#D4B46A]'
               }`}
               style={{ width: `${job.progressPct || 0}%` }}
             />
@@ -303,15 +303,15 @@ export const RetrainingDashboard = () => {
       )}
 
       {/* Model Version History */}
-      <div className="bg-[#181818] border border-[#2A2A2A] rounded-xl p-5 space-y-3">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[#D4AF37]" />
+      <div className="bg-[#08090D] border border-[#181A24] rounded-xl p-5 space-y-3">
+        <h3 className="text-sm font-bold text-[#F3EFE6] flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[#C5A059]" />
           Model Version Audit History
         </h3>
         
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left text-slate-400">
-            <thead className="bg-[#121212] text-slate-500 uppercase border-b border-[#2A2A2A]">
+            <thead className="bg-[#0B0C12] text-slate-500 uppercase border-b border-[#181A24]">
               <tr>
                 <th className="py-2.5 px-3">Type</th>
                 <th className="py-2.5 px-3">Version</th>
@@ -322,11 +322,11 @@ export const RetrainingDashboard = () => {
                 <th className="py-2.5 px-3">Activated At</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#222]">
+            <tbody className="divide-y divide-[#181A24]">
               {data?.allVersions?.map((v) => (
-                <tr key={v.id} className="hover:bg-[#1a1a1a]">
-                  <td className="py-2 px-3 font-semibold text-white">{v.modelType}</td>
-                  <td className="py-2 px-3 font-bold text-[#D4AF37]">v{v.version}</td>
+                <tr key={v.id} className="hover:bg-[#141622]/40">
+                  <td className="py-2 px-3 font-semibold text-[#F3EFE6]">{v.modelType}</td>
+                  <td className="py-2 px-3 font-bold text-[#C5A059]">v{v.version}</td>
                   <td className="py-2 px-3">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                       v.isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :

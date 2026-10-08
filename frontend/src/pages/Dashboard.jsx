@@ -10,31 +10,31 @@ import { getChessProfile, getDNA, getModels, triggerSync } from '../api';
 
 const StatCard = ({ label, value, sub, icon: Icon, color }) => (
   <div
-    className="p-5 rounded-2xl flex flex-col justify-between min-h-[142px] transition-all duration-200 hover:scale-[1.01] hover:border-[#D4AF37]/30 group"
+    className="p-5 rounded-2xl flex flex-col justify-between min-h-[142px] transition-all duration-200 hover:scale-[1.01] hover:border-[rgba(197,160,89,0.4)] group"
     style={{
-      background: 'linear-gradient(145deg, #141414 0%, #101010 100%)',
-      border: '1px solid #1E1E1E',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      background: 'linear-gradient(145deg, #0F1017 0%, #08090E 100%)',
+      border: '1px solid rgba(197, 160, 89, 0.15)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(197, 160, 89, 0.08)',
     }}
   >
     <div className="flex items-center justify-between">
-      <span className="text-[11px] font-bold uppercase tracking-widest text-[#737373] group-hover:text-[#A0A0A0] transition-colors whitespace-nowrap">
+      <span className="text-[11px] font-bold uppercase tracking-widest text-[#7E8092] group-hover:text-[#D4B46A] transition-colors whitespace-nowrap">
         {label}
       </span>
       {Icon && (
-        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#1A1A1A] group-hover:bg-[#222222] border border-[#252525] transition-colors">
-          <Icon size={14} style={{ color: color || '#D4AF37' }} />
+        <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[#141622] group-hover:bg-[#1A1D2B] border border-[#1E202E] transition-colors">
+          <Icon size={14} style={{ color: color || '#C5A059' }} />
         </div>
       )}
     </div>
 
     <div className="my-2">
-      <div className="text-3xl font-black font-display tracking-tight" style={{ color: color || '#F5F0E0' }}>
+      <div className="text-3xl font-black font-display tracking-tight" style={{ color: color || '#F3EFE6' }}>
         {value}
       </div>
     </div>
 
-    <div className="text-xs font-medium text-[#5A5A5A] truncate">
+    <div className="text-xs font-medium text-[#7E8092] truncate">
       {sub || '\u00A0'}
     </div>
   </div>
@@ -42,13 +42,13 @@ const StatCard = ({ label, value, sub, icon: Icon, color }) => (
 
 const ResultBadge = ({ result }) => {
   const map = {
-    win: { bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.25)', label: 'W' },
-    loss: { bg: 'rgba(239,68,68,0.1)', color: '#f87171', border: 'rgba(239,68,68,0.25)', label: 'L' },
-    draw: { bg: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: 'rgba(212,175,55,0.25)', label: 'D' },
+    win: { bg: 'rgba(34,197,94,0.12)', color: '#4ade80', border: 'rgba(34,197,94,0.25)', label: 'W' },
+    loss: { bg: 'rgba(239,68,68,0.12)', color: '#f87171', border: 'rgba(239,68,68,0.25)', label: 'L' },
+    draw: { bg: 'rgba(197,160,89,0.14)', color: '#D4B46A', border: 'rgba(197,160,89,0.3)', label: 'D' },
   };
   const s = map[result] || map.draw;
   return (
-    <span className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold"
+    <span className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold shadow-sm"
       style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
       {s.label}
     </span>
@@ -57,22 +57,22 @@ const ResultBadge = ({ result }) => {
 
 const SyncStatus = ({ status, onSync }) => {
   if (status === 'running') return (
-    <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#D4AF37' }}>
+    <div className="flex items-center space-x-1.5 text-xs font-medium" style={{ color: '#D4B46A' }}>
       <Loader2 size={12} className="animate-spin" />
       <span>Syncing games...</span>
     </div>
   );
   if (status === 'done') return (
-    <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#4ade80' }}>
+    <div className="flex items-center space-x-1.5 text-xs font-medium" style={{ color: '#4ade80' }}>
       <CheckCircle size={12} />
       <span>Sync complete</span>
     </div>
   );
   return (
-    <button onClick={onSync} className="flex items-center space-x-1.5 text-xs transition-all"
-      style={{ color: '#6B6B6B' }}
-      onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-      onMouseLeave={e => e.currentTarget.style.color = '#6B6B6B'}
+    <button onClick={onSync} className="flex items-center space-x-1.5 text-xs font-medium transition-all"
+      style={{ color: '#7E8092' }}
+      onMouseEnter={e => e.currentTarget.style.color = '#C5A059'}
+      onMouseLeave={e => e.currentTarget.style.color = '#7E8092'}
     >
       <RefreshCw size={12} />
       <span>Sync games</span>
@@ -131,7 +131,7 @@ const Dashboard = () => {
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#D4AF37' }} />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#C5A059' }} />
       </div>
     );
   }
@@ -191,13 +191,13 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-display" style={{ color: '#F5F0E0' }}>
+          <h1 className="text-2xl font-bold font-display" style={{ color: '#F3EFE6' }}>
             Welcome back, <span style={{
-              background: 'linear-gradient(135deg, #D4AF37, #F0C040)',
+              background: 'linear-gradient(135deg, #E6C87C 0%, #C5A059 45%, #9B7830 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
             }}>{displayName}</span>
           </h1>
-          <p className="text-sm mt-0.5" style={{ color: '#4A4A4A' }}>
+          <p className="text-sm mt-0.5" style={{ color: '#7E8092' }}>
             {hasProfile ? `Connected as ${profile.chessUsername}` : 'Connect your Chess.com account to get started'}
           </p>
         </div>
@@ -206,20 +206,20 @@ const Dashboard = () => {
 
       {!hasProfile && (
         <div className="p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4"
-          style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.2)' }}>
+          style={{ background: 'rgba(197,160,89,0.06)', border: '1px solid rgba(197,160,89,0.22)' }}>
           <div className="flex items-center space-x-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(212,175,55,0.1)' }}>
-              <Link2 size={16} style={{ color: '#D4AF37' }} />
+              style={{ background: 'rgba(197,160,89,0.12)' }}>
+              <Link2 size={16} style={{ color: '#C5A059' }} />
             </div>
             <div>
-              <p className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>Connect Chess.com</p>
-              <p className="text-xs" style={{ color: '#6B6B6B' }}>Your dashboard is empty. Connect your account to sync your games.</p>
+              <p className="font-semibold text-sm" style={{ color: '#F3EFE6' }}>Connect Chess.com</p>
+              <p className="text-xs" style={{ color: '#7E8092' }}>Your dashboard is empty. Connect your account to sync your games.</p>
             </div>
           </div>
           <Link to="/connect"
-            className="flex items-center justify-center space-x-1.5 text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap"
-            style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)', color: '#080808' }}>
+            className="flex items-center justify-center space-x-1.5 text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-md"
+            style={{ background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)', color: '#040406' }}>
             <span>Connect Now</span>
             <ArrowRight size={12} />
           </Link>
@@ -231,16 +231,16 @@ const Dashboard = () => {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 rounded-full" style={{ background: '#D4AF37' }} />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#8A8A8A]">
+                <div className="w-2 h-2 rounded-full shadow-sm" style={{ background: '#C5A059' }} />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#8A8D9F]">
                   Performance Overview
                 </span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#161616] text-[#737373] border border-[#222]">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#12141C] text-[#7E8092] border border-[#181A24]">
                   Chess.com Parity
                 </span>
               </div>
               
-              <div className="inline-flex items-center p-1 rounded-xl bg-[#121212] border border-[#222222] shadow-inner self-start sm:self-auto">
+              <div className="inline-flex items-center p-1 rounded-xl bg-[#090A0E] border border-[#181A24] shadow-inner self-start sm:self-auto">
                 {[
                   { id: 'all', label: 'ALL' },
                   { id: 'rapid', label: 'RAPID' },
@@ -252,8 +252,8 @@ const Dashboard = () => {
                     onClick={() => setTimeControl(tab.id)}
                     className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all duration-200 tracking-wider ${
                       timeControl === tab.id
-                        ? 'bg-[#D4AF37] text-black shadow-sm font-extrabold'
-                        : 'text-[#737373] hover:text-[#F5F0E0] hover:bg-[#1C1C1C]'
+                        ? 'bg-gradient-to-r from-[#B58D3D] via-[#D4B46A] to-[#926E28] text-[#040406] shadow-sm font-extrabold'
+                        : 'text-[#7E8092] hover:text-[#F3EFE6] hover:bg-[#141622]'
                     }`}
                   >
                     {tab.label}
@@ -269,7 +269,7 @@ const Dashboard = () => {
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span>{ratedMatchesCount.toLocaleString()}</span>
                     {unratedMatchesCount > 0 && (
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#1C1C1C] text-[#D4AF37] border border-[#D4AF37]/30 tracking-tight">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#141622] text-[#D4B46A] border border-[rgba(197,160,89,0.3)] tracking-tight">
                         / {totalMatchesCount.toLocaleString()} Total
                       </span>
                     )}
@@ -277,70 +277,70 @@ const Dashboard = () => {
                 }
                 sub={totalMatchesSub}
                 icon={Gamepad2}
-                color="#F5F0E0"
+                color="#F3EFE6"
               />
               <StatCard
                 label="Win Rate"
                 value={`${ratedWinRateVal}%`}
                 sub={winRateSub}
                 icon={Trophy}
-                color="#D4AF37"
+                color="#D4B46A"
               />
               <StatCard
                 label="Current Rating"
                 value={currentRatingVal}
                 sub={currentRatingSub}
                 icon={TrendingUp}
-                color="#F5F0E0"
+                color="#F3EFE6"
               />
               <StatCard
                 label="Peak Rating"
                 value={peakRatingVal}
                 sub={peakRatingSub}
                 icon={Crown}
-                color="#F0C040"
+                color="#D4B46A"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 rounded-2xl overflow-hidden"
-              style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
-              <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#1A1A1A' }}>
+              style={{ background: '#0B0C12', border: '1px solid #181A24', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+              <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#181A24' }}>
                 <div className="flex items-center space-x-2">
-                  <Gamepad2 size={14} style={{ color: '#D4AF37' }} />
-                  <span className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>Recent Games</span>
+                  <Gamepad2 size={14} style={{ color: '#C5A059' }} />
+                  <span className="font-semibold text-sm" style={{ color: '#F3EFE6' }}>Recent Games</span>
                 </div>
                 <Link to="/games" className="text-xs flex items-center space-x-1"
-                  style={{ color: '#4A4A4A' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#4A4A4A'}
+                  style={{ color: '#7E8092' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#D4B46A'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#7E8092'}
                 >
                   <span>View all</span>
                   <ArrowRight size={10} />
                 </Link>
               </div>
-              <div className="divide-y" style={{ divideColor: '#111' }}>
+              <div className="divide-y divide-[#141622]">
                 {recentGames.length === 0 ? (
-                  <p className="text-sm p-5 text-center" style={{ color: '#6B6B6B' }}>No recent games found.</p>
+                  <p className="text-sm p-5 text-center" style={{ color: '#7E8092' }}>No recent games found.</p>
                 ) : (
                   recentGames.map((game, i) => (
-                    <div key={game.id || i} className="flex items-center px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                    <div key={game.id || i} className="flex items-center px-5 py-3 hover:bg-[rgba(197,160,89,0.03)] transition-colors">
                       <ResultBadge result={game.result} />
                       <div className="ml-3 flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate" style={{ color: '#F5F0E0' }}>
+                        <p className="text-xs font-medium truncate" style={{ color: '#F3EFE6' }}>
                           vs {game.opponent}
-                          <span className="ml-2" style={{ color: '#3A3A3A' }}>({game.color})</span>
+                          <span className="ml-2" style={{ color: '#5A5D70' }}>({game.color})</span>
                         </p>
-                        <p className="text-xs truncate" style={{ color: '#4A4A4A' }}>{game.opening}</p>
+                        <p className="text-xs truncate" style={{ color: '#7E8092' }}>{game.opening}</p>
                       </div>
                       <div className="text-right ml-3">
                         <div className="text-xs font-bold" style={{
-                          color: game.result === 'win' ? '#4ade80' : game.result === 'loss' ? '#f87171' : '#D4AF37'
+                          color: game.result === 'win' ? '#4ade80' : game.result === 'loss' ? '#f87171' : '#D4B46A'
                         }}>
                           {game.rating}
                         </div>
-                        <div className="text-xs" style={{ color: '#3A3A3A' }}>{game.date}</div>
+                        <div className="text-xs" style={{ color: '#5A5D70' }}>{game.date}</div>
                       </div>
                     </div>
                   ))
@@ -349,31 +349,31 @@ const Dashboard = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
-                <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#1A1A1A' }}>
+              <div className="rounded-2xl overflow-hidden" style={{ background: '#0B0C12', border: '1px solid #181A24', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+                <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#181A24' }}>
                   <div className="flex items-center space-x-2">
-                    <Dna size={14} style={{ color: '#D4AF37' }} />
-                    <span className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>Chess DNA</span>
+                    <Dna size={14} style={{ color: '#C5A059' }} />
+                    <span className="font-semibold text-sm" style={{ color: '#F3EFE6' }}>Chess DNA</span>
                   </div>
-                  <Link to="/dna" className="text-xs" style={{ color: '#4A4A4A' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#D4AF37'}
-                    onMouseLeave={e => e.currentTarget.style.color = '#4A4A4A'}>
+                  <Link to="/dna" className="text-xs" style={{ color: '#7E8092' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#D4B46A'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#7E8092'}>
                     Details →
                   </Link>
                 </div>
                 <div className="p-5 space-y-3">
                   {dnaSnippets.length === 0 ? (
-                    <p className="text-sm text-center" style={{ color: '#6B6B6B' }}>DNA not yet generated. Train a model to view DNA.</p>
+                    <p className="text-sm text-center" style={{ color: '#7E8092' }}>DNA not yet generated. Train a model to view DNA.</p>
                   ) : (
                     dnaSnippets.map(({ label, value }) => (
                       <div key={label}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs" style={{ color: '#6B6B6B' }}>{label}</span>
-                          <span className="text-xs font-bold" style={{ color: '#D4AF37' }}>{value}%</span>
+                          <span className="text-xs" style={{ color: '#7E8092' }}>{label}</span>
+                          <span className="text-xs font-bold" style={{ color: '#D4B46A' }}>{value}%</span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#1A1A1A' }}>
+                        <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#141622' }}>
                           <div className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${value}%`, background: 'linear-gradient(90deg, #D4AF37, #F0C040)' }} />
+                            style={{ width: `${value}%`, background: 'linear-gradient(90deg, #9B7830, #C5A059, #D4B46A)' }} />
                         </div>
                       </div>
                     ))
@@ -381,10 +381,10 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
-                <div className="flex items-center space-x-2 px-5 py-4 border-b" style={{ borderColor: '#1A1A1A' }}>
-                  <Brain size={14} style={{ color: '#D4AF37' }} />
-                  <span className="font-semibold text-sm" style={{ color: '#F5F0E0' }}>AI Models</span>
+              <div className="rounded-2xl overflow-hidden" style={{ background: '#0B0C12', border: '1px solid #181A24', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+                <div className="flex items-center space-x-2 px-5 py-4 border-b" style={{ borderColor: '#181A24' }}>
+                  <Brain size={14} style={{ color: '#C5A059' }} />
+                  <span className="font-semibold text-sm" style={{ color: '#F3EFE6' }}>AI Models</span>
                 </div>
                 <div className="p-5 space-y-3">
                   {['Current Self', 'Peak Self'].map((name) => {
@@ -394,14 +394,14 @@ const Dashboard = () => {
                         <div className="flex items-center space-x-2">
                           {isReady
                             ? <CheckCircle size={12} style={{ color: '#4ade80' }} />
-                            : <AlertCircle size={12} style={{ color: '#4A4A4A' }} />}
-                          <span className="text-xs" style={{ color: isReady ? '#F5F0E0' : '#4A4A4A' }}>{name}</span>
+                            : <AlertCircle size={12} style={{ color: '#5A5D70' }} />}
+                          <span className="text-xs font-medium" style={{ color: isReady ? '#F3EFE6' : '#5A5D70' }}>{name}</span>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full"
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                           style={{
-                            background: isReady ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)',
-                            color: isReady ? '#4ade80' : '#4A4A4A',
-                            border: `1px solid ${isReady ? 'rgba(34,197,94,0.2)' : '#1A1A1A'}`,
+                            background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.03)',
+                            color: isReady ? '#4ade80' : '#5A5D70',
+                            border: `1px solid ${isReady ? 'rgba(34,197,94,0.25)' : '#181A24'}`,
                           }}>
                           {isReady ? 'Ready' : 'Not trained'}
                         </span>
@@ -409,13 +409,13 @@ const Dashboard = () => {
                     );
                   })}
                   <Link to="/training"
-                    className="w-full mt-2 flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all"
+                    className="w-full mt-2 flex items-center justify-center space-x-2 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm"
                     style={{
-                      background: 'rgba(212,175,55,0.08)', color: '#D4AF37',
-                      border: '1px solid rgba(212,175,55,0.2)',
+                      background: 'rgba(197,160,89,0.1)', color: '#D4B46A',
+                      border: '1px solid rgba(197,160,89,0.25)',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.15)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(212,175,55,0.08)'; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(197,160,89,0.18)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(197,160,89,0.1)'; }}
                   >
                     <Zap size={12} />
                     <span>Train Models</span>
@@ -436,16 +436,16 @@ const Dashboard = () => {
         ].map(({ label, icon: Icon, to, desc }) => (
           <Link key={to} to={to}
             className="flex flex-col items-center p-4 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 group"
-            style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(212,175,55,0.25)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(212,175,55,0.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1A1A1A'; e.currentTarget.style.boxShadow = 'none'; }}
+            style={{ background: '#0B0C12', border: '1px solid #181A24' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(197,160,89,0.35)'; e.currentTarget.style.boxShadow = '0 0 25px rgba(197,160,89,0.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#181A24'; e.currentTarget.style.boxShadow = 'none'; }}
           >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all"
-              style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)' }}>
-              <Icon size={18} style={{ color: '#D4AF37' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all shadow-sm"
+              style={{ background: 'rgba(197,160,89,0.1)', border: '1px solid rgba(197,160,89,0.22)' }}>
+              <Icon size={18} style={{ color: '#D4B46A' }} />
             </div>
-            <p className="text-xs font-bold mb-0.5" style={{ color: '#F5F0E0' }}>{label}</p>
-            <p className="text-xs" style={{ color: '#4A4A4A' }}>{desc}</p>
+            <p className="text-xs font-bold mb-0.5 tracking-wide" style={{ color: '#F3EFE6' }}>{label}</p>
+            <p className="text-xs" style={{ color: '#7E8092' }}>{desc}</p>
           </Link>
         ))}
       </div>

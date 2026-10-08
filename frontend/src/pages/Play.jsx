@@ -6,28 +6,28 @@ import { makeMove, createPlaySession } from '../api';
 
 const LIGHT_SQUARE = '#FFFFFF';
 const DARK_SQUARE = '#1C1C1E';
-const SELECTED_SQUARE = 'rgba(212,175,55,0.35)';
-const LAST_MOVE_LIGHT = 'rgba(212,175,55,0.2)';
-const LAST_MOVE_DARK = 'rgba(212,175,55,0.3)';
+const SELECTED_SQUARE = 'rgba(197, 160, 89, 0.4)';
+const LAST_MOVE_LIGHT = 'rgba(197, 160, 89, 0.2)';
+const LAST_MOVE_DARK = 'rgba(197, 160, 89, 0.32)';
 
 const MoveList = ({ history }) => (
   <div className="flex-1 overflow-y-auto p-3" style={{ maxHeight: '250px' }}>
     {history.length === 0 ? (
-      <p className="text-xs text-center py-6" style={{ color: '#3A3A3A' }}>No moves yet</p>
+      <p className="text-xs text-center py-6" style={{ color: '#5A5D70' }}>No moves yet</p>
     ) : (
       <div className="grid grid-cols-2 gap-1">
         {Array.from({ length: Math.ceil(history.length / 2) }, (_, i) => (
           <React.Fragment key={i}>
             <div className="flex items-center space-x-2 px-2 py-1 rounded text-xs"
-              style={{ background: '#0A0A0A' }}>
-              <span style={{ color: '#3A3A3A' }}>{i + 1}.</span>
-              <span style={{ color: '#F5F0E0' }}>{history[i * 2]}</span>
+              style={{ background: '#0D0E14' }}>
+              <span style={{ color: '#5A5D70' }}>{i + 1}.</span>
+              <span style={{ color: '#F3EFE6' }}>{history[i * 2]}</span>
             </div>
             {history[i * 2 + 1] && (
               <div className="flex items-center space-x-2 px-2 py-1 rounded text-xs"
-                style={{ background: '#0A0A0A' }}>
-                <span style={{ color: '#3A3A3A' }}>{i + 1}...</span>
-                <span style={{ color: '#C0A060' }}>{history[i * 2 + 1]}</span>
+                style={{ background: '#0D0E14' }}>
+                <span style={{ color: '#5A5D70' }}>{i + 1}...</span>
+                <span style={{ color: '#D4B46A' }}>{history[i * 2 + 1]}</span>
               </div>
             )}
           </React.Fragment>
@@ -168,40 +168,40 @@ const Play = () => {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold font-display" style={{ color: '#F5F0E0' }}>Play Your AI Self</h2>
-        <p className="text-sm mt-0.5" style={{ color: '#4A4A4A' }}>Challenge your personalized AI model on the board</p>
+        <h2 className="text-xl font-bold font-display" style={{ color: '#F3EFE6' }}>Play Your AI Self</h2>
+        <p className="text-sm mt-0.5" style={{ color: '#7E8092' }}>Challenge your personalized AI model on the board</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Board */}
         <div className="lg:col-span-2">
           <div className="rounded-2xl overflow-hidden p-4"
-            style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
+            style={{ background: '#0B0C12', border: '1px solid #181A24', boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
             {/* AI status bar */}
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)' }}>
-                  <Brain size={11} style={{ color: '#080808' }} />
+                <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #B58D3D, #926E28)' }}>
+                  <Brain size={11} style={{ color: '#040406' }} />
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#C0A060' }}>
+                <span className="text-xs font-semibold" style={{ color: '#D4B46A' }}>
                   {modelType === 'current' ? 'Current Self AI' : 'Peak Self AI'}
                 </span>
                 {aiThinking && (
-                  <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#D4AF37' }}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse" style={{ background: '#D4AF37' }} />
+                  <div className="flex items-center space-x-1.5 text-xs font-medium" style={{ color: '#D4B46A' }}>
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#D4B46A' }} />
                     <span>Thinking...</span>
                   </div>
                 )}
               </div>
-              <span className="text-xs" style={{ color: '#3A3A3A' }}>
+              <span className="text-xs" style={{ color: '#7E8092' }}>
                 {status === 'playing' ? `${game.moveNumber()} moves` : status}
               </span>
             </div>
 
             {/* Chessboard */}
             <div className="w-full aspect-square rounded-xl overflow-hidden"
-              style={{ boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}>
+              style={{ boxShadow: '0 0 40px rgba(0,0,0,0.8)' }}>
               <Chessboard
                 position={fen}
                 onPieceDrop={onDrop}
@@ -222,17 +222,17 @@ const Play = () => {
             <div className="flex items-center justify-between mt-3 px-1">
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+                  style={{ background: '#141622', border: '1px solid #1E202E' }}>
                   <span className="text-xs">👤</span>
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#6B6B6B' }}>You ({playerColor})</span>
+                <span className="text-xs font-semibold" style={{ color: '#8A8D9F' }}>You ({playerColor})</span>
               </div>
               {status === 'playing' && (
-                <span className="text-xs px-2 py-0.5 rounded-full"
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-medium"
                   style={{
-                    background: game.turn() === playerColor[0] ? 'rgba(212,175,55,0.12)' : '#111',
-                    color: game.turn() === playerColor[0] ? '#D4AF37' : '#3A3A3A',
-                    border: `1px solid ${game.turn() === playerColor[0] ? 'rgba(212,175,55,0.25)' : '#1A1A1A'}`,
+                    background: game.turn() === playerColor[0] ? 'rgba(197,160,89,0.14)' : 'rgba(255,255,255,0.03)',
+                    color: game.turn() === playerColor[0] ? '#D4B46A' : '#7E8092',
+                    border: `1px solid ${game.turn() === playerColor[0] ? 'rgba(197,160,89,0.3)' : '#181A24'}`,
                   }}>
                   {game.turn() === playerColor[0] ? 'Your turn' : 'AI thinking'}
                 </span>
@@ -242,12 +242,12 @@ const Play = () => {
 
           {/* Game over overlay */}
           {status === 'gameover' && (
-            <div className="mt-3 p-4 rounded-xl text-center"
-              style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)' }}>
-              <p className="font-bold text-lg" style={{ color: '#D4AF37' }}>Game Over</p>
-              <p className="text-sm mt-1" style={{ color: '#6B6B6B' }}>{result}</p>
-              <button onClick={startGame} className="mt-3 px-6 py-2 rounded-xl text-sm font-bold transition-all"
-                style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)', color: '#080808' }}>
+            <div className="mt-3 p-4 rounded-xl text-center shadow-lg"
+              style={{ background: 'rgba(197,160,89,0.08)', border: '1px solid rgba(197,160,89,0.25)' }}>
+              <p className="font-bold text-lg" style={{ color: '#D4B46A' }}>Game Over</p>
+              <p className="text-sm mt-1" style={{ color: '#8A8D9F' }}>{result}</p>
+              <button onClick={startGame} className="mt-3 px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-md"
+                style={{ background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)', color: '#040406' }}>
                 Play Again
               </button>
             </div>
@@ -257,12 +257,12 @@ const Play = () => {
         {/* Controls */}
         <div className="space-y-4">
           {status === 'idle' && (
-            <div className="rounded-2xl p-5 space-y-4"
-              style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
-              <h3 className="font-bold text-sm" style={{ color: '#F5F0E0' }}>Game Setup</h3>
+            <div className="rounded-2xl p-5 space-y-4 shadow-lg"
+              style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
+              <h3 className="font-bold text-sm tracking-wide" style={{ color: '#F3EFE6' }}>Game Setup</h3>
 
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider block mb-2" style={{ color: '#4A4A4A' }}>
+                <label className="text-xs font-semibold uppercase tracking-wider block mb-2" style={{ color: '#7E8092' }}>
                   AI Model
                 </label>
                 <div className="space-y-2">
@@ -273,16 +273,16 @@ const Play = () => {
                     <button key={value} onClick={() => setModelType(value)}
                       className="w-full flex items-center space-x-3 p-3 rounded-xl text-left transition-all"
                       style={{
-                        background: modelType === value ? 'rgba(212,175,55,0.1)' : '#0A0A0A',
-                        border: `1px solid ${modelType === value ? 'rgba(212,175,55,0.3)' : '#1A1A1A'}`,
+                        background: modelType === value ? 'rgba(197,160,89,0.12)' : '#0E1017',
+                        border: `1px solid ${modelType === value ? 'rgba(197,160,89,0.35)' : '#181A24'}`,
                       }}>
                       <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                        style={{ borderColor: modelType === value ? '#D4AF37' : '#3A3A3A' }}>
-                        {modelType === value && <div className="w-2 h-2 rounded-full" style={{ background: '#D4AF37' }} />}
+                        style={{ borderColor: modelType === value ? '#D4B46A' : '#5A5D70' }}>
+                        {modelType === value && <div className="w-2 h-2 rounded-full" style={{ background: '#D4B46A' }} />}
                       </div>
                       <div>
-                        <div className="text-xs font-bold" style={{ color: modelType === value ? '#D4AF37' : '#F5F0E0' }}>{label}</div>
-                        <div className="text-xs" style={{ color: '#4A4A4A' }}>{desc}</div>
+                        <div className="text-xs font-bold" style={{ color: modelType === value ? '#D4B46A' : '#F3EFE6' }}>{label}</div>
+                        <div className="text-xs" style={{ color: '#7E8092' }}>{desc}</div>
                       </div>
                     </button>
                   ))}
@@ -290,7 +290,7 @@ const Play = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider block mb-2" style={{ color: '#4A4A4A' }}>
+                <label className="text-xs font-semibold uppercase tracking-wider block mb-2" style={{ color: '#7E8092' }}>
                   Play As
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -298,9 +298,9 @@ const Play = () => {
                     <button key={color} onClick={() => setPlayerColor(color)}
                       className="py-2.5 rounded-xl text-xs font-bold capitalize transition-all"
                       style={{
-                        background: playerColor === color ? 'rgba(212,175,55,0.12)' : '#0A0A0A',
-                        color: playerColor === color ? '#D4AF37' : '#6B6B6B',
-                        border: `1px solid ${playerColor === color ? 'rgba(212,175,55,0.3)' : '#1A1A1A'}`,
+                        background: playerColor === color ? 'rgba(197,160,89,0.14)' : '#0E1017',
+                        color: playerColor === color ? '#D4B46A' : '#8A8D9F',
+                        border: `1px solid ${playerColor === color ? 'rgba(197,160,89,0.35)' : '#181A24'}`,
                       }}>
                       {color === 'white' ? '♔ White' : '♚ Black'}
                     </button>
@@ -309,8 +309,12 @@ const Play = () => {
               </div>
 
               <button onClick={startGame}
-                className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl font-bold text-sm transition-all"
-                style={{ background: 'linear-gradient(135deg, #D4AF37, #B8960C)', color: '#080808' }}>
+                className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl font-bold text-sm transition-all shadow-md"
+                style={{
+                  background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)',
+                  color: '#040406',
+                  boxShadow: '0 4px 20px rgba(181, 141, 61, 0.28)',
+                }}>
                 <Swords size={16} />
                 <span>Start Game</span>
               </button>
@@ -318,17 +322,17 @@ const Play = () => {
           )}
 
           {status !== 'idle' && (
-            <div className="rounded-2xl overflow-hidden" style={{ background: '#0F0F0F', border: '1px solid #1A1A1A' }}>
-              <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#111' }}>
-                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#4A4A4A' }}>Moves</span>
-                <span className="text-xs" style={{ color: '#3A3A3A' }}>{history.length} total</span>
+            <div className="rounded-2xl overflow-hidden shadow-lg" style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
+              <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#181A24' }}>
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#8A8D9F' }}>Moves</span>
+                <span className="text-xs" style={{ color: '#7E8092' }}>{history.length} total</span>
               </div>
               <MoveList history={history} />
               {status === 'playing' && (
-                <div className="flex space-x-2 p-3 border-t" style={{ borderColor: '#111' }}>
+                <div className="flex space-x-2 p-3 border-t" style={{ borderColor: '#181A24' }}>
                   <button onClick={() => { setGame(new Chess()); setFen('start'); setHistory([]); setLastMove(null); setStatus('idle'); }}
                     className="flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-lg text-xs font-medium transition-all"
-                    style={{ background: '#111', color: '#6B6B6B', border: '1px solid #1A1A1A' }}>
+                    style={{ background: '#12141C', color: '#8A8D9F', border: '1px solid #181A24' }}>
                     <RotateCcw size={11} />
                     <span>New</span>
                   </button>
@@ -345,9 +349,9 @@ const Play = () => {
 
           {/* Info */}
           <div className="p-4 rounded-xl space-y-2"
-            style={{ background: '#0A0A0A', border: '1px solid #111' }}>
-            <p className="text-xs font-semibold" style={{ color: '#4A4A4A' }}>Tips</p>
-            <p className="text-xs leading-relaxed" style={{ color: '#3A3A3A' }}>
+            style={{ background: '#08090D', border: '1px solid #181A24' }}>
+            <p className="text-xs font-semibold" style={{ color: '#8A8D9F' }}>Tips</p>
+            <p className="text-xs leading-relaxed" style={{ color: '#7E8092' }}>
               Your AI self has been trained on your game history. It knows your tactical tendencies, favorite openings, and endgame technique.
             </p>
           </div>

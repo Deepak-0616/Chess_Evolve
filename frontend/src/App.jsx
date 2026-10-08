@@ -24,11 +24,11 @@ import Profile from './pages/Profile';
 import { Preparation } from './pages/Preparation';
 
 const Spinner = () => (
-  <div className="min-h-screen flex items-center justify-center" style={{ background: '#080808' }}>
+  <div className="min-h-screen flex items-center justify-center" style={{ background: '#040406' }}>
     <div className="text-center space-y-4">
-      <div className="w-12 h-12 border-2 border-t-gold-500 rounded-full animate-spin mx-auto"
-        style={{ borderColor: '#2A2A2A', borderTopColor: '#D4AF37' }} />
-      <p className="text-sm" style={{ color: '#4A4A4A' }}>Loading Chess Evolve...</p>
+      <div className="w-12 h-12 border-2 rounded-full animate-spin mx-auto"
+        style={{ borderColor: '#181A24', borderTopColor: '#C5A059' }} />
+      <p className="text-sm font-medium tracking-wide" style={{ color: '#7E8092' }}>Loading Chess Evolve...</p>
     </div>
   </div>
 );

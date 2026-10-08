@@ -81,18 +81,18 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
   if (confirmationNotice) {
     return (
       <div className="w-full text-center space-y-4 py-4 animate-fadeIn">
-        <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center mx-auto text-[#D4AF37]">
+        <div className="w-12 h-12 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/35 flex items-center justify-center mx-auto text-[#C5A059] shadow-sm">
           <CheckCircle size={24} />
         </div>
-        <h3 className="text-base font-bold text-[#F5F0E0]">Check Your Email</h3>
-        <p className="text-xs text-[#A0A0A0] leading-relaxed max-w-xs mx-auto">
+        <h3 className="text-base font-bold text-[#F3EFE6]">Check Your Email</h3>
+        <p className="text-xs text-[#8A8D9F] leading-relaxed max-w-xs mx-auto">
           Account created. Please check your email to verify your account and complete registration.
         </p>
         <div className="pt-2">
           <button
             type="button"
             onClick={onToggleMode}
-            className="text-xs text-[#D4AF37] hover:text-[#F0C040] font-medium transition-colors cursor-pointer"
+            className="text-xs text-[#C5A059] hover:text-[#D4B46A] font-semibold transition-colors cursor-pointer"
           >
             Return to Sign In
           </button>
@@ -117,7 +117,7 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
             disabled={isBusy}
             required
             maxLength={50}
-            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl px-4 py-3 text-sm text-[#F5F0E0] placeholder-[#555555] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#090A0E] border border-[#1E202A] rounded-xl px-4 py-3 text-sm text-[#F3EFE6] placeholder-[#555869] focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -133,7 +133,7 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
             onChange={(e) => setEmail(e.target.value)}
             disabled={isBusy}
             required
-            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl px-4 py-3 text-sm text-[#F5F0E0] placeholder-[#555555] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#090A0E] border border-[#1E202A] rounded-xl px-4 py-3 text-sm text-[#F3EFE6] placeholder-[#555869] focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -149,14 +149,14 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
             onChange={(e) => setPassword(e.target.value)}
             disabled={isBusy}
             required
-            className="w-full bg-[#111111] border border-[#2A2A2A] rounded-xl pl-4 pr-11 py-3 text-sm text-[#F5F0E0] placeholder-[#555555] focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#090A0E] border border-[#1E202A] rounded-xl pl-4 pr-11 py-3 text-sm text-[#F3EFE6] placeholder-[#555869] focus:outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             disabled={isBusy}
             aria-label={showPassword ? "Hide password" : "Show password"}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B6B6B] hover:text-[#D4AF37] focus:outline-none transition-colors p-1 cursor-pointer"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#7E8092] hover:text-[#C5A059] focus:outline-none transition-colors p-1 cursor-pointer"
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
@@ -178,9 +178,10 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
           style={{
             background:
               isBusy || !username || !email || !password
-                ? '#1A1A1A'
-                : 'linear-gradient(135deg, #D4AF37 0%, #F0C040 50%, #B8960C 100%)',
-            color: isBusy || !username || !email || !password ? '#4A4A4A' : '#080808',
+                ? '#141620'
+                : 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)',
+            color: isBusy || !username || !email || !password ? '#555869' : '#040406',
+            boxShadow: isBusy || !username || !email || !password ? 'none' : '0 4px 20px rgba(181, 141, 61, 0.28)',
           }}
         >
           {emailLoading ? (
@@ -197,10 +198,10 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
       {/* Visual Divider */}
       <div className="relative my-3.5">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[#1F1F1F]" />
+          <div className="w-full border-t border-[#181A24]" />
         </div>
         <div className="relative flex justify-center text-xs uppercase tracking-wider">
-          <span className="bg-[#0A0A0A] px-3 text-[#4A4A4A] font-semibold">
+          <span className="bg-[#090A0E] px-3 text-[#5A5D70] font-semibold">
             OR
           </span>
         </div>
@@ -214,13 +215,13 @@ export const SignUpForm = ({ onToggleMode, onSuccess }) => {
       />
 
       {/* Navigation to Sign In */}
-      <div className="mt-3.5 text-center text-xs text-[#6B6B6B]">
+      <div className="mt-3.5 text-center text-xs text-[#7E8092]">
         Already have an account?{' '}
         <button
           type="button"
           onClick={onToggleMode}
           disabled={isBusy}
-          className="text-[#D4AF37] hover:text-[#F0C040] font-medium transition-colors cursor-pointer disabled:opacity-50"
+          className="text-[#C5A059] hover:text-[#D4B46A] font-semibold transition-colors cursor-pointer disabled:opacity-50"
         >
           Sign In
         </button>
