@@ -1,14 +1,16 @@
-import { apiClient } from './client';
+import { apiClient, invalidateClientCache, clearClientCache } from './client';
+
+export { invalidateClientCache, clearClientCache };
 
 // Auth
-export const getMe = () => apiClient.get('/auth/me');
+export const getMe = () => apiClient.get('/auth/me', { skipCache: true });
 
 // Chess Profile
 export const connectChessProfile = (chessUsername) => 
   apiClient.post('/chess/profile/connect', { chessUsername });
-export const getChessProfile = () => apiClient.get('/chess/profile');
+export const getChessProfile = (options = {}) => apiClient.get('/chess/profile', options);
 export const triggerSync = () => apiClient.post('/chess/sync');
-export const getSyncStatus = (jobId = 'active') => apiClient.get(`/chess/sync/${jobId}`);
+export const getSyncStatus = (jobId = 'active') => apiClient.get(`/chess/sync/${jobId}`, { skipCache: true });
 
 // Games
 export const getGames = (params = {}) => apiClient.get('/games', { params });
@@ -16,28 +18,28 @@ export const getGame = (gameId) => apiClient.get(`/games/${gameId}`);
 export const getGameAnalysis = (gameId) => apiClient.get(`/games/${gameId}/analysis`);
 
 // DNA
-export const getDNA = () => apiClient.get('/dna/current');
+export const getDNA = (options = {}) => apiClient.get('/dna/current', options);
 export const getDNAHistory = () => apiClient.get('/dna/history');
 
 // Models
-export const getModels = () => apiClient.get('/models');
+export const getModels = (options = {}) => apiClient.get('/models', options);
 export const trainCurrentSelf = () => apiClient.post('/models/current-self/train');
 export const trainPeakSelf = () => apiClient.post('/models/peak-self/train');
 export const rollbackModel = (data) => apiClient.post('/models/rollback', data);
-export const getCurrentSelfStatus = () => apiClient.get('/models/current-self/status');
-export const getPeakSelfStatus = () => apiClient.get('/models/peak-self/status');
+export const getCurrentSelfStatus = () => apiClient.get('/models/current-self/status', { skipCache: true });
+export const getPeakSelfStatus = () => apiClient.get('/models/peak-self/status', { skipCache: true });
 export const getEvolutionReport = () => apiClient.get('/evolution');
 export const getEvolutionOverview = () => apiClient.get('/evolution');
 export const getEvolutionTimeline = () => apiClient.get('/evolution/timeline');
 export const getEvolutionGameplay = () => apiClient.get('/evolution/gameplay');
 export const getEvolutionWeaknesses = () => apiClient.get('/evolution/weaknesses');
-export const getModelUpdateStatus = () => apiClient.get('/evolution/model-update-status');
+export const getModelUpdateStatus = () => apiClient.get('/evolution/model-update-status', { skipCache: true });
 export const generateEvolutionSnapshot = (data) => apiClient.post('/evolution/snapshots/generate', data);
 export const getEvolutionSnapshots = () => apiClient.get('/evolution/snapshots');
 
 // Play
 export const createPlaySession = (data) => apiClient.post('/play/sessions', data);
-export const getPlaySession = (id) => apiClient.get(`/play/sessions/${id}`);
+export const getPlaySession = (id) => apiClient.get(`/play/sessions/${id}`, { skipCache: true });
 export const makeMove = (id, move) => apiClient.post(`/play/sessions/${id}/moves`, { move });
 export const resignSession = (id) => apiClient.post(`/play/sessions/${id}/resign`);
 
@@ -49,7 +51,7 @@ export const getTrainingWeaknesses = () => apiClient.get('/training/weaknesses')
 export const getTrainingProgress = () => apiClient.get('/training/progress');
 export const createTrainingSession = (data) => apiClient.post('/training/sessions', data);
 export const getTrainingSession = (id) => apiClient.get(`/training/sessions/${id}`);
-export const getTrainingPosition = (id, index) => apiClient.get(`/training/sessions/${id}/positions/${index}`);
+export const getTrainingPosition = (id, index) => apiClient.get(`/training/sessions/${id}/positions/${index}`, { skipCache: true });
 export const submitTrainingAttempt = (id, data) => apiClient.post(`/training/sessions/${id}/attempt`, data);
 export const completeTrainingSession = (id) => apiClient.post(`/training/sessions/${id}/complete`);
 
@@ -66,5 +68,5 @@ export const getArenaPlayer = (id) => apiClient.get(`/arena/players/${id}`);
 export const createArenaSession = (data) => apiClient.post('/arena/sessions', data);
 
 // Profile
-export const getProfile = () => apiClient.get('/profile');
+export const getProfile = (options = {}) => apiClient.get('/profile', options);
 export const updateProfile = (data) => apiClient.patch('/profile', data);

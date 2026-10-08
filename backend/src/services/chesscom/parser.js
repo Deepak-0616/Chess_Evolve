@@ -111,7 +111,7 @@ export class PGNParser {
       pgn: game.pgn,
       timeControl: game.time_control || "600",
       timeClass: game.time_class || "blitz",
-      rated: game.rated ?? true,
+      rated: typeof game.rated === "boolean" ? game.rated : !/casual|unrated/i.test(game.pgn || ""),
       whiteUsername: game.white.username,
       whiteRating: game.white.rating || 1200,
       blackUsername: game.black.username,

@@ -5,10 +5,19 @@ import { MLServiceBridge } from "../services/ml/mlService.js";
 
 const router = Router();
 
+// In-memory cache for fast model version retrieval (<5ms)
+const modelsCache = new Map();
+
 // GET /api/v1/models
 router.get("/", authenticateSupabaseUser, async (req, res) => {
   try {
     const userId = req.user.id;
+
+    const cached = modelsCache.get(userId);
+    if (cached && Date.now() < cached.expiresAt) {
+      return res.json(cached.data);
+    }
+
     const models = await prisma.mLModelVersion.findMany({
       where: { userId },
       orderBy: { version: "desc" },
@@ -23,10 +32,14 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
       allVersions: models,
     };
 
-    return res.json({
+    const responsePayload = {
       ...payload,
       models: payload,
-    });
+    };
+
+    modelsCache.set(userId, { data: responsePayload, expiresAt: Date.now() + 20000 });
+
+    return res.json(responsePayload);
   } catch (err) {
     return res
       .status(500)

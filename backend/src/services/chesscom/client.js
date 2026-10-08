@@ -58,16 +58,32 @@ export class ChessComClient {
     }
   }
 
+  static _statsCache = new Map();
+  static _profileCache = new Map();
+
   /**
-   * Fetches public profile for a Chess.com username.
+   * Fetches public profile for a Chess.com username (cached for 5 minutes).
    */
-  static async getProfile(username) {
+  static async getProfile(username, forceRefresh = false) {
     if (!username || typeof username !== "string") {
       throw new Error("Invalid username provided");
     }
     const cleanUsername = username.trim().toLowerCase();
+    if (!forceRefresh) {
+      const cached = this._profileCache.get(cleanUsername);
+      if (cached && Date.now() < cached.expiresAt) {
+        return cached.data;
+      }
+    }
     const url = `${this.getBaseUrl()}/player/${encodeURIComponent(cleanUsername)}`;
-    return await this._requestWithRetry(url);
+    const data = await this._requestWithRetry(url);
+    if (data) {
+      this._profileCache.set(cleanUsername, {
+        data,
+        expiresAt: Date.now() + 300000, // 5 minutes
+      });
+    }
+    return data;
   }
 
   /**
@@ -91,16 +107,37 @@ export class ChessComClient {
   }
 
   /**
-   * Fetches current player statistics.
+   * Fetches current player statistics (cached for 2 minutes).
    */
-  static async getStats(username) {
+  static async getStats(username, forceRefresh = false) {
     if (!username) return null;
     const cleanUsername = username.trim().toLowerCase();
+    if (!forceRefresh) {
+      const cached = this._statsCache.get(cleanUsername);
+      if (cached && Date.now() < cached.expiresAt) {
+        return cached.data;
+      }
+    }
     const url = `${this.getBaseUrl()}/player/${encodeURIComponent(cleanUsername)}/stats`;
     try {
-      return await this._requestWithRetry(url, {}, 2);
+      const data = await this._requestWithRetry(url, {}, 2);
+      if (data) {
+        this._statsCache.set(cleanUsername, {
+          data,
+          expiresAt: Date.now() + 120000, // 2 minutes
+        });
+      }
+      return data;
     } catch {
       return null;
+    }
+  }
+
+  static invalidateCache(username) {
+    if (username) {
+      const clean = username.trim().toLowerCase();
+      this._statsCache.delete(clean);
+      this._profileCache.delete(clean);
     }
   }
 }

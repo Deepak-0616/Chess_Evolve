@@ -7,9 +7,21 @@ import { StockfishService } from "../services/stockfish/StockfishService.js";
 
 const router = Router();
 
+// In-memory cache for Arena player lobby (<2ms)
+let arenaPlayersCache = null;
+let arenaPlayersCacheExpiresAt = 0;
+export const invalidateArenaPlayersCache = () => {
+  arenaPlayersCache = null;
+  arenaPlayersCacheExpiresAt = 0;
+};
+
 // GET /api/v1/arena/players
 router.get("/players", authenticateSupabaseUser, async (req, res) => {
   try {
+    if (arenaPlayersCache && Date.now() < arenaPlayersCacheExpiresAt) {
+      return res.json(arenaPlayersCache);
+    }
+
     const arenaProfiles = await prisma.arenaProfile.findMany({
       where: {
         visibility: { in: ["PUBLIC", "DISCOVERABLE"] },
@@ -48,7 +60,10 @@ router.get("/players", authenticateSupabaseUser, async (req, res) => {
       take: 50,
     });
 
-    return res.json({ players: arenaProfiles });
+    const payload = { players: arenaProfiles };
+    arenaPlayersCache = payload;
+    arenaPlayersCacheExpiresAt = Date.now() + 30000;
+    return res.json(payload);
   } catch (err) {
     return res
       .status(500)

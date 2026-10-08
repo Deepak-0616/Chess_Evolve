@@ -1,13 +1,27 @@
 import { Router } from "express";
 import { authenticateSupabaseUser } from "../middleware/auth.js";
 import { prisma } from "../utils/prisma.js";
+import { ChessComClient } from "../services/chesscom/client.js";
+import { AccountSyncManager } from "../services/jobs/syncJob.js";
 
 const router = Router();
+
+// In-memory profile cache for ultra-fast profile retrieval (<5ms)
+const profileCache = new Map();
+export const invalidateProfileCache = (userId) => {
+  if (userId) profileCache.delete(userId);
+  else profileCache.clear();
+};
 
 // GET /api/v1/profile
 router.get("/", authenticateSupabaseUser, async (req, res) => {
   try {
     const userId = req.user.id;
+    const cached = profileCache.get(userId);
+    if (cached && Date.now() < cached.expiresAt) {
+      return res.json(cached.payload);
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -26,11 +40,8 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
 
     if (user.chessProfile?.chessUsername) {
       try {
-        const statsRes = await fetch(
-          `https://api.chess.com/pub/player/${user.chessProfile.chessUsername}/stats`,
-        );
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
+        const statsData = await ChessComClient.getStats(user.chessProfile.chessUsername);
+        if (statsData) {
           let wins = 0;
           let total = 0;
           let maxRating = 0;
@@ -57,26 +68,31 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
     }
 
     // Check local database counts to ensure all archive games (including unrated/casual) are counted
+    let casualGames = 0;
     if (user.chessProfile?.id) {
-      const [dbGamesCount, winsCount] = await Promise.all([
-        prisma.game.count({ where: { chessProfileId: user.chessProfile.id } }),
-        prisma.game.count({ where: { chessProfileId: user.chessProfile.id, result: "WIN" } }),
+      const [dbRated, dbUnrated] = await Promise.all([
+        prisma.game.count({ where: { chessProfileId: user.chessProfile.id, rated: true } }),
+        prisma.game.count({ where: { chessProfileId: user.chessProfile.id, rated: false } }),
       ]);
-      if (dbGamesCount > 0) {
-        totalGames = Math.max(dbGamesCount, totalGames);
-      }
+      ratedGames = Math.max(ratedGames, dbRated);
+      casualGames = dbUnrated;
+      totalGames = ratedGames + casualGames;
     }
 
     const enrichedUser = {
       ...user,
       chessUsername: user.chessProfile?.chessUsername || null,
-      ratedGames: (ratedGames || totalGames) ? (ratedGames || totalGames).toLocaleString() : "0",
-      totalGames: totalGames ? totalGames.toLocaleString() : "0",
+      ratedGames: ratedGames.toLocaleString(),
+      unratedGames: casualGames.toLocaleString(),
+      totalGames: totalGames.toLocaleString(),
       winRate: winRate,
       peakRating: peakRating,
     };
 
-    return res.json({ profile: enrichedUser, data: enrichedUser });
+    const payload = { profile: enrichedUser, data: enrichedUser };
+    profileCache.set(userId, { payload, expiresAt: Date.now() + 25000 });
+
+    return res.json(payload);
   } catch (err) {
     return res
       .status(500)
@@ -88,7 +104,8 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
 router.patch("/", authenticateSupabaseUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { displayName, avatarUrl, arenaVisibility } = req.body;
+    profileCache.delete(userId);
+    const { displayName, avatarUrl, arenaVisibility, chessUsername } = req.body;
 
     const user = await prisma.user.update({
       where: { id: userId },
@@ -111,7 +128,76 @@ router.patch("/", authenticateSupabaseUser, async (req, res) => {
       });
     }
 
-    return res.json({ message: "Profile updated successfully", user });
+    let chessProfile = null;
+    if (chessUsername && typeof chessUsername === "string" && chessUsername.trim()) {
+      const cleanUsername = chessUsername.trim();
+      const existing = await prisma.chessProfile.findUnique({ where: { userId } });
+
+      if (!existing || existing.chessUsername.toLowerCase() !== cleanUsername.toLowerCase()) {
+        let profileData;
+        try {
+          profileData = await ChessComClient.getProfile(cleanUsername);
+        } catch (apiErr) {
+          return res.status(404).json({
+            error: `Chess.com user "${cleanUsername}" was not found or API is unavailable`,
+          });
+        }
+
+        const canonicalUsername = profileData.username || cleanUsername;
+
+        chessProfile = await prisma.chessProfile.upsert({
+          where: { userId },
+          create: {
+            userId,
+            chessUsername: canonicalUsername,
+            playerUrl: profileData.url,
+            title: profileData.title,
+            avatarUrl: profileData.avatar,
+            country: profileData.country,
+            followers: profileData.followers,
+            joinedAt: profileData.joined ? new Date(profileData.joined * 1000) : null,
+            syncStatus: "IDLE",
+          },
+          update: {
+            chessUsername: canonicalUsername,
+            playerUrl: profileData.url,
+            title: profileData.title,
+            avatarUrl: profileData.avatar,
+            country: profileData.country,
+            followers: profileData.followers,
+          },
+        });
+
+        // Fast recent games sync in background
+        AccountSyncManager.syncLatestGames(userId, canonicalUsername).catch((err) => {
+          console.warn("Initial recent games sync warning:", err.message);
+        });
+
+        // Queue full sync
+        try {
+          const { syncQueue, safeEnqueue } = await import("../queues/index.js");
+          await safeEnqueue(
+            syncQueue,
+            "sync",
+            { userId, chessUsername: canonicalUsername },
+            { jobId: `sync_${userId}` },
+            () => {
+              AccountSyncManager.executeFullSync(userId, canonicalUsername).catch((err) => {
+                console.error("Background full sync fallback error for user:", userId, err);
+              });
+            }
+          );
+        } catch (queueErr) {
+          AccountSyncManager.executeFullSync(userId, canonicalUsername).catch((err) => {
+            console.error("Background full sync fallback error for user:", userId, err);
+          });
+        }
+      } else {
+        chessProfile = existing;
+      }
+    }
+
+    return res.json({ message: "Profile updated successfully", user, chessProfile });
   } catch (err) {
     return res
       .status(500)

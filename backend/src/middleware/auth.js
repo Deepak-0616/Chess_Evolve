@@ -2,6 +2,9 @@ import { supabase } from "../utils/supabase.js";
 import { prisma } from "../utils/prisma.js";
 import jwt from "jsonwebtoken";
 
+// In-memory token verification cache to bypass Supabase network calls and DB lookup (60s TTL)
+const userAuthCache = new Map();
+
 export const authenticateSupabaseUser = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -12,6 +15,14 @@ export const authenticateSupabaseUser = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+
+    // Fast-path: Check verified token cache (<0.05ms)
+    const cachedAuth = userAuthCache.get(token);
+    if (cachedAuth && Date.now() < cachedAuth.expiresAt) {
+      req.user = cachedAuth.user;
+      return next();
+    }
+
     let userId = null;
     let email = undefined;
     let displayName = undefined;
@@ -95,6 +106,11 @@ export const authenticateSupabaseUser = async (req, res, next) => {
       displayName: userRecord.displayName || undefined,
       avatarUrl: userRecord.avatarUrl || undefined,
     };
+
+    userAuthCache.set(token, {
+      user: req.user,
+      expiresAt: Date.now() + 60000,
+    });
 
     next();
   } catch (err) {

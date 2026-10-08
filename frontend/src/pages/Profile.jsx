@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Link2, Settings, Shield, LogOut, Edit3, Check, X, Camera } from 'lucide-react';
+import { User, Link2, Settings, Shield, LogOut, Edit3, Check, X, Camera, AlertCircle } from 'lucide-react';
 import { getProfile, updateProfile, connectChessProfile } from '../api';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +13,7 @@ const Profile = () => {
   const [form, setForm] = useState({ displayName: '', chessUsername: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
@@ -37,13 +38,22 @@ const Profile = () => {
 
   const handleSave = async () => {
     setSaving(true);
+    setError('');
     try {
       await updateProfile(form);
       setSaved(true);
       setEditing(false);
+      // Reload profile to refresh stats and linked chess account
+      const res = await getProfile();
+      const p = res.data?.profile || res.data?.data;
+      if (p) setProfile(p);
       setTimeout(() => setSaved(false), 3000);
-    } catch {}
-    setSaving(false);
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to update profile';
+      setError(msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -140,6 +150,12 @@ const Profile = () => {
                 Cancel
               </button>
             </div>
+            {error && (
+              <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#f87171' }}>
+                <AlertCircle size={12} />
+                <span>{error}</span>
+              </div>
+            )}
             {saved && (
               <div className="flex items-center space-x-1.5 text-xs" style={{ color: '#4ade80' }}>
                 <Check size={12} />
@@ -153,16 +169,21 @@ const Profile = () => {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Games Played', value: profile?.totalGames ?? '0' },
+          {
+            label: 'Games Played',
+            value: profile?.totalGames ?? '0',
+            sub: `${profile?.ratedGames ?? 0} rated · ${profile?.unratedGames ?? 0} unrated`
+          },
           { label: 'Win Rate', value: `${profile?.winRate ?? 0}%` },
           { label: 'Peak Rating', value: profile?.peakRating ?? '—' },
-        ].map(({ label, value }) => (
-          <div key={label} className="p-4 rounded-xl text-center" style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
+        ].map(({ label, value, sub }) => (
+          <div key={label} className="p-4 rounded-xl text-center flex flex-col justify-between min-h-[92px]" style={{ background: '#0B0C12', border: '1px solid #181A24' }}>
             <div className="text-xl font-black font-display" style={{
               background: 'linear-gradient(135deg, #E6C87C 0%, #C5A059 45%, #9B7830 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
             }}>{value}</div>
             <div className="text-xs mt-0.5" style={{ color: '#7E8092' }}>{label}</div>
+            {sub && <div className="text-[11px] mt-1 font-semibold" style={{ color: '#C5A059' }}>{sub}</div>}
           </div>
         ))}
       </div>

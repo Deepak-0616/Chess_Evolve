@@ -5,10 +5,18 @@ import { ChessDnaService } from "../services/dna/service.js";
 
 const router = Router();
 
+// In-memory cache for ultra-fast DNA retrieval (<5ms)
+const dnaCache = new Map();
+
 // GET /api/v1/dna/current
 router.get("/current", authenticateSupabaseUser, async (req, res) => {
   try {
     const userId = req.user.id;
+
+    const cached = dnaCache.get(userId);
+    if (cached && Date.now() < cached.expiresAt) {
+      return res.json(cached.data);
+    }
     let dna = await prisma.chessDNA.findUnique({
       where: { userId },
     });
@@ -65,7 +73,10 @@ router.get("/current", authenticateSupabaseUser, async (req, res) => {
       topWeaknesses: dna.topWeaknesses || [],
     };
 
-    return res.json({ dna: enriched, data: enriched });
+    const payload = { dna: enriched, data: enriched };
+    dnaCache.set(userId, { data: payload, expiresAt: Date.now() + 30000 });
+
+    return res.json(payload);
   } catch (err) {
     return res
       .status(500)

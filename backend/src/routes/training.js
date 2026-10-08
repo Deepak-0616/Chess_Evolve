@@ -4,6 +4,18 @@ import { TrainingService } from "../services/training/trainingService.js";
 
 const router = Router();
 
+// In-memory training cache for ultra-fast training views (<2ms)
+const trainingCache = new Map();
+export const invalidateTrainingCache = (userId) => {
+  if (userId) {
+    for (const key of trainingCache.keys()) {
+      if (key.startsWith(`${userId}_`)) trainingCache.delete(key);
+    }
+  } else {
+    trainingCache.clear();
+  }
+};
+
 // All training endpoints require authentic Supabase JWT
 router.use(authenticateSupabaseUser);
 
@@ -13,7 +25,12 @@ router.use(authenticateSupabaseUser);
  */
 router.get("/overview", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_overview`;
+    const cached = trainingCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const data = await TrainingService.getOverview(req.user.id);
+    trainingCache.set(cacheKey, { payload: data, expiresAt: Date.now() + 30000 });
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch training overview", details: err.message });
@@ -26,11 +43,19 @@ router.get("/overview", async (req, res) => {
  */
 router.get("/plan", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_plan`;
+    const cached = trainingCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const overview = await TrainingService.getOverview(req.user.id);
     if (!overview.sufficientData) {
-      return res.status(200).json({ plan: null, sufficientData: false, message: overview.message });
+      const payload = { plan: null, sufficientData: false, message: overview.message };
+      trainingCache.set(cacheKey, { payload, expiresAt: Date.now() + 30000 });
+      return res.status(200).json(payload);
     }
-    return res.json({ plan: overview.activePlan, sufficientData: true });
+    const payload = { plan: overview.activePlan, sufficientData: true };
+    trainingCache.set(cacheKey, { payload, expiresAt: Date.now() + 30000 });
+    return res.json(payload);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch training plan", details: err.message });
   }
@@ -42,7 +67,12 @@ router.get("/plan", async (req, res) => {
  */
 router.get("/weaknesses", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_weaknesses`;
+    const cached = trainingCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const data = await TrainingService.getWeaknesses(req.user.id);
+    trainingCache.set(cacheKey, { payload: data, expiresAt: Date.now() + 30000 });
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch weaknesses", details: err.message });
@@ -55,7 +85,12 @@ router.get("/weaknesses", async (req, res) => {
  */
 router.get("/progress", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_progress`;
+    const cached = trainingCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const data = await TrainingService.getProgress(req.user.id);
+    trainingCache.set(cacheKey, { payload: data, expiresAt: Date.now() + 30000 });
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch training progress", details: err.message });
@@ -68,6 +103,7 @@ router.get("/progress", async (req, res) => {
  */
 router.post("/sessions", async (req, res) => {
   try {
+    invalidateTrainingCache(req.user.id);
     const { category, difficulty, targetWeakness, planId } = req.body || {};
     const sessionData = await TrainingService.createSession(req.user.id, {
       category,
@@ -125,6 +161,7 @@ router.post("/sessions/:sessionId/attempt", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields: positionId and move are required." });
     }
 
+    invalidateTrainingCache(req.user.id);
     const result = await TrainingService.submitAttempt(req.user.id, req.params.sessionId, {
       positionId,
       move,
@@ -144,6 +181,7 @@ router.post("/sessions/:sessionId/attempt", async (req, res) => {
  */
 router.post("/sessions/:sessionId/complete", async (req, res) => {
   try {
+    invalidateTrainingCache(req.user.id);
     const result = await TrainingService.completeSession(req.user.id, req.params.sessionId);
     return res.json(result);
   } catch (err) {

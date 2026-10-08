@@ -69,19 +69,24 @@ class PeakSelfTrainer:
                 
             train_loss /= len(train_loader)
             
-            val_loss, val_top1 = self.evaluate(val_loader)
+            val_loss, val_top1, val_top3, val_mrr = self.evaluate(val_loader)
             
             metrics = {
                 "epoch": epoch + 1,
                 "train_loss": train_loss,
                 "val_loss": val_loss,
-                "val_top1": val_top1
+                "val_top1": val_top1,
+                "val_top3": val_top3,
+                "val_mrr": val_mrr
             }
             metrics_history.append(metrics)
-            print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Top-1: {val_top1:.4f}")
+            print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Top-1: {val_top1:.4f} | MRR: {val_mrr:.4f}")
             
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
+                best_val_top1 = val_top1
+                best_val_top3 = val_top3
+                best_val_mrr = val_mrr
                 patience_counter = 0
                 torch.save(self.model.state_dict(), os.path.join(base_dir, "checkpoint_best.pt"))
             else:
@@ -97,14 +102,14 @@ class PeakSelfTrainer:
         test_dataset = PeakSelfDataset(self.dataset_id, "TEST")
         if len(test_dataset) > 0:
             test_loader = DataLoader(test_dataset, batch_size=self.config.batchSize, shuffle=False, collate_fn=peak_self_collate_fn)
-            test_loss, test_top1 = self.evaluate(test_loader)
+            test_loss, test_top1, test_top3, test_mrr = self.evaluate(test_loader)
         else:
-            test_loss, test_top1 = val_loss, val_top1
+            test_loss, test_top1, test_top3, test_mrr = best_val_loss, best_val_top1, best_val_top3, best_val_mrr
             
         final_metrics = {
             "top1": test_top1,
-            "top3": test_top1 + 0.15, # Mock Top-3
-            "mrr": test_top1 + 0.1,   # Mock MRR
+            "top3": test_top3,
+            "mrr": test_mrr,
             "valLoss": best_val_loss
         }
         
@@ -120,6 +125,8 @@ class PeakSelfTrainer:
         self.model.eval()
         total_loss = 0.0
         correct_top1 = 0
+        correct_top3 = 0
+        mrr_sum = 0.0
         total_samples = 0
         
         with torch.no_grad():
@@ -131,10 +138,21 @@ class PeakSelfTrainer:
                 
                 scores = self.model(pos, cand, mask)
                 loss = self.criterion(scores, targets)
-                total_loss += loss.item()
+                total_loss += loss.item() * targets.size(0)
                 
-                preds = torch.argmax(scores, dim=-1)
-                correct_top1 += (preds == targets).sum().item()
+                sorted_idx = torch.argsort(scores, dim=-1, descending=True)
+                ranks = (sorted_idx == targets.unsqueeze(1)).nonzero(as_tuple=True)[1] + 1
+                
+                correct_top1 += (ranks == 1).sum().item()
+                correct_top3 += (ranks <= 3).sum().item()
+                mrr_sum += (1.0 / ranks.float()).sum().item()
                 total_samples += targets.size(0)
                 
-        return total_loss / len(loader), correct_top1 / total_samples
+        if total_samples == 0:
+            return 0.0, 0.0, 0.0, 0.0
+            
+        avg_loss = total_loss / total_samples
+        top1 = correct_top1 / total_samples
+        top3 = correct_top3 / total_samples
+        mrr = mrr_sum / total_samples
+        return avg_loss, top1, top3, mrr

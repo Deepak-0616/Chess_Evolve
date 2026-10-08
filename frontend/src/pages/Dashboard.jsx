@@ -8,9 +8,9 @@ import {
 } from 'lucide-react';
 import { getChessProfile, getDNA, getModels, triggerSync } from '../api';
 
-const StatCard = ({ label, value, sub, icon: Icon, color }) => (
+const StatCard = ({ label, value, sub, breakdown, icon: Icon, color }) => (
   <div
-    className="p-5 rounded-2xl flex flex-col justify-between min-h-[142px] transition-all duration-200 hover:scale-[1.01] hover:border-[rgba(197,160,89,0.4)] group"
+    className="p-5 rounded-2xl flex flex-col justify-between min-h-[148px] transition-all duration-200 hover:scale-[1.01] hover:border-[rgba(197,160,89,0.4)] group"
     style={{
       background: 'linear-gradient(145deg, #0F1017 0%, #08090E 100%)',
       border: '1px solid rgba(197, 160, 89, 0.15)',
@@ -28,15 +28,21 @@ const StatCard = ({ label, value, sub, icon: Icon, color }) => (
       )}
     </div>
 
-    <div className="my-2">
+    <div className="my-1.5">
       <div className="text-3xl font-black font-display tracking-tight" style={{ color: color || '#F3EFE6' }}>
         {value}
       </div>
     </div>
 
-    <div className="text-xs font-medium text-[#7E8092] truncate">
-      {sub || '\u00A0'}
-    </div>
+    {breakdown ? (
+      <div className="mt-1 pt-2 border-t border-[rgba(255,255,255,0.06)]">
+        {breakdown}
+      </div>
+    ) : (
+      <div className="text-xs font-medium text-[#7E8092] truncate">
+        {sub || '\u00A0'}
+      </div>
+    )}
   </div>
 );
 
@@ -80,37 +86,61 @@ const SyncStatus = ({ status, onSync }) => {
   );
 };
 
+let clientDashboardCache = null;
+export const clearClientDashboardCache = () => {
+  clientDashboardCache = null;
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [dna, setDna] = useState(null);
-  const [models, setModels] = useState(null);
-  const [pageLoading, setPageLoading] = useState(true);
+  const [profile, setProfile] = useState(clientDashboardCache?.profile || null);
+  const [dna, setDna] = useState(clientDashboardCache?.dna || null);
+  const [models, setModels] = useState(clientDashboardCache?.models || null);
+  const [pageLoading, setPageLoading] = useState(!clientDashboardCache);
   const [syncStatus, setSyncStatus] = useState('idle');
   const [timeControl, setTimeControl] = useState('all');
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
 
   useEffect(() => {
+    let isMounted = true;
     const load = async () => {
-      setPageLoading(true);
+      if (!clientDashboardCache) {
+        setPageLoading(true);
+      }
       try {
         const [pRes, dRes, mRes] = await Promise.allSettled([
           getChessProfile(), getDNA(), getModels(),
         ]);
-        if (pRes.status === 'fulfilled') setProfile(pRes.value.data?.chessProfile || pRes.value.data?.data || pRes.value.data);
-        if (dRes.status === 'fulfilled') setDna(dRes.value.data?.dna || dRes.value.data?.data || dRes.value.data);
-        if (mRes.status === 'fulfilled') setModels(mRes.value.data?.models || mRes.value.data);
+        if (!isMounted) return;
+
+        const nextProfile = pRes.status === 'fulfilled' ? (pRes.value.data?.chessProfile || pRes.value.data?.data || pRes.value.data) : null;
+        const nextDna = dRes.status === 'fulfilled' ? (dRes.value.data?.dna || dRes.value.data?.data || dRes.value.data) : null;
+        const nextModels = mRes.status === 'fulfilled' ? (mRes.value.data?.models || mRes.value.data) : null;
+
+        if (nextProfile) setProfile(nextProfile);
+        if (nextDna) setDna(nextDna);
+        if (nextModels) setModels(nextModels);
+
+        clientDashboardCache = {
+          profile: nextProfile,
+          dna: nextDna,
+          models: nextModels,
+          timestamp: Date.now(),
+        };
       } catch (err) {
         console.error('Failed to load dashboard data', err);
+      } finally {
+        if (isMounted) setPageLoading(false);
       }
-      setPageLoading(false);
     };
     load();
+    return () => { isMounted = false; };
   }, []);
 
   const handleSync = async () => {
     setSyncStatus('running');
+    clientDashboardCache = null;
     try {
       await triggerSync();
       // Brief pause for backend fast sync to settle, then refresh all dashboard state
@@ -118,9 +148,20 @@ const Dashboard = () => {
       const [pRes, dRes, mRes] = await Promise.allSettled([
         getChessProfile(), getDNA(), getModels(),
       ]);
-      if (pRes.status === 'fulfilled') setProfile(pRes.value.data?.chessProfile || pRes.value.data?.data || pRes.value.data);
-      if (dRes.status === 'fulfilled') setDna(dRes.value.data?.dna || dRes.value.data?.data || dRes.value.data);
-      if (mRes.status === 'fulfilled') setModels(mRes.value.data?.models || mRes.value.data);
+      const nextProfile = pRes.status === 'fulfilled' ? (pRes.value.data?.chessProfile || pRes.value.data?.data || pRes.value.data) : null;
+      const nextDna = dRes.status === 'fulfilled' ? (dRes.value.data?.dna || dRes.value.data?.data || dRes.value.data) : null;
+      const nextModels = mRes.status === 'fulfilled' ? (mRes.value.data?.models || mRes.value.data) : null;
+
+      if (nextProfile) setProfile(nextProfile);
+      if (nextDna) setDna(nextDna);
+      if (nextModels) setModels(nextModels);
+
+      clientDashboardCache = {
+        profile: nextProfile,
+        dna: nextDna,
+        models: nextModels,
+        timestamp: Date.now(),
+      };
       setSyncStatus('done');
       setTimeout(() => setSyncStatus('idle'), 4000);
     } catch {
@@ -156,8 +197,8 @@ const Dashboard = () => {
       });
 
   const ratedMatchesCount = activeStats.ratedGames ?? activeStats.totalGames ?? 0;
-  const totalMatchesCount = activeStats.totalGames ?? ratedMatchesCount;
-  const unratedMatchesCount = activeStats.unratedGames ?? Math.max(0, totalMatchesCount - ratedMatchesCount);
+  const unratedMatchesCount = activeStats.unratedGames ?? 0;
+  const totalMatchesCount = ratedMatchesCount + unratedMatchesCount;
 
   // Exact rated record matching Chess.com
   const ratedWins = activeStats.ratedWins ?? activeStats.wins ?? 0;
@@ -172,8 +213,8 @@ const Dashboard = () => {
   const totalMatchesSub = unratedMatchesCount > 0
     ? `${ratedMatchesCount.toLocaleString()} rated · ${unratedMatchesCount.toLocaleString()} casual`
     : timeControl === 'all'
-    ? 'Across all rated time controls'
-    : `${tcDisplayName} rated matches`;
+    ? `${ratedMatchesCount.toLocaleString()} rated matches`
+    : `${ratedMatchesCount.toLocaleString()} ${tcDisplayName.toLowerCase()} rated`;
 
   const winRateSub = `${ratedWins}W · ${ratedLosses}L · ${ratedDraws}D (Rated)`;
   const currentRatingSub = timeControl === 'all'
@@ -184,7 +225,7 @@ const Dashboard = () => {
     : `Peak ${tcDisplayName} rating`;
 
   const dnaSnippets = dna?.traits?.slice(0, 4) || [];
-  const recentGames = profile?.recentGames || [];
+  const recentGames = profile?.recentGames?.slice(0, 7) || [];
   const hasModels = models && (models.currentSelf || models.peakSelf);
 
   return (
@@ -265,17 +306,20 @@ const Dashboard = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 label="Total Matches"
-                value={
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span>{ratedMatchesCount.toLocaleString()}</span>
-                    {unratedMatchesCount > 0 && (
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#141622] text-[#D4B46A] border border-[rgba(197,160,89,0.3)] tracking-tight">
-                        / {totalMatchesCount.toLocaleString()} Total
-                      </span>
-                    )}
+                value={totalMatchesCount.toLocaleString()}
+                breakdown={
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <div className="flex-1 flex items-center justify-between px-2.5 py-1 rounded-lg bg-[rgba(197,160,89,0.12)] border border-[rgba(197,160,89,0.25)]">
+                      <span className="text-[10px] uppercase font-bold text-[#D4B46A]">Rated</span>
+                      <span className="text-xs font-black text-[#F3EFE6]">{ratedMatchesCount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-between px-2.5 py-1 rounded-lg bg-[#12141F] border border-[#1E2130]">
+                      <span className="text-[10px] uppercase font-bold text-[#7E8092]">Unrated</span>
+                      <span className="text-xs font-black text-[#C5C8D8]">{unratedMatchesCount.toLocaleString()}</span>
+                    </div>
                   </div>
                 }
-                sub={totalMatchesSub}
+                sub={`${ratedMatchesCount.toLocaleString()} rated · ${unratedMatchesCount.toLocaleString()} unrated`}
                 icon={Gamepad2}
                 color="#F3EFE6"
               />

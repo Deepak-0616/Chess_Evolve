@@ -5,6 +5,18 @@ import { prisma } from "../utils/prisma.js";
 
 const router = Router();
 
+// In-memory evolution cache for ultra-fast overview & progress tracking (<2ms)
+const evolutionCache = new Map();
+export const invalidateEvolutionCache = (userId) => {
+  if (userId) {
+    for (const key of evolutionCache.keys()) {
+      if (key.startsWith(`${userId}_`)) evolutionCache.delete(key);
+    }
+  } else {
+    evolutionCache.clear();
+  }
+};
+
 // All evolution routes require Supabase JWT authentication
 router.use(authenticateSupabaseUser);
 
@@ -15,10 +27,15 @@ router.use(authenticateSupabaseUser);
  */
 router.get("/", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_overview`;
+    const cached = evolutionCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return res.json(cached.payload);
+    }
+
     const overview = await EvolutionService.getOverview(req.user.id);
 
-    // Provide both the new rich overview structure and backward-compatible report fields
-    return res.json({
+    const payload = {
       ...overview,
       report: overview.sufficientData ? {
         evolutionScore: overview.evolutionScore,
@@ -41,7 +58,10 @@ router.get("/", async (req, res) => {
           peakSelf: overview.modelComparison?.peakSelf || null,
         },
       } : null,
-    });
+    };
+
+    evolutionCache.set(cacheKey, { payload, expiresAt: Date.now() + 30000 });
+    return res.json(payload);
   } catch (err) {
     console.error("Evolution overview error:", err);
     return res.status(500).json({ error: "Failed to fetch evolution overview", details: err.message });
@@ -54,7 +74,12 @@ router.get("/", async (req, res) => {
  */
 router.get("/timeline", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_timeline`;
+    const cached = evolutionCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const data = await EvolutionService.getTimeline(req.user.id);
+    evolutionCache.set(cacheKey, { payload: data, expiresAt: Date.now() + 30000 });
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch evolution timeline", details: err.message });
@@ -67,7 +92,12 @@ router.get("/timeline", async (req, res) => {
  */
 router.get("/gameplay", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_gameplay`;
+    const cached = evolutionCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const data = await EvolutionService.getGameplayMetrics(req.user.id);
+    evolutionCache.set(cacheKey, { payload: data, expiresAt: Date.now() + 30000 });
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch gameplay metrics", details: err.message });
@@ -80,11 +110,17 @@ router.get("/gameplay", async (req, res) => {
  */
 router.get("/weaknesses", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_weaknesses`;
+    const cached = evolutionCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const overview = await EvolutionService.getOverview(req.user.id);
-    return res.json({
+    const payload = {
       weaknessProgression: overview.weaknessProgression || [],
       sampleSize: overview.gameplayImprovement?.sampleSizeRecent || 0,
-    });
+    };
+    evolutionCache.set(cacheKey, { payload, expiresAt: Date.now() + 30000 });
+    return res.json(payload);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch weakness progression", details: err.message });
   }
@@ -96,7 +132,12 @@ router.get("/weaknesses", async (req, res) => {
  */
 router.get("/model-update-status", async (req, res) => {
   try {
+    const cacheKey = `${req.user.id}_model_status`;
+    const cached = evolutionCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) return res.json(cached.payload);
+
     const data = await EvolutionService.evaluateModelUpdateEligibility(req.user.id);
+    evolutionCache.set(cacheKey, { payload: data, expiresAt: Date.now() + 30000 });
     return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: "Failed to evaluate model update eligibility", details: err.message });
@@ -109,6 +150,7 @@ router.get("/model-update-status", async (req, res) => {
  */
 router.post("/snapshots/generate", async (req, res) => {
   try {
+    invalidateEvolutionCache(req.user.id);
     const { sourceType, notes } = req.body || {};
     const snapshot = await EvolutionService.generateSnapshot(req.user.id, sourceType || "MANUAL", notes);
     return res.status(201).json({ snapshot });

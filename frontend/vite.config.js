@@ -12,4 +12,18 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react', 'framer-motion', 'clsx', 'tailwind-merge'],
+          'vendor-charts': ['recharts'],
+          'vendor-chess': ['chess.js', 'react-chessboard'],
+          'vendor-supabase': ['@supabase/supabase-js', 'axios'],
+        },
+      },
+    },
+  },
 });

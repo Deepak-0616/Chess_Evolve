@@ -41,6 +41,24 @@ router.post("/sync", authenticateSupabaseUser, async (req, res) => {
       },
     });
 
+    if (!user) {
+      user = await prisma.user.upsert({
+        where: { id: req.user.id },
+        update: {},
+        create: {
+          id: req.user.id,
+          email: req.user.email,
+          displayName: req.user.displayName || req.user.email?.split("@")[0] || "Player",
+          avatarUrl: req.user.avatarUrl || null,
+        },
+        include: {
+          chessProfile: true,
+          currentDna: true,
+          arenaProfile: true,
+        },
+      });
+    }
+
     if (user?.chessProfile?.chessUsername) {
       // Trigger background sync non-blocking so login/auth callback responds instantaneously
       AccountSyncManager.syncLatestGames(user.id, user.chessProfile.chessUsername).catch((syncErr) => {

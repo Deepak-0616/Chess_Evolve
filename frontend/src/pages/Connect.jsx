@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link2, ArrowRight, CheckCircle, AlertCircle, Loader2, User } from 'lucide-react';
-import { connectChessProfile } from '../api';
+import { connectChessProfile, clearClientCache } from '../api';
+import { clearClientDashboardCache } from './Dashboard';
 
 const Connect = () => {
   const navigate = useNavigate();
@@ -17,12 +18,14 @@ const Connect = () => {
     setError('');
     try {
       await connectChessProfile(username.trim());
+      clearClientCache();
+      clearClientDashboardCache();
       setSuccess(true);
       setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to connect';
-      setError(msg.includes('not found')
-        ? `Chess.com user "${username}" was not found. Please check the username.`
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to connect';
+      setError(msg.toLowerCase().includes('not found')
+        ? `Chess.com user "${username.trim()}" was not found. Please check the username.`
         : msg
       );
     } finally {

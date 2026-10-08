@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 
@@ -38,8 +39,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// 1. Security Headers & CORS
+// 1. Security Headers, Compression & CORS
 app.use(securityHeaders);
+app.use(compression());
 app.use(cors(configureCors()));
 
 // 2. Body Parsing & Logging

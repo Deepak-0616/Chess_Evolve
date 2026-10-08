@@ -5,11 +5,24 @@ import { CoachService } from "../services/coach/CoachService.js";
 
 const router = Router();
 
+// In-memory cache for coach insights (<2ms)
+const coachInsightsCache = new Map();
+export const invalidateCoachCache = (userId) => {
+  if (userId) coachInsightsCache.delete(userId);
+  else coachInsightsCache.clear();
+};
+
 // GET /api/v1/coach/insights
 router.get("/insights", authenticateSupabaseUser, async (req, res) => {
   try {
     const userId = req.user.id;
+    const cached = coachInsightsCache.get(userId);
+    if (cached && Date.now() < cached.expiresAt) {
+      return res.json(cached.payload);
+    }
+
     const insights = await CoachService.getInsights(userId);
+    coachInsightsCache.set(userId, { payload: insights, expiresAt: Date.now() + 30000 });
     return res.json(insights);
   } catch (err) {
     return res

@@ -365,8 +365,8 @@ export class AccountSyncManager {
         return { imported: 0, total };
       }
 
-      // Check the latest 2 monthly archives (to catch month-boundary games)
-      const latestArchives = archiveUrls.slice(-2).reverse();
+      // Check the latest 4 monthly archives (to capture recent active months, rated & casual)
+      const latestArchives = archiveUrls.slice(-4).reverse();
       let totalImported = 0;
 
       for (const archiveUrl of latestArchives) {
