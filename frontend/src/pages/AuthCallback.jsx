@@ -8,75 +8,96 @@ import { formatAuthError } from '../utils/authUtils';
 export const AuthCallback = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const navigatedRef = React.useRef(false);
 
   useEffect(() => {
-    let isMounted = true;
+    if (!supabase) {
+      setError('Supabase client is not available.');
+      return;
+    }
 
-    const handleCallback = async () => {
-      try {
-        if (!supabase) {
-          throw new Error('Supabase client is not available.');
-        }
+    // Check for explicit error returned in URL query or hash from OAuth provider
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const authError =
+      urlParams.get('error_description') ||
+      hashParams.get('error_description') ||
+      urlParams.get('error');
 
-        // Check if there is an error parameter in the URL query or hash
-        const urlParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const authError = urlParams.get('error_description') || hashParams.get('error_description') || urlParams.get('error');
+    if (authError) {
+      setError(formatAuthError(authError, 'google'));
+      return;
+    }
 
-        if (authError) {
-          throw new Error(authError);
-        }
+    const code = urlParams.get('code');
 
-        // If authorization code is present in query parameters (PKCE flow)
-        const code = urlParams.get('code');
-        if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) throw exchangeError;
-        }
+    const handleSuccess = (session) => {
+      if (navigatedRef.current) return;
+      navigatedRef.current = true;
 
-        // Retrieve the current authenticated session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-
-        if (!session) {
-          // Wait briefly for onAuthStateChange to capture tokens if hash fragments are being parsed
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          const retry = await supabase.auth.getSession();
-          if (!retry.data.session) {
-            throw new Error('No active session found after Google OAuth.');
-          }
-        }
-
-        const activeSession = (await supabase.auth.getSession()).data.session;
-        if (!activeSession) {
-          throw new Error('Authentication session could not be established.');
-        }
-
-        // Configure API client authorization header
-        setAuthToken(activeSession.access_token);
-
-        // Synchronize with backend API to ensure User record exists and display name is initialized
-        const syncResponse = await apiClient.post('/auth/sync');
-
-        if (isMounted) {
-          if (syncResponse.data?.hasChessProfile) {
-            navigate('/dashboard', { replace: true });
-          } else {
-            navigate('/connect', { replace: true });
-          }
-        }
-      } catch (err) {
-        console.error('OAuth callback processing error:', err);
-        if (isMounted) {
-          setError(formatAuthError(err, 'google'));
-        }
+      // Clean query and hash from URL address bar
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
+
+      setAuthToken(session.access_token);
+
+      // Trigger backend sync in background without blocking navigation
+      apiClient.post('/auth/sync').catch((err) => {
+        console.warn('[AuthCallback] Background sync notification:', err?.message || err);
+      });
+
+      // Navigate immediately to dashboard
+      navigate('/dashboard', { replace: true });
     };
 
-    handleCallback();
+    // 1. Check if session is already present (e.g. from local storage or fast auto-exchange)
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) {
+        handleSuccess(data.session);
+      }
+    }).catch((err) => {
+      console.warn('[AuthCallback] getSession check notice:', err);
+    });
+
+    // 2. Listen to Supabase auth state change (fires as soon as PKCE exchange finishes in background)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        handleSuccess(session);
+      }
+    });
+
+    // 3. If authorization code is present in URL, also attempt explicit exchange safely
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error: exchangeErr }) => {
+        if (!exchangeErr && data?.session) {
+          handleSuccess(data.session);
+        }
+      }).catch((exchangeErr) => {
+        console.warn('[AuthCallback] exchangeCode notice:', exchangeErr?.message || exchangeErr);
+      });
+    }
+
+    // 4. Fallback timeout: If still not resolved after 4 seconds, verify one last time before showing error
+    const timer = setTimeout(async () => {
+      if (navigatedRef.current) return;
+
+      try {
+        const finalCheck = await supabase.auth.getSession();
+        if (finalCheck?.data?.session) {
+          handleSuccess(finalCheck.data.session);
+          return;
+        }
+      } catch {}
+
+      if (!navigatedRef.current) {
+        setError('Authentication timed out. Please check your connection and try again.');
+      }
+    }, 4000);
 
     return () => {
-      isMounted = false;
+      clearTimeout(timer);
+      subscription?.unsubscribe();
     };
   }, [navigate]);
 
@@ -96,7 +117,12 @@ export const AuthCallback = () => {
           <div className="pt-2">
             <button
               type="button"
-              onClick={() => navigate('/login', { replace: true })}
+              onClick={async () => {
+                try {
+                  await supabase?.auth?.signOut();
+                } catch {}
+                navigate('/login', { replace: true });
+              }}
               className="py-2.5 px-6 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer shadow-lg hover:brightness-110"
               style={{
                 background: 'linear-gradient(135deg, #B58D3D 0%, #D4B46A 45%, #926E28 100%)',

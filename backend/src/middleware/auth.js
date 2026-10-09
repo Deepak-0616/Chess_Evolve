@@ -5,6 +5,19 @@ import jwt from "jsonwebtoken";
 // In-memory token verification cache to bypass Supabase network calls and DB lookup (60s TTL)
 const userAuthCache = new Map();
 
+// Pluggable auth client for testing dependency injection (defaults to singleton supabase client)
+let authClient = supabase;
+
+export const setAuthClient = (client) => {
+  authClient = client || supabase;
+};
+
+export const getAuthClient = () => authClient;
+
+export const clearAuthCache = () => {
+  userAuthCache.clear();
+};
+
 export const authenticateSupabaseUser = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -15,68 +28,79 @@ export const authenticateSupabaseUser = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+    if (!token || token.trim().length === 0) {
+      return res
+        .status(401)
+        .json({ error: "Missing or malformed Authorization header" });
+    }
 
-    // Fast-path: Check verified token cache (<0.05ms)
-    const cachedAuth = userAuthCache.get(token);
-    if (cachedAuth && Date.now() < cachedAuth.expiresAt) {
-      req.user = cachedAuth.user;
-      return next();
+    // Fast-path: Check verified token cache outside test mode (<0.05ms)
+    if (process.env.NODE_ENV !== "test") {
+      const cachedAuth = userAuthCache.get(token);
+      if (cachedAuth && Date.now() < cachedAuth.expiresAt) {
+        req.user = cachedAuth.user;
+        return next();
+      }
     }
 
     let userId = null;
     let email = undefined;
     let displayName = undefined;
 
-    // Check if token is a Supabase JWT or local dev JWT
-    if (
-      process.env.SUPABASE_URL &&
-      process.env.SUPABASE_URL !== "https://placeholder.supabase.co"
-    ) {
-      const { data, error } = await supabase.auth.getUser(token);
-      if (error || !data.user) {
-        return res
-          .status(401)
-          .json({ error: "Invalid or expired Supabase authentication token" });
+    // 1. Primary: Verify token via Supabase Auth client (or test-injected client)
+    let timeoutId;
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Supabase auth timeout")), 5000);
+      });
+
+      const { data, error } = await Promise.race([
+        authClient.auth.getUser(token),
+        timeoutPromise,
+      ]);
+      clearTimeout(timeoutId);
+
+      if (!error && data?.user?.id) {
+        userId = data.user.id;
+        email = data.user.email;
+        displayName =
+          data.user.user_metadata?.full_name ||
+          data.user.user_metadata?.name ||
+          data.user.user_metadata?.display_name ||
+          data.user.email?.split("@")[0] ||
+          "User";
       }
-      userId = data.user.id;
-      email = data.user.email;
-      displayName =
-        data.user.user_metadata?.full_name ||
-        data.user.user_metadata?.name ||
-        data.user.user_metadata?.display_name ||
-        data.user.email?.split("@")[0] ||
-        "User";
-    } else {
-      // Fallback dev JWT decoding when Supabase credentials aren't linked yet
+    } catch {
+      clearTimeout(timeoutId);
+      // Supabase verification failed, rejected, timed out, or network error
+    }
+
+    // 2. Secondary: Cryptographically verify signed JWT if JWT_SECRET is configured
+    if (!userId && process.env.JWT_SECRET) {
       try {
-        const decoded = jwt.decode(token);
-        if (decoded && decoded.sub) {
-          userId = decoded.sub;
-          email = decoded.email;
+        const verified = jwt.verify(token, process.env.JWT_SECRET);
+        if (verified && (verified.sub || verified.id)) {
+          userId = verified.sub || verified.id;
+          email = verified.email;
           displayName =
-            decoded.user_metadata?.full_name ||
-            decoded.user_metadata?.name ||
-            decoded.user_metadata?.display_name ||
-            decoded.name ||
-            decoded.display_name ||
-            decoded.email?.split("@")[0] ||
+            verified.user_metadata?.full_name ||
+            verified.user_metadata?.name ||
+            verified.user_metadata?.display_name ||
+            verified.name ||
+            verified.display_name ||
+            verified.email?.split("@")[0] ||
             "User";
-        } else {
-          // Standard dev test user UUID fallback (derived dynamically from token string hash, NOT hardcoded)
-          userId = `user_${Buffer.from(token).toString("hex").slice(0, 16)}`;
-          displayName = "User";
         }
       } catch {
-        return res
-          .status(401)
-          .json({ error: "Unable to decode authentication token" });
+        // Not a valid signed JWT
       }
     }
 
+    // Reject any token that cannot be verified by Supabase Auth or signed JWT
     if (!userId) {
       return res
         .status(401)
-        .json({ error: "User identity could not be verified" });
+        .json({ error: "Invalid or expired Supabase authentication token" });
     }
 
     // Upsert User record in database to ensure Supabase Auth user is synced with DB
@@ -107,10 +131,12 @@ export const authenticateSupabaseUser = async (req, res, next) => {
       avatarUrl: userRecord.avatarUrl || undefined,
     };
 
-    userAuthCache.set(token, {
-      user: req.user,
-      expiresAt: Date.now() + 60000,
-    });
+    if (process.env.NODE_ENV !== "test") {
+      userAuthCache.set(token, {
+        user: req.user,
+        expiresAt: Date.now() + 60000,
+      });
+    }
 
     next();
   } catch (err) {

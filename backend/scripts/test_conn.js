@@ -1,11 +1,21 @@
 import pg from 'pg';
+import dotenv from 'dotenv';
+dotenv.config();
+
 const { Client } = pg;
 
 async function testConnections() {
-  const urls = [
-    { name: 'Direct 5432', url: 'postgresql://postgres.jflaxfptqwnqxshzevqa:Chessdb123%40@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres' },
-    { name: 'Pooler 6543', url: 'postgresql://postgres.jflaxfptqwnqxshzevqa:Chessdb123%40@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres' },
-  ];
+  const directUrl = process.env.DIRECT_DATABASE_URL;
+  const poolerUrl = process.env.DATABASE_URL;
+
+  if (!directUrl && !poolerUrl) {
+    console.error('Error: DIRECT_DATABASE_URL or DATABASE_URL must be configured in environment.');
+    process.exit(1);
+  }
+
+  const urls = [];
+  if (directUrl) urls.push({ name: 'Direct 5432', url: directUrl });
+  if (poolerUrl) urls.push({ name: 'Pooler 6543', url: poolerUrl });
 
   for (const { name, url } of urls) {
     console.log(`Testing ${name}...`);

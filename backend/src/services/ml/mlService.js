@@ -114,27 +114,31 @@ export class MLServiceBridge {
           `${ML_SERVICE_URL}/api/v1/ml/predict`,
           {
             user_id: req.userId,
+            model_type: req.modelType || "CURRENT_SELF",
             fen: req.fen,
             candidates: req.candidates,
             move_number: req.moveNumber || 1,
             game_phase: req.gamePhase || "MIDDLEGAME",
             model_version_id: req.modelVersionId,
           },
-          { timeout: 5000 },
+          { timeout: 8000 },
         )
-        .catch(() => null);
+        .catch((err) => {
+          console.warn("[MLServiceBridge] Prediction call failed:", err?.response?.data || err.message);
+          return null;
+        });
 
       if (response && response.data && response.data.recommendedMove) {
         return response.data;
       }
     } catch (err) {
-      console.warn("ML Service prediction endpoint fallback to candidate evaluation");
+      console.warn("ML Service prediction endpoint fallback to candidate evaluation:", err.message);
     }
 
     // Deterministic fallback to first Stockfish candidate when ML service is unavailable
     // This is NOT a model prediction — it is a Stockfish fallback and is labeled as such
     const fallbackMove = req.candidates && req.candidates.length > 0
-        ? (req.candidates[0].move || req.candidates[0])
+        ? (req.candidates[0].san || req.candidates[0].move)
         : null;
     
     if (!fallbackMove) {

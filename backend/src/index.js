@@ -33,8 +33,10 @@ import retrainingRoutes from "./routes/retraining.js";
 
 import { disconnectPrisma } from "./utils/prisma.js";
 import { closeRedis } from "./utils/redis.js";
+import { validateEnv } from "./config/env.js";
 
 dotenv.config();
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

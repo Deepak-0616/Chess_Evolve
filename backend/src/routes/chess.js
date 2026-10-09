@@ -131,12 +131,19 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
     // Fast-path: return cached enriched profile if fresh (< 20s old)
     const cached = enrichedProfileCache.get(userId);
     if (cached && Date.now() < cached.expiresAt) {
-      return res.json({ data: cached.data, chessProfile: cached.data });
+      return res.json({ data: cached.data, chessProfile: cached.data, profile: cached.data });
     }
 
-    const chessProfile = await prisma.chessProfile.findUnique({
+    let chessProfile = await prisma.chessProfile.findUnique({
       where: { userId },
     });
+
+    if (!chessProfile && req.user.email) {
+      chessProfile = await prisma.chessProfile.findFirst({
+        where: { user: { email: req.user.email } },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
 
     if (!chessProfile) {
       return res
@@ -353,7 +360,7 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       expiresAt: Date.now() + 20000,
     });
 
-    return res.json({ data: enrichedProfile, chessProfile: enrichedProfile });
+    return res.json({ data: enrichedProfile, chessProfile: enrichedProfile, profile: enrichedProfile });
   } catch (err) {
     return res
       .status(500)

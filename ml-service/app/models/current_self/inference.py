@@ -38,14 +38,21 @@ class CurrentSelfInferenceEngine:
         if cached:
             return cached["model"], cached["config"]
             
-        if not os.path.exists(artifact_path):
-            raise FileNotFoundError(f"Model artifact not found at {artifact_path}")
+        actual_path = artifact_path
+        if os.path.isdir(actual_path):
+            candidate = os.path.join(actual_path, "checkpoint_best.pt")
+            if os.path.exists(candidate):
+                actual_path = candidate
+
+        if not os.path.exists(actual_path):
+            raise FileNotFoundError(f"Model artifact not found at {actual_path}")
             
         config = CurrentSelfTrainingConfig()
         model = CurrentSelfModel(config).to(self.device)
         
-        checkpoint = torch.load(artifact_path, map_location=self.device)
-        model.load_state_dict(checkpoint["model_state_dict"])
+        checkpoint = torch.load(actual_path, map_location=self.device)
+        state_dict = checkpoint.get("model_state_dict", checkpoint) if isinstance(checkpoint, dict) else checkpoint
+        model.load_state_dict(state_dict)
         model.eval()
         
         self.cache.set(user_id, model_version, model, db_config)

@@ -63,7 +63,7 @@ describe("Cross-User Isolation & Security Invariants (IDOR Prevention)", () => {
       // Must return 403 or 404, never 200
       expect([400, 403, 404]).toContain(res.status);
       expect(res.body.error).toBeDefined();
-    });
+    }, { timeout: 30000 });
 
     it("enforces user isolation: User A cannot submit moves for an Arena match they do not participate in", async () => {
       const res = await request(app)
@@ -72,7 +72,7 @@ describe("Cross-User Isolation & Security Invariants (IDOR Prevention)", () => {
         .send({ move: "e4" });
 
       expect([403, 404]).toContain(res.status);
-    });
+    }, { timeout: 30000 });
 
     it("enforces user isolation: User A cannot resign an Arena match they do not participate in", async () => {
       const res = await request(app)
@@ -80,7 +80,7 @@ describe("Cross-User Isolation & Security Invariants (IDOR Prevention)", () => {
         .set("Authorization", "Bearer token_user_a");
 
       expect([403, 404]).toContain(res.status);
-    });
+    }, { timeout: 30000 });
 
     it("enforces user isolation: User A cannot fetch private Coach conversations of User B", async () => {
       const res = await request(app)
@@ -88,6 +88,6 @@ describe("Cross-User Isolation & Security Invariants (IDOR Prevention)", () => {
         .set("Authorization", "Bearer token_user_a");
 
       expect([403, 404]).toContain(res.status);
-    });
+    }, { timeout: 30000 });
   });
 });

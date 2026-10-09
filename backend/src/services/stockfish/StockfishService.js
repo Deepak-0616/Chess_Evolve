@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 import fs from "fs";
+import { Chess } from "chess.js";
 
 // Semaphore to limit concurrent Stockfish processes
 class ProcessSemaphore {
@@ -214,6 +215,67 @@ export class StockfishService {
       let isDone = false;
       const candidates = [];
 
+      const buildEnrichedCandidates = (rawCandidates) => {
+        let valid = rawCandidates.filter(Boolean);
+        if (valid.length === 0) {
+          try {
+            const fallbackChess = new Chess(fen);
+            const legalMoves = fallbackChess.moves({ verbose: true }).slice(0, safeMultiPv);
+            valid = legalMoves.map((m, idx) => ({
+              move: `${m.from}${m.to}${m.promotion || ""}`,
+              san: m.san,
+              score: 0.0,
+              rank: idx + 1,
+            }));
+          } catch {
+            return [];
+          }
+        }
+
+        // Sort by rank ascending
+        valid.sort((a, b) => (a.rank || 1) - (b.rank || 1));
+        const bestScore = valid.length > 0 ? valid[0].score : 0;
+
+        return valid.map((c, idx) => {
+          let san = c.san;
+          let isCapture = false;
+          let isCheck = false;
+          let isCastle = false;
+          let isPromotion = false;
+
+          try {
+            const probeChess = new Chess(fen);
+            const uci = c.move;
+            const from = uci.substring(0, 2);
+            const to = uci.substring(2, 4);
+            const promotion = uci.length > 4 ? uci.substring(4, 5) : undefined;
+            const moveObj = probeChess.move({ from, to, promotion });
+            if (moveObj) {
+              san = moveObj.san;
+              isCapture = Boolean(moveObj.captured);
+              isCheck = probeChess.inCheck();
+              isCastle = moveObj.flags.includes("k") || moveObj.flags.includes("q");
+              isPromotion = Boolean(moveObj.promotion);
+            }
+          } catch {}
+
+          const cpLoss = Math.max(0, Math.round((bestScore - c.score) * 100));
+
+          return {
+            move: c.move,
+            san: san || c.move,
+            score: c.score,
+            rank: idx + 1,
+            centipawn_loss: cpLoss,
+            cp_loss: cpLoss,
+            is_capture: isCapture,
+            is_check: isCheck,
+            is_castle: isCastle,
+            is_promotion: isPromotion,
+          };
+        });
+      };
+
       const cleanup = () => {
         if (!isDone) {
           isDone = true;
@@ -228,7 +290,7 @@ export class StockfishService {
 
       const timer = setTimeout(() => {
         cleanup();
-        resolve(candidates.filter(Boolean));
+        resolve(buildEnrichedCandidates(candidates));
       }, timeoutMs);
 
       try {
@@ -237,7 +299,7 @@ export class StockfishService {
         proc.on("error", () => {
           clearTimeout(timer);
           cleanup();
-          resolve([]);
+          resolve(buildEnrichedCandidates([]));
         });
 
         proc.stdout.on("data", (data) => {
@@ -265,20 +327,24 @@ export class StockfishService {
             } else if (line.startsWith("bestmove")) {
               clearTimeout(timer);
               cleanup();
-              resolve(candidates.filter(Boolean));
+              resolve(buildEnrichedCandidates(candidates));
               break;
             }
           }
         });
 
+        proc.stdin.write("uci\n");
         proc.stdin.write(`setoption name MultiPV value ${safeMultiPv}\n`);
+        proc.stdin.write("isready\n");
         proc.stdin.write(`position fen ${fen}\n`);
         proc.stdin.write(`go depth ${safeDepth}\n`);
       } catch {
         clearTimeout(timer);
         cleanup();
-        resolve([]);
+        resolve(buildEnrichedCandidates([]));
       }
     });
   }
 }
+
+export default StockfishService;

@@ -30,28 +30,44 @@ def predict(req: InferenceRequest):
     if not result:
         registry = ModelRegistry()
         with registry.engine.connect() as conn:
+            # 1. Look up by model_version_id if provided and has valid artifact
             if req.model_version_id:
                 query = """
                     SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
                     FROM "MLModelVersion"
-                    WHERE id = :mvid AND "userId" = :uid
+                    WHERE id = :mvid AND "artifactPath" IS NOT NULL
                 """
-                params = {"uid": req.user_id, "mvid": req.model_version_id}
-            else:
+                result = conn.execute(text(query), {"mvid": req.model_version_id}).first()
+
+            # 2. Look up by userId and modelType
+            if not result:
                 query = """
                     SELECT id, version, "artifactPath", "featureVersion", "datasetVersion", "dependentModelVersionId", "modelType"
                     FROM "MLModelVersion"
-                    WHERE "userId" = :uid AND "modelType" = :mtype AND status = 'READY'
+                    WHERE "userId" = :uid AND "modelType" = :mtype AND status IN ('ACTIVE', 'READY') AND "artifactPath" IS NOT NULL
                     ORDER BY version DESC LIMIT 1
                 """
-                params = {"uid": req.user_id, "mtype": req.model_type}
+                result = conn.execute(text(query), {"uid": req.user_id, "mtype": req.model_type}).first()
+
+            # 3. Look up by connected ChessProfile username for the player
+            if not result:
+                query = """
+                    SELECT m.id, m.version, m."artifactPath", m."featureVersion", m."datasetVersion", m."dependentModelVersionId", m."modelType"
+                    FROM "MLModelVersion" m
+                    JOIN "ChessProfile" cp ON cp."userId" = m."userId"
+                    WHERE LOWER(cp."chessUsername") = (
+                        SELECT LOWER(cp2."chessUsername") FROM "ChessProfile" cp2 WHERE cp2."userId" = :uid LIMIT 1
+                    )
+                    AND m."modelType" = :mtype AND m.status IN ('ACTIVE', 'READY') AND m."artifactPath" IS NOT NULL
+                    ORDER BY m.version DESC LIMIT 1
+                """
+                result = conn.execute(text(query), {"uid": req.user_id, "mtype": req.model_type}).first()
                 
-            result = conn.execute(text(query), params).first()
             if result:
                 _MODEL_CACHE[cache_key] = result
         
     if not result:
-        raise HTTPException(status_code=404, detail=f"No valid {req.model_type} model found for this request.")
+        raise HTTPException(status_code=404, detail=f"No trained {req.model_type} model with valid artifact found for player. Please synchronize games first.")
         
     model_version_id, version, artifact_path, feature_version, dataset_version, dependent_model_id, actual_model_type = result
     
@@ -120,19 +136,39 @@ def predict(req: InferenceRequest):
                 candidate_moves=cand_moves
             )
         elif actual_model_type == "PEAK_SELF":
-            if not dependent_model_id:
-                raise ValueError("Peak Self model is missing dependent Current Self model.")
-                
-            # Fetch dependent Current Self model
-            dep_result = _DEP_MODEL_CACHE.get(dependent_model_id)
-            if not dep_result:
+            dep_result = None
+            if dependent_model_id:
+                dep_result = _DEP_MODEL_CACHE.get(dependent_model_id)
+                if not dep_result:
+                    with registry.engine.connect() as conn:
+                        dep_result = conn.execute(text("""
+                            SELECT version, "artifactPath" FROM "MLModelVersion"
+                            WHERE id = :depid AND "artifactPath" IS NOT NULL
+                        """), {"depid": dependent_model_id}).first()
+                    if dep_result:
+                        _DEP_MODEL_CACHE[dependent_model_id] = dep_result
+
+            # If dependent model not found or has no artifact, resolve active Current Self for user or player
+            if not dep_result or not dep_result[1]:
                 with registry.engine.connect() as conn:
-                    dep_result = conn.execute(text("""
-                        SELECT version, "artifactPath" FROM "MLModelVersion" WHERE id = :depid
-                    """), {"depid": dependent_model_id}).first()
-                if dep_result:
-                    _DEP_MODEL_CACHE[dependent_model_id] = dep_result
-                    
+                    dep_row = conn.execute(text("""
+                        SELECT version, "artifactPath" FROM "MLModelVersion"
+                        WHERE "userId" = :uid AND "modelType" = 'CURRENT_SELF' AND status IN ('ACTIVE', 'READY') AND "artifactPath" IS NOT NULL
+                        ORDER BY version DESC LIMIT 1
+                    """), {"uid": req.user_id}).first()
+                    if not dep_row:
+                        dep_row = conn.execute(text("""
+                            SELECT m.version, m."artifactPath" FROM "MLModelVersion" m
+                            JOIN "ChessProfile" cp ON cp."userId" = m."userId"
+                            WHERE LOWER(cp."chessUsername") = (
+                                SELECT LOWER(cp2."chessUsername") FROM "ChessProfile" cp2 WHERE cp2."userId" = :uid LIMIT 1
+                            )
+                            AND m."modelType" = 'CURRENT_SELF' AND m.status IN ('ACTIVE', 'READY') AND m."artifactPath" IS NOT NULL
+                            ORDER BY m.version DESC LIMIT 1
+                        """), {"uid": req.user_id}).first()
+                    if dep_row:
+                        dep_result = dep_row
+
             if not dep_result or not dep_result[1]:
                 raise ValueError("Dependent Current Self model artifact not found.")
             dep_version, dep_artifact_path = dep_result

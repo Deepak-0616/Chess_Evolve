@@ -18,10 +18,17 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
       return res.json(cached.data);
     }
 
-    const models = await prisma.mLModelVersion.findMany({
+    let models = await prisma.mLModelVersion.findMany({
       where: { userId },
       orderBy: { version: "desc" },
     });
+
+    if (models.length === 0 && req.user.email) {
+      models = await prisma.mLModelVersion.findMany({
+        where: { user: { email: req.user.email } },
+        orderBy: { version: "desc" },
+      });
+    }
 
     const currentSelf = models.find((m) => m.modelType === "CURRENT_SELF");
     const peakSelf = models.find((m) => m.modelType === "PEAK_SELF");

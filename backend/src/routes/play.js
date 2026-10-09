@@ -15,11 +15,12 @@ router.post("/sessions", authenticateSupabaseUser, async (req, res) => {
       req.body;
 
     // Section 34: Resolve ACTIVE Current Self / Peak Self model only
-    const model = (await prisma.mLModelVersion.findFirst({
+    let model = (await prisma.mLModelVersion.findFirst({
       where: {
         userId,
         modelType: opponentModelType,
         isActive: true,
+        artifactPath: { not: null },
       },
       orderBy: { version: "desc" },
     })) || (await prisma.mLModelVersion.findFirst({
@@ -27,13 +28,62 @@ router.post("/sessions", authenticateSupabaseUser, async (req, res) => {
         userId,
         modelType: opponentModelType,
         status: { in: ["ACTIVE", "READY"] },
+        artifactPath: { not: null },
       },
       orderBy: { version: "desc" },
     }));
 
+    // If current session row has no artifactPath, resolve by player's connected ChessProfile username or email
+    if (!model) {
+      let profile = await prisma.chessProfile.findUnique({ where: { userId } });
+      if (!profile && req.user.email) {
+        profile = await prisma.chessProfile.findFirst({
+          where: { user: { email: req.user.email } },
+          orderBy: { updatedAt: "desc" },
+        });
+      }
+
+      if (profile && profile.chessUsername) {
+        const playerModel = await prisma.mLModelVersion.findFirst({
+          where: {
+            user: {
+              chessProfile: {
+                chessUsername: {
+                  equals: profile.chessUsername,
+                  mode: "insensitive",
+                },
+              },
+            },
+            modelType: opponentModelType,
+            status: { in: ["ACTIVE", "READY"] },
+            artifactPath: { not: null },
+          },
+          orderBy: { version: "desc" },
+        });
+        if (playerModel) {
+          model = playerModel;
+        }
+      }
+
+      if (!model && req.user.email) {
+        const emailModel = await prisma.mLModelVersion.findFirst({
+          where: {
+            user: { email: req.user.email },
+            modelType: opponentModelType,
+            status: { in: ["ACTIVE", "READY"] },
+            artifactPath: { not: null },
+          },
+          orderBy: { version: "desc" },
+        });
+        if (emailModel) {
+          model = emailModel;
+        }
+      }
+    }
+
     if (!model) {
       return res.status(400).json({
-        error: `Your ${opponentModelType} model is not trained yet. Connect Chess.com and run synchronization first.`,
+        error: `Your ${opponentModelType} model is not ready yet. Please ensure your Chess.com games are synced and models trained.`,
       });
     }
 
@@ -69,8 +119,21 @@ router.post("/sessions", authenticateSupabaseUser, async (req, res) => {
         moveNumber: 1
       });
 
-      const aiMove = prediction.recommendedMove || "e4";
-      chess.move(aiMove);
+      const rawAiMove = prediction.recommendedMove || (candidates.length > 0 ? (candidates[0].san || candidates[0].move) : "e4");
+      let aiMoveObj = null;
+      try {
+        aiMoveObj = chess.move(rawAiMove);
+      } catch {
+        try {
+          const from = rawAiMove.substring(0, 2);
+          const to = rawAiMove.substring(2, 4);
+          const promotion = rawAiMove.length > 4 ? rawAiMove.substring(4, 5) : undefined;
+          aiMoveObj = chess.move({ from, to, promotion });
+        } catch {
+          aiMoveObj = chess.move(chess.moves()[0] || "e4");
+        }
+      }
+      const aiMove = aiMoveObj ? aiMoveObj.san : "e4";
 
       const updatedSession = await prisma.playSession.update({
         where: { id: session.id },
@@ -193,13 +256,19 @@ router.post(
         moveNumber: Math.floor(chess.moveNumber())
       });
 
-      const aiMoveSan = prediction.recommendedMove || (candidates.length > 0 ? candidates[0].move : chess.moves()[0]);
-      let aiMoveObj;
+      const rawAiMove = prediction.recommendedMove || (candidates.length > 0 ? (candidates[0].san || candidates[0].move) : chess.moves()[0]);
+      let aiMoveObj = null;
       try {
-        aiMoveObj = chess.move(aiMoveSan);
-      } catch (e) {
-        // Fallback to first legal move if AI chose an invalid move due to some error
-        aiMoveObj = chess.move(chess.moves()[0]);
+        aiMoveObj = chess.move(rawAiMove);
+      } catch {
+        try {
+          const from = rawAiMove.substring(0, 2);
+          const to = rawAiMove.substring(2, 4);
+          const promotion = rawAiMove.length > 4 ? rawAiMove.substring(4, 5) : undefined;
+          aiMoveObj = chess.move({ from, to, promotion });
+        } catch {
+          aiMoveObj = chess.move(chess.moves()[0]);
+        }
       }
 
       currentHistory.push({

@@ -1,11 +1,13 @@
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+dotenv.config();
 
 async function verifyAll() {
-  const userId = 'b43cdda0-f3a1-4d17-8a60-d18d827e4b29';
-  const email = 'deepaksabari0616@gmail.com';
+  const userId = process.env.TEST_USER_ID || '00000000-0000-0000-0000-000000000001';
+  const email = process.env.TEST_EMAIL || 'test-player@chessevolve.local';
 
   // Generate a valid mock Supabase Auth JWT token for local testing
-  const jwtSecret = 'super-secret-jwt-token-with-at-least-32-characters-in-it';
+  const jwtSecret = process.env.JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-in-it';
   const token = jwt.sign(
     { sub: userId, email, aud: 'authenticated', role: 'authenticated' },
     jwtSecret,

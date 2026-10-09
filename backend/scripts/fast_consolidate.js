@@ -2,8 +2,13 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function run() {
-  const oldUserId = 'b2ea5969-f4a9-4fb6-9228-10a3bd42adcf';
-  const newUserId = 'b43cdda0-f3a1-4d17-8a60-d18d827e4b29';
+  const oldUserId = process.argv[2] || process.env.OLD_USER_ID;
+  const newUserId = process.argv[3] || process.env.NEW_USER_ID;
+
+  if (!oldUserId || !newUserId) {
+    console.error('Usage: node fast_consolidate.js <OLD_USER_ID> <NEW_USER_ID>');
+    process.exit(1);
+  }
 
   console.log(`Starting fast consolidation from ${oldUserId} to ${newUserId}...`);
 

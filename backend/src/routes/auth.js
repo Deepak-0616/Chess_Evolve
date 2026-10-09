@@ -21,6 +21,16 @@ router.get("/me", authenticateSupabaseUser, async (req, res) => {
       return res.status(404).json({ error: "User record not found" });
     }
 
+    if (!user.chessProfile && req.user.email) {
+      const emailUser = await prisma.user.findFirst({
+        where: { email: req.user.email, chessProfile: { isNot: null } },
+        include: { chessProfile: true },
+      });
+      if (emailUser?.chessProfile) {
+        user.chessProfile = emailUser.chessProfile;
+      }
+    }
+
     return res.json({ user });
   } catch (err) {
     return res

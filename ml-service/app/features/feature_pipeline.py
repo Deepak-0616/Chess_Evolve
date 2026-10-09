@@ -11,41 +11,74 @@ from .feature_schema import (
 # For now, we implement a simple placeholder logic for feature extraction that fulfills the structural requirement.
 # As instructed, we keep it deterministic and structured.
 
+import chess
+
 def extract_position_features(fen: str, move_number: int, game_phase: str) -> PositionFeatures:
-    parts = fen.split(" ")
-    turn = 1 if parts[1] == "w" else 0
+    try:
+        board = chess.Board(fen)
+    except Exception:
+        board = chess.Board()
+    turn = 1 if board.turn == chess.WHITE else 0
+
+    piece_vals = {
+        chess.PAWN: 1.0,
+        chess.KNIGHT: 3.0,
+        chess.BISHOP: 3.0,
+        chess.ROOK: 5.0,
+        chess.QUEEN: 9.0
+    }
+
+    w_mat = sum(len(board.pieces(pt, chess.WHITE)) * val for pt, val in piece_vals.items())
+    b_mat = sum(len(board.pieces(pt, chess.BLACK)) * val for pt, val in piece_vals.items())
+    mat_bal = w_mat - b_mat
+
+    w_pieces = sum(len(board.pieces(pt, chess.WHITE)) for pt in piece_vals.keys())
+    b_pieces = sum(len(board.pieces(pt, chess.BLACK)) for pt in piece_vals.keys())
+    w_pawns = len(board.pieces(chess.PAWN, chess.WHITE))
+    b_pawns = len(board.pieces(chess.PAWN, chess.BLACK))
+
+    legal_moves_count = board.legal_moves.count()
+    w_legal = legal_moves_count if board.turn == chess.WHITE else 20
+    b_legal = legal_moves_count if board.turn == chess.BLACK else 20
+    mobility_diff = float(w_legal - b_legal)
+
+    center_squares = [chess.E4, chess.D4, chess.E5, chess.D5]
+    center_control = sum(len(board.attackers(chess.WHITE, sq)) - len(board.attackers(chess.BLACK, sq)) for sq in center_squares) * 10.0 + 50.0
+    center_control = max(0.0, min(100.0, center_control))
+
     return PositionFeatures(
-        material_balance=0.0,
-        white_material=0.0,
-        black_material=0.0,
-        white_piece_count=16,
-        black_piece_count=16,
-        white_pawn_count=8,
-        black_pawn_count=8,
-        white_legal_moves=20,
-        black_legal_moves=20,
-        mobility_difference=0.0,
+        material_balance=float(mat_bal),
+        white_material=float(w_mat),
+        black_material=float(b_mat),
+        white_piece_count=w_pieces,
+        black_piece_count=b_pieces,
+        white_pawn_count=w_pawns,
+        black_pawn_count=b_pawns,
+        white_legal_moves=float(w_legal),
+        black_legal_moves=float(b_legal),
+        mobility_difference=mobility_diff,
         game_phase=game_phase,
         move_number=move_number,
         side_to_move=turn,
         king_safety=100.0,
-        center_control=50.0
+        center_control=center_control
     )
 
 def extract_candidate_features(cand: Dict[str, Any]) -> CandidateFeatures:
-    # cand would be a parsed JSON dictionary of the candidate move from Stockfish
+    # cand is a parsed dictionary of the candidate move from Stockfish / engine
+    cp_loss = cand.get("cp_loss", cand.get("centipawn_loss", 0.0))
     return CandidateFeatures(
         engine_rank=cand.get("rank", 1),
         engine_score=cand.get("score", 0.0),
-        centipawn_loss=cand.get("cp_loss", 0.0),
-        is_capture=False,
-        is_check=False,
-        is_castle=False,
-        is_promotion=False,
-        is_sacrifice=False,
-        material_change=0.0,
-        tactical_score=50.0,
-        positional_score=50.0
+        centipawn_loss=float(cp_loss),
+        is_capture=bool(cand.get("is_capture", False)),
+        is_check=bool(cand.get("is_check", False)),
+        is_castle=bool(cand.get("is_castle", False)),
+        is_promotion=bool(cand.get("is_promotion", False)),
+        is_sacrifice=bool(cand.get("is_sacrifice", False)),
+        material_change=float(cand.get("material_change", 0.0)),
+        tactical_score=float(cand.get("tactical_score", 50.0)),
+        positional_score=float(cand.get("positional_score", 50.0))
     )
 
 def extract_features_for_batch(batch: List[Dict[str, Any]], feature_version: str = "v1") -> List[Dict[str, Any]]:

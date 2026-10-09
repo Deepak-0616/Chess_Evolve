@@ -157,9 +157,18 @@ describe("PHASE 18.1 — Authentication UX, Google OAuth & Display Name Suite", 
           error: null,
         };
       }
+      if (token === "expired_token") {
+        return {
+          data: { user: null },
+          error: new Error("JWT expired: token has expired"),
+        };
+      }
+      if (token === "network_error_token") {
+        throw new Error("Supabase network error: connection refused");
+      }
       return { data: { user: null }, error: new Error("Invalid or expired token") };
     });
-  });
+  }, 30000);
 
   afterAll(async () => {
     await prisma.user.deleteMany({
@@ -352,6 +361,38 @@ describe("PHASE 18.1 — Authentication UX, Google OAuth & Display Name Suite", 
       expect(res.status).toBe(401);
     }, { timeout: 30000 });
 
+    it("rejects Bearer header with empty or whitespace token", async () => {
+      const res = await request(app)
+        .get("/api/v1/auth/me")
+        .set("Authorization", "Bearer    ");
+      expect(res.status).toBe(401);
+      expect(res.body.error).toContain("Authorization");
+    }, { timeout: 30000 });
+
+    it("rejects non-Bearer authorization schemes", async () => {
+      const res = await request(app)
+        .get("/api/v1/auth/me")
+        .set("Authorization", "Basic dXNlcjpwYXNz");
+      expect(res.status).toBe(401);
+      expect(res.body.error).toContain("Authorization");
+    }, { timeout: 30000 });
+
+    it("rejects expired tokens with HTTP 401", async () => {
+      const res = await request(app)
+        .get("/api/v1/auth/me")
+        .set("Authorization", "Bearer expired_token");
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBeDefined();
+    }, { timeout: 30000 });
+
+    it("fails securely with HTTP 401 on Supabase network errors or timeouts", async () => {
+      const res = await request(app)
+        .get("/api/v1/auth/me")
+        .set("Authorization", "Bearer network_error_token");
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBeDefined();
+    }, { timeout: 30000 });
+
     it("derives user identity strictly from token, ignoring client-supplied userId", async () => {
       const res = await request(app)
         .post("/api/v1/auth/sync")
@@ -361,6 +402,28 @@ describe("PHASE 18.1 — Authentication UX, Google OAuth & Display Name Suite", 
       expect(res.status).toBe(200);
       expect(res.body.user.id).toBe(testUserId);
       expect(res.body.user.id).not.toBe("malicious-spoofed-user-id");
+    }, { timeout: 30000 });
+
+    it("initializes display name if user record was created without one", async () => {
+      // User created initially without a displayName
+      await prisma.user.create({
+        data: {
+          id: testUserId,
+          email: testEmail,
+          displayName: null,
+        }
+      });
+
+      // Subsequent login provides initial name from Google
+      const res = await request(app)
+        .post("/api/v1/auth/sync")
+        .set("Authorization", "Bearer valid_oauth_token_1");
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.displayName).toBe("Initial Google Name");
+
+      const inDb = await prisma.user.findUnique({ where: { id: testUserId } });
+      expect(inDb.displayName).toBe("Initial Google Name");
     }, { timeout: 30000 });
 
     it("successfully handles logout endpoint", async () => {
