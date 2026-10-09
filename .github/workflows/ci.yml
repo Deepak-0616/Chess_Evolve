@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+
 jobs:
   ci-pipeline:
     name: Full CI Pipeline (Node 22, Postgres 16, Python 3.10)
@@ -27,12 +30,12 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/chess_evolve_test' }}
-      DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/chess_evolve_test' }}
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test
+      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test
       NODE_ENV: test
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://placeholder.supabase.co' }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-key-32-characters-long-chess-evolve' }}
+      SUPABASE_URL: https://placeholder.supabase.co
+      SUPABASE_ANON_KEY: placeholder-anon-key
+      JWT_SECRET: test-jwt-secret-key-32-characters-long-chess-evolve
 
     steps:
       - name: Checkout Code
@@ -82,21 +85,35 @@ jobs:
         working-directory: ml-service
         run: python -m pytest app/tests
 
-      - name: Secret Scan (Self-Pattern Excluded)
+      - name: Automated Secret Scan
         run: |
-          echo "Scanning repository for leaked private keys and secrets..."
-          # Prevent grep from matching its own pattern by:
-          # 1. Composing search tokens dynamically so this script file does not contain literal target substrings
-          # 2. Explicitly excluding the .github directory, markdown docs, and sample environment templates
+          echo "Scanning repository for leaked private keys, connection strings, and credentials..."
+          # Prevent grep from matching its own pattern by composing search tokens dynamically:
           KEY_HEADER="-----BEGIN"
           KEY_FOOTER="PRIVATE KEY-----"
-          PATTERN="${KEY_HEADER}[ A-Z]*${KEY_FOOTER}"
+          PAT_KEY="${KEY_HEADER}[ A-Z]*${KEY_FOOTER}"
 
-          if git grep -I -n -E -e "$PATTERN" -- ':!.github/*' ':!*.md' ':!*.example' ':!*.sample' ':!*.test.*'; then
-            echo "::error::Private key or credential detected in codebase!"
+          DB_PROTO="postgresql://"
+          PAT_DB="${DB_PROTO}[^: ]+:[^@ ]+@[^/ ]*supabase\.com"
+
+          AWS_PREFIX="AKIA"
+          PAT_AWS="(A3T[A-Z0-9]|${AWS_PREFIX}|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"
+
+          OPENAI_PREFIX="sk-"
+          PAT_OPENAI="${OPENAI_PREFIX}[a-zA-Z0-9]{32,}"
+
+          FAILED=0
+          for PAT in "$PAT_KEY" "$PAT_DB" "$PAT_AWS" "$PAT_OPENAI"; do
+            if git grep -I -n -E -e "$PAT" -- ':!.github/*' ':!*.md' ':!*.example' ':!*.sample'; then
+              echo "::error::Credential or secret pattern detected in repository!"
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
             exit 1
           fi
-          echo "Secret scan passed: No leaked secrets or private keys detected."
+          echo "Secret scan passed: No leaked secrets, credentials, or private keys detected."
 
   frontend-build:
     name: Frontend Production Build (Node 22)
