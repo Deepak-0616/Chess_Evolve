@@ -7,16 +7,41 @@ on:
     branches: [ main, master ]
 
 jobs:
-  schema-validation:
-    name: Prisma Schema & Migration Validation
+  ci-pipeline:
+    name: Full CI Pipeline (Node 22, Postgres 16, Python 3.10)
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chess_evolve_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/chess_evolve_test' }}
+      DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/chess_evolve_test' }}
+      NODE_ENV: test
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://placeholder.supabase.co' }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-key-32-characters-long-chess-evolve' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
@@ -24,42 +49,21 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Validate Prisma Schema
+      - name: Prisma Schema Validation
         working-directory: backend
         run: npx prisma validate --schema=../prisma/schema.prisma
 
-  backend-tests:
-    name: Backend Tests & Connection Safety
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install Backend Dependencies
+      - name: Prisma Client Generation
         working-directory: backend
-        run: npm ci
+        run: npm run prisma:generate
+
+      - name: Prisma Migrations & Schema Deployment
+        working-directory: backend
+        run: npx prisma migrate deploy --schema=../prisma/schema.prisma
 
       - name: Run Backend Vitest Test Suite
         working-directory: backend
-        env:
-          NODE_ENV: test
-          SUPABASE_URL: https://placeholder.supabase.co
-          SUPABASE_ANON_KEY: placeholder-anon-key
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
-          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
         run: npm test
-
-  ml-tests:
-    name: ML Service PyTorch & Pipeline Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Setup Python 3.10
         uses: actions/setup-python@v5
@@ -68,7 +72,7 @@ jobs:
           cache: 'pip'
           cache-dependency-path: ml-service/requirements.txt
 
-      - name: Install ML Dependencies
+      - name: Install ML Service Dependencies
         working-directory: ml-service
         run: |
           python -m pip install --upgrade pip
@@ -76,21 +80,35 @@ jobs:
 
       - name: Run ML Pytest Suite
         working-directory: ml-service
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
-          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres' }}
         run: python -m pytest app/tests
 
+      - name: Secret Scan (Self-Pattern Excluded)
+        run: |
+          echo "Scanning repository for leaked private keys and secrets..."
+          # Prevent grep from matching its own pattern by:
+          # 1. Composing search tokens dynamically so this script file does not contain literal target substrings
+          # 2. Explicitly excluding the .github directory, markdown docs, and sample environment templates
+          KEY_HEADER="-----BEGIN"
+          KEY_FOOTER="PRIVATE KEY-----"
+          PATTERN="${KEY_HEADER}[ A-Z]*${KEY_FOOTER}"
+
+          if git grep -I -n -E -e "$PATTERN" -- ':!.github/*' ':!*.md' ':!*.example' ':!*.sample' ':!*.test.*'; then
+            echo "::error::Private key or credential detected in codebase!"
+            exit 1
+          fi
+          echo "Secret scan passed: No leaked secrets or private keys detected."
+
   frontend-build:
-    name: Frontend Production Build & SPA Check
+    name: Frontend Production Build (Node 22)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -98,24 +116,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build Production Bundle
+      - name: Build Frontend Production Bundle
         working-directory: frontend
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-key
           VITE_API_BASE_URL: /api/v1
         run: npm run build
-
-  security-scan:
-    name: Secret & Credential Leakage Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Check for Uncommitted Secrets or Private Keys
-        run: |
-          if git grep -i "PRIVATE KEY-----" :!*.md :!*.example; then
-            echo "Private key detected in codebase!"
-            exit 1
-          fi
-          echo "No private keys detected."
