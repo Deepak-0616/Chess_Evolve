@@ -92,15 +92,22 @@ export const clearClientDashboardCache = () => {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState(clientDashboardCache?.profile || null);
+  const { user, chessProfile, refreshChessProfile } = useAuth();
+  const [profile, setProfile] = useState(clientDashboardCache?.profile || chessProfile || null);
   const [dna, setDna] = useState(clientDashboardCache?.dna || null);
   const [models, setModels] = useState(clientDashboardCache?.models || null);
-  const [pageLoading, setPageLoading] = useState(!clientDashboardCache);
+  const [pageLoading, setPageLoading] = useState(!clientDashboardCache && !chessProfile);
   const [syncStatus, setSyncStatus] = useState('idle');
   const [timeControl, setTimeControl] = useState('all');
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
+
+  useEffect(() => {
+    if (chessProfile && (!profile || profile.chessUsername !== chessProfile.chessUsername)) {
+      setProfile(chessProfile);
+      setPageLoading(false);
+    }
+  }, [chessProfile, profile]);
 
   useEffect(() => {
     let isMounted = true;

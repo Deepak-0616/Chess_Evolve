@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Link2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { getGames } from '../api';
 
 const ResultBadge = ({ result, resultText, isWhite }) => {
@@ -19,6 +21,7 @@ const ResultBadge = ({ result, resultText, isWhite }) => {
 };
 
 const Games = () => {
+  const { chessProfile } = useAuth();
   const [games, setGames] = useState([]);
   const [totalGames, setTotalGames] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -72,9 +75,18 @@ const Games = () => {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold font-display" style={{ color: '#F3EFE6' }}>Game History</h2>
+        <div className="flex items-center space-x-2.5">
+          <h2 className="text-xl font-bold font-display" style={{ color: '#F3EFE6' }}>
+            {chessProfile?.chessUsername ? `Games for @${chessProfile.chessUsername}` : 'Game History'}
+          </h2>
+          {chessProfile?.chessUsername && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-300 border border-amber-500/25">
+              Synced
+            </span>
+          )}
+        </div>
         <p className="text-sm mt-0.5" style={{ color: '#7E8092' }}>
-          {totalGames > 0 ? `Browse and analyze your ${totalGames.toLocaleString()} chess games` : 'Browse and analyze your chess games'}
+          {totalGames > 0 ? `Browse and analyze your ${totalGames.toLocaleString()} imported chess games` : 'Browse and analyze your chess games'}
         </p>
       </div>
 

@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Brain, Bot, Lightbulb, Activity, ArrowRight, ShieldAlert, Zap, Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { sendCoachMessage, getCoachInsights, getGames } from '../api';
 
 const Coach = () => {
+  const { chessProfile } = useAuth();
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hello. I'm your personalized Chess Evolve Coach. I analyze your DNA and games. What would you like to improve today?" }
+    { role: 'assistant', content: chessProfile?.chessUsername ? `Hello @${chessProfile.chessUsername}! I'm your personalized Chess Evolve Coach. I analyze your DNA and games. What would you like to improve today?` : "Hello. I'm your personalized Chess Evolve Coach. I analyze your DNA and games. What would you like to improve today?" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -79,7 +81,16 @@ const Coach = () => {
           <Brain size={24} style={{ color: '#D4B46A' }} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold font-display" style={{ color: '#F3EFE6' }}>Personalized AI Coach</h1>
+          <div className="flex items-center space-x-2.5">
+            <h1 className="text-2xl font-bold font-display" style={{ color: '#F3EFE6' }}>
+              {chessProfile?.chessUsername ? `AI Coach for @${chessProfile.chessUsername}` : 'Personalized AI Coach'}
+            </h1>
+            {chessProfile?.chessUsername && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                Synced
+              </span>
+            )}
+          </div>
           <p className="text-sm" style={{ color: '#7E8092' }}>Evidence-based improvement tailored to your exact playstyle</p>
         </div>
       </div>

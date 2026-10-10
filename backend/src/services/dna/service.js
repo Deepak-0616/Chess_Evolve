@@ -5,7 +5,7 @@ export class ChessDnaService {
    * Generates dynamic Chess DNA metrics from user's actual analyzed games in DB.
    */
   static async generateDnaForUser(userId) {
-    const userProfile = await prisma.chessProfile.findUnique({
+    let userProfile = await prisma.chessProfile.findUnique({
       where: { userId },
       include: {
         games: {
@@ -19,6 +19,33 @@ export class ChessDnaService {
         },
       },
     });
+
+    if (!userProfile || userProfile.games.length === 0) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      if (user?.email) {
+        const altProfile = await prisma.chessProfile.findFirst({
+          where: {
+            user: { email: user.email },
+            games: { some: {} },
+          },
+          include: {
+            games: {
+              where: { analyzed: true },
+              include: {
+                gameAnalysis: true,
+                positionAnalyses: {
+                  where: { playerMove: true },
+                },
+              },
+            },
+          },
+          orderBy: { updatedAt: "desc" },
+        });
+        if (altProfile && altProfile.games.length > 0) {
+          userProfile = altProfile;
+        }
+      }
+    }
 
     if (!userProfile || userProfile.games.length === 0) {
       // Return balanced initial default baseline metrics when no data exists yet

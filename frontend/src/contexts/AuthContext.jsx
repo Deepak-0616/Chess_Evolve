@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { apiClient, setAuthToken } from '../api/client';
 import { validateDisplayName, validateEmail, validatePassword } from '../utils/authUtils';
@@ -10,10 +10,25 @@ export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+const PROFILE_STORAGE_KEY = 'chess_evolve_profile_cache';
+
+const getInitialProfile = () => {
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 const AuthContext = createContext({
   user: null,
   session: null,
   loading: true,
+  chessProfile: null,
+  profileLoading: false,
+  refreshChessProfile: async () => {},
+  updateLocalChessProfile: () => {},
   signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
@@ -25,6 +40,60 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [chessProfile, setChessProfile] = useState(getInitialProfile);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const refreshChessProfile = useCallback(async () => {
+    try {
+      setProfileLoading(true);
+      const res = await apiClient.get('/chess/profile', { skipCache: true });
+      const p = res.data?.chessProfile || res.data?.data || res.data?.profile || res.data;
+      if (p && typeof p === 'object' && p.chessUsername) {
+        setChessProfile(p);
+        try {
+          localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(p));
+        } catch {}
+        return p;
+      }
+    } catch {
+      // Fallback: query /profile
+      try {
+        const profRes = await apiClient.get('/profile', { skipCache: true });
+        const prof = profRes.data?.profile || profRes.data?.data;
+        if (prof?.chessUsername) {
+          const formatted = {
+            chessUsername: prof.chessUsername,
+            avatarUrl: prof.avatarUrl,
+            rating: prof.peakRating,
+            totalGames: prof.totalGames,
+            ...prof,
+          };
+          setChessProfile(formatted);
+          try {
+            localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(formatted));
+          } catch {}
+          return formatted;
+        }
+      } catch {}
+    } finally {
+      setProfileLoading(false);
+    }
+    return null;
+  }, []);
+
+  const updateLocalChessProfile = useCallback((updated) => {
+    setChessProfile((prev) => {
+      const merged = updated ? { ...(prev || {}), ...updated } : null;
+      try {
+        if (merged) {
+          localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
+        } else {
+          localStorage.removeItem(PROFILE_STORAGE_KEY);
+        }
+      } catch {}
+      return merged;
+    });
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -40,6 +109,8 @@ export const AuthProvider = ({ children }) => {
           setSession(session);
           setUser(session.user);
           setAuthToken(session.access_token);
+          // Refresh profile in background while instant cache is already in state
+          refreshChessProfile();
         }
       } catch (err) {
         console.warn('Error reading Supabase session:', err);
@@ -55,14 +126,23 @@ export const AuthProvider = ({ children }) => {
       setUser(newSession?.user || null);
       setAuthToken(newSession?.access_token || null);
       setLoading(false);
+      if (newSession) {
+        refreshChessProfile();
+      } else {
+        setChessProfile(null);
+        try {
+          localStorage.removeItem(PROFILE_STORAGE_KEY);
+        } catch {}
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [refreshChessProfile]);
 
   const syncUserProfile = async () => {
     try {
       const res = await apiClient.post('/auth/sync');
+      await refreshChessProfile();
       return res.data;
     } catch (err) {
       console.warn('Backend sync notification:', err.message);
@@ -105,6 +185,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       setAuthToken(data.session.access_token);
       await syncUserProfile();
+      await refreshChessProfile();
     }
     return data;
   };
@@ -137,6 +218,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       setAuthToken(data.session.access_token);
       await syncUserProfile();
+      await refreshChessProfile();
     }
 
     return {
@@ -157,6 +239,10 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(null);
     setSession(null);
+    setChessProfile(null);
+    try {
+      localStorage.removeItem(PROFILE_STORAGE_KEY);
+    } catch {}
     setAuthToken(null);
   };
 
@@ -166,6 +252,10 @@ export const AuthProvider = ({ children }) => {
         user,
         session,
         loading,
+        chessProfile,
+        profileLoading,
+        refreshChessProfile,
+        updateLocalChessProfile,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,

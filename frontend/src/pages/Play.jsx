@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
-import { Swords, RotateCcw, Flag, Brain, Sparkles, User, AlertCircle, CheckCircle2, Palette, Link as LinkIcon } from 'lucide-react';
+import { Swords, RotateCcw, Flag, Brain, Sparkles, User, AlertCircle, CheckCircle2, Palette, Link as LinkIcon, Volume2 } from 'lucide-react';
 import { makeMove, createPlaySession, getChessProfile, getModels, getMe } from '../api';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const BOARD_THEMES = {
   tournament: {
@@ -59,7 +60,44 @@ const MoveList = ({ history }) => (
   </div>
 );
 
+const playSound = (type = 'move') => {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    if (type === 'capture') {
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } else if (type === 'check') {
+      osc.frequency.setValueAtTime(580, now);
+      osc.frequency.setValueAtTime(740, now + 0.08);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else {
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.07);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      osc.start(now);
+      osc.stop(now + 0.07);
+    }
+  } catch {}
+};
+
 const Play = () => {
+  const { chessProfile } = useAuth();
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState('start');
   const queryParams = new URLSearchParams(window.location.search);
@@ -76,9 +114,15 @@ const Play = () => {
   const [playerColor, setPlayerColor] = useState('white');
   const [orientation, setOrientation] = useState('white');
   const [errorMsg, setErrorMsg] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(chessProfile || null);
   const [models, setModels] = useState([]);
   const [lastAiDecision, setLastAiDecision] = useState(null);
+
+  useEffect(() => {
+    if (chessProfile && (!profile || profile.chessUsername !== chessProfile.chessUsername)) {
+      setProfile(chessProfile);
+    }
+  }, [chessProfile, profile]);
 
   useEffect(() => {
     getChessProfile()
@@ -156,6 +200,7 @@ const Play = () => {
           setFen(newGame.fen());
           setLastMove({ from: move.from, to: move.to });
           setHistory([move.san]);
+          playSound(move.captured ? 'capture' : (newGame.inCheck() ? 'check' : 'move'));
           if (res.data.prediction) {
             setLastAiDecision({
               move: move.san,
@@ -209,6 +254,7 @@ const Play = () => {
           setFen(currentGame.fen());
           setLastMove({ from: move.from, to: move.to });
           setHistory(prev => [...prev, move.san]);
+          playSound(move.captured ? 'capture' : (currentGame.inCheck() ? 'check' : 'move'));
           checkGameEnd(currentGame);
 
           if (res.data?.prediction) {
@@ -250,6 +296,7 @@ const Play = () => {
       setLastMove({ from: sourceSquare, to: targetSquare });
       setHistory(prev => [...prev, move.san]);
       setSelectedSquare(null);
+      playSound(move.captured ? 'capture' : (newGame.inCheck() ? 'check' : 'move'));
 
       if (newGame.isGameOver()) {
         checkGameEnd(newGame);

@@ -10,15 +10,47 @@ export class TrainingService {
    */
   static MINIMUM_POSITIONS = 5;
 
+  static async resolveUserProfile(userId) {
+    let profile = await prisma.chessProfile.findUnique({
+      where: { userId },
+      select: { id: true, chessUsername: true },
+    });
+
+    if (!profile) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      if (user?.email) {
+        profile = await prisma.chessProfile.findFirst({
+          where: { user: { email: user.email } },
+          select: { id: true, chessUsername: true },
+          orderBy: { updatedAt: "desc" },
+        });
+      }
+    }
+
+    if (profile) {
+      const count = await prisma.game.count({ where: { chessProfileId: profile.id } });
+      if (count === 0 && profile.chessUsername) {
+        const alt = await prisma.chessProfile.findFirst({
+          where: {
+            chessUsername: { equals: profile.chessUsername, mode: "insensitive" },
+            games: { some: {} },
+          },
+          select: { id: true, chessUsername: true },
+          orderBy: { updatedAt: "desc" },
+        });
+        if (alt) profile = alt;
+      }
+    }
+
+    return profile;
+  }
+
   /**
    * Get user's training overview, active plan, weaknesses, and progress
    */
   static async getOverview(userId) {
     // 1. Check user profile and analyzed game data
-    const profile = await prisma.chessProfile.findUnique({
-      where: { userId },
-      select: { id: true, chessUsername: true },
-    });
+    const profile = await TrainingService.resolveUserProfile(userId);
 
     if (!profile) {
       return {
@@ -162,10 +194,7 @@ export class TrainingService {
    */
   static async createSession(userId, { category, difficulty, targetWeakness, planId } = {}) {
     // 1. Fetch user's profile and plan
-    const profile = await prisma.chessProfile.findUnique({
-      where: { userId },
-      select: { id: true, chessUsername: true },
-    });
+    const profile = await TrainingService.resolveUserProfile(userId);
 
     if (!profile) {
       throw new Error("No connected Chess.com profile found.");
@@ -715,10 +744,7 @@ export class TrainingService {
    * Get user's recurring weaknesses backed by real analyzed games
    */
   static async getWeaknesses(userId) {
-    const profile = await prisma.chessProfile.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
+    const profile = await TrainingService.resolveUserProfile(userId);
 
     if (!profile) {
       return { weaknesses: [] };

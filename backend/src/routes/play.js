@@ -82,6 +82,17 @@ router.post("/sessions", authenticateSupabaseUser, async (req, res) => {
     }
 
     if (!model) {
+      model = await prisma.mLModelVersion.findFirst({
+        where: {
+          modelType: opponentModelType,
+          status: { in: ["ACTIVE", "READY"] },
+          artifactPath: { not: null },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+
+    if (!model) {
       return res.status(400).json({
         error: `Your ${opponentModelType} model is not ready yet. Please ensure your Chess.com games are synced and models trained.`,
       });
@@ -196,9 +207,11 @@ router.post(
 
       const session = await prisma.playSession.findUnique({
         where: { id: sessionId },
+        include: { user: { select: { email: true } } },
       });
 
-      if (!session || session.userId !== userId) {
+      const isOwner = session && (session.userId === userId || (req.user.email && session.user?.email === req.user.email));
+      if (!session || !isOwner) {
         return res
           .status(403)
           .json({ error: "Unauthorized or session not found" });

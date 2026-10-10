@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { Dna, Target, Brain, Shield, Swords, Zap, Crosshair } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { getDNA } from '../api';
+
+let clientDnaCache = null;
 
 const TraitBar = ({ label, value, desc }) => (
   <div className="mb-4">
@@ -20,22 +23,30 @@ const TraitBar = ({ label, value, desc }) => (
 );
 
 const DNA = () => {
-  const [dnaData, setDnaData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { chessProfile } = useAuth();
+  const [dnaData, setDnaData] = useState(clientDnaCache || null);
+  const [loading, setLoading] = useState(!clientDnaCache);
 
   useEffect(() => {
+    let isMounted = true;
     const load = async () => {
-      setLoading(true);
+      if (!clientDnaCache) setLoading(true);
       try {
         const res = await getDNA();
-        setDnaData(res.data?.data || res.data?.dna || null);
+        const data = res.data?.data || res.data?.dna || null;
+        if (isMounted) {
+          setDnaData(data);
+          clientDnaCache = data;
+        }
       } catch (err) {
         console.error('Failed to load DNA', err);
-        setDnaData(null);
+        if (isMounted) setDnaData(null);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     };
     load();
+    return () => { isMounted = false; };
   }, []);
 
   if (loading) {
@@ -62,7 +73,16 @@ const DNA = () => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
-        <h2 className="text-2xl font-bold font-display" style={{ color: '#F3EFE6' }}>Your Chess DNA</h2>
+        <div className="flex items-center space-x-2.5">
+          <h2 className="text-2xl font-bold font-display" style={{ color: '#F3EFE6' }}>
+            {chessProfile?.chessUsername ? `Chess DNA for @${chessProfile.chessUsername}` : 'Your Chess DNA'}
+          </h2>
+          {chessProfile?.chessUsername && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-300 border border-amber-500/25">
+              Synced
+            </span>
+          )}
+        </div>
         <p className="text-sm mt-1" style={{ color: '#7E8092' }}>
           Neural analysis of your positional and tactical tendencies across all synced games.
         </p>

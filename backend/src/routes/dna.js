@@ -21,9 +21,22 @@ router.get("/current", authenticateSupabaseUser, async (req, res) => {
       where: { userId },
     });
 
+    if (!dna && req.user.email) {
+      dna = await prisma.chessDNA.findFirst({
+        where: { user: { email: req.user.email } },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+
     if (!dna) {
       await ChessDnaService.generateDnaForUser(userId);
       dna = await prisma.chessDNA.findUnique({ where: { userId } });
+      if (!dna && req.user.email) {
+        dna = await prisma.chessDNA.findFirst({
+          where: { user: { email: req.user.email } },
+          orderBy: { updatedAt: "desc" },
+        });
+      }
     }
 
     if (!dna) {

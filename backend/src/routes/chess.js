@@ -145,6 +145,25 @@ router.get("/profile", authenticateSupabaseUser, async (req, res) => {
       });
     }
 
+    if (chessProfile) {
+      const directGames = await prisma.game.count({ where: { chessProfileId: chessProfile.id } });
+      if (directGames === 0 && (req.user.email || chessProfile.chessUsername)) {
+        const profileWithGames = await prisma.chessProfile.findFirst({
+          where: {
+            OR: [
+              ...(req.user.email ? [{ user: { email: req.user.email } }] : []),
+              ...(chessProfile.chessUsername ? [{ chessUsername: { equals: chessProfile.chessUsername, mode: "insensitive" } }] : []),
+            ],
+            games: { some: {} },
+          },
+          orderBy: { updatedAt: "desc" },
+        });
+        if (profileWithGames) {
+          chessProfile = profileWithGames;
+        }
+      }
+    }
+
     if (!chessProfile) {
       return res
         .status(404)

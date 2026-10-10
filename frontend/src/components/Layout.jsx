@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Gamepad2, Dna, Brain, BookOpen,
   Trophy, Swords, User, LogOut, Menu, X, ChevronRight,
-  Crown, Zap
+  Crown, Zap, Link2, CheckCircle2, Sparkles
 } from 'lucide-react';
 
 const navItems = [
@@ -21,7 +21,7 @@ const navItems = [
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, chessProfile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -35,6 +35,7 @@ const Layout = ({ children }) => {
     user?.email?.[0]?.toUpperCase() || '?';
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Player';
+  const connectedHandle = chessProfile?.chessUsername || null;
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#040406' }}>
@@ -89,8 +90,58 @@ const Layout = ({ children }) => {
           </button>
         </div>
 
+        {/* Connected Chess.com Account Status Card */}
+        <div className="px-3 pt-3">
+          {connectedHandle ? (
+            <Link
+              to="/profile"
+              className="flex items-center justify-between p-2.5 rounded-xl transition-all duration-200 group"
+              style={{
+                background: 'linear-gradient(135deg, rgba(197,160,89,0.12) 0%, rgba(197,160,89,0.03) 100%)',
+                border: '1px solid rgba(197, 160, 89, 0.28)',
+              }}
+              title="Chess.com account synchronized across all pages"
+            >
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-black shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #B58D3D, #D4B46A)', color: '#040406' }}
+                >
+                  ♟
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold truncate group-hover:text-[#F3EFE6] transition-colors" style={{ color: '#D4B46A' }}>
+                    @{connectedHandle}
+                  </div>
+                  <div className="flex items-center space-x-1 text-[10px]" style={{ color: '#4ade80' }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Synced</span>
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={12} className="text-[#D4B46A] opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+            </Link>
+          ) : (
+            <Link
+              to="/profile"
+              className="flex items-center justify-between p-2.5 rounded-xl transition-all duration-200 hover:border-amber-400/50 group"
+              style={{
+                background: 'rgba(245, 158, 11, 0.05)',
+                border: '1px dashed rgba(245, 158, 11, 0.3)',
+              }}
+              title="Connect your Chess.com profile"
+            >
+              <div className="flex items-center space-x-2 min-w-0">
+                <Link2 size={13} className="text-amber-400 flex-shrink-0" />
+                <span className="text-xs font-semibold text-amber-300/90 truncate">Link Chess.com</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">Connect</span>
+            </Link>
+          )}
+        </div>
+
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;
             return (
@@ -154,7 +205,7 @@ const Layout = ({ children }) => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <header
-          className="flex items-center justify-between px-5 py-4 flex-shrink-0 backdrop-blur-md"
+          className="flex items-center justify-between px-5 py-3.5 flex-shrink-0 backdrop-blur-md"
           style={{ borderBottom: '1px solid #161822', background: '#06070B' }}
         >
           <div className="flex items-center space-x-3">
@@ -170,6 +221,38 @@ const Layout = ({ children }) => {
                 {navItems.find(n => n.path === location.pathname)?.label || 'Chess Evolve'}
               </h1>
             </div>
+          </div>
+
+          {/* Top Bar Status Indicator */}
+          <div className="flex items-center space-x-2.5">
+            {connectedHandle ? (
+              <Link
+                to="/profile"
+                className="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:border-[#D4B46A]"
+                style={{
+                  background: 'rgba(197, 160, 89, 0.08)',
+                  border: '1px solid rgba(197, 160, 89, 0.25)',
+                  color: '#D4B46A',
+                }}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-bold">@{connectedHandle}</span>
+                <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Synced</span>
+              </Link>
+            ) : (
+              <Link
+                to="/profile"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:brightness-110"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  color: '#FDE68A',
+                }}
+              >
+                <Link2 size={12} />
+                <span>Connect Account</span>
+              </Link>
+            )}
           </div>
         </header>
 

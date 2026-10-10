@@ -17,6 +17,35 @@ export class CoachContextBuilder {
       throw new Error("User not found");
     }
 
+    if (!user.chessProfile && user.email) {
+      const existingProfile = await prisma.chessProfile.findFirst({
+        where: { user: { email: user.email } },
+        orderBy: { updatedAt: "desc" },
+      });
+      if (existingProfile) {
+        user.chessProfile = existingProfile;
+      }
+    }
+
+    if (user.chessProfile) {
+      const directGames = await prisma.game.count({ where: { chessProfileId: user.chessProfile.id } });
+      if (directGames === 0 && (user.email || user.chessProfile.chessUsername)) {
+        const profileWithGames = await prisma.chessProfile.findFirst({
+          where: {
+            OR: [
+              ...(user.email ? [{ user: { email: user.email } }] : []),
+              ...(user.chessProfile.chessUsername ? [{ chessUsername: { equals: user.chessProfile.chessUsername, mode: "insensitive" } }] : []),
+            ],
+            games: { some: {} },
+          },
+          orderBy: { updatedAt: "desc" },
+        });
+        if (profileWithGames) {
+          user.chessProfile = profileWithGames;
+        }
+      }
+    }
+
     // Get number of analyzed games
     const gamesAnalyzed = await prisma.game.count({
       where: {

@@ -90,11 +90,36 @@ export class PositionSelector {
     targetDifficulty = null,
     planId = null
   } = {}) {
-    // 1. Fetch user's profile
-    const profile = await prisma.chessProfile.findUnique({
+    let profile = await prisma.chessProfile.findUnique({
       where: { userId },
       select: { id: true, chessUsername: true }
     });
+
+    if (!profile) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      if (user?.email) {
+        profile = await prisma.chessProfile.findFirst({
+          where: { user: { email: user.email } },
+          select: { id: true, chessUsername: true },
+          orderBy: { updatedAt: "desc" }
+        });
+      }
+    }
+
+    if (profile) {
+      const count = await prisma.game.count({ where: { chessProfileId: profile.id } });
+      if (count === 0 && profile.chessUsername) {
+        const alt = await prisma.chessProfile.findFirst({
+          where: {
+            chessUsername: { equals: profile.chessUsername, mode: "insensitive" },
+            games: { some: {} },
+          },
+          select: { id: true, chessUsername: true },
+          orderBy: { updatedAt: "desc" },
+        });
+        if (alt) profile = alt;
+      }
+    }
 
     if (!profile) {
       return { positions: [], exclusions: [{ reason: "NO_CHESS_PROFILE" }] };

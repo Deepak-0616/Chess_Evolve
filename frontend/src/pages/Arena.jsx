@@ -2,30 +2,42 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Users, Search, Swords, Play, Shield, Loader2, User } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+let clientArenaCache = null;
 
 const Arena = () => {
-  const [players, setPlayers] = useState([]);
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { chessProfile } = useAuth();
+  const [players, setPlayers] = useState(clientArenaCache?.players || []);
+  const [matches, setMatches] = useState(clientArenaCache?.matches || []);
+  const [loading, setLoading] = useState(!clientArenaCache);
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isMounted = true;
     const load = async () => {
+      if (!clientArenaCache) setLoading(true);
       try {
         const [playersRes, matchesRes] = await Promise.all([
           apiClient.get('/arena/players').catch(() => ({ data: { players: [] } })),
           apiClient.get('/arena/matches').catch(() => ({ data: { matches: [] } }))
         ]);
-        setPlayers(playersRes.data.players || []);
-        setMatches(matchesRes.data.matches || []);
+        if (isMounted) {
+          const p = playersRes.data.players || [];
+          const m = matchesRes.data.matches || [];
+          setPlayers(p);
+          setMatches(m);
+          clientArenaCache = { players: p, matches: m };
+        }
       } catch (err) {
         console.error('Failed to load arena data', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     load();
+    return () => { isMounted = false; };
   }, []);
 
   const handleChallenge = async (opponentUserId, opponentModelType) => {
@@ -51,10 +63,17 @@ const Arena = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold font-display flex items-center gap-3" style={{ color: '#F3EFE6' }}>
-          <Trophy size={24} style={{ color: '#D4B46A' }} />
-          Chess Evolve AI Arena
-        </h2>
+        <div className="flex items-center space-x-2.5">
+          <h2 className="text-2xl font-bold font-display flex items-center gap-3" style={{ color: '#F3EFE6' }}>
+            <Trophy size={24} style={{ color: '#D4B46A' }} />
+            Chess Evolve AI Arena
+          </h2>
+          {chessProfile?.chessUsername && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-300 border border-amber-500/25">
+              Playing as @{chessProfile.chessUsername}
+            </span>
+          )}
+        </div>
         <p className="text-sm mt-1" style={{ color: '#7E8092' }}>
           Challenge the Current and Peak AI models of top players around the world.
         </p>

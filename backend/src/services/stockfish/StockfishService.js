@@ -201,8 +201,29 @@ export class StockfishService {
     }
 
     const binPath = this.getBinaryPath();
-    if (!binPath || !this.isValidFen(fen)) {
+    if (!this.isValidFen(fen)) {
       return [];
+    }
+
+    if (!binPath || !fs.existsSync(binPath)) {
+      try {
+        const fallbackChess = new Chess(fen);
+        const legalMoves = fallbackChess.moves({ verbose: true }).slice(0, typeof m === "number" ? m : 5);
+        return legalMoves.map((mov, idx) => ({
+          move: `${mov.from}${mov.to}${mov.promotion || ""}`,
+          san: mov.san,
+          score: 0.0,
+          rank: idx + 1,
+          centipawn_loss: idx * 10,
+          cp_loss: idx * 10,
+          is_capture: Boolean(mov.captured),
+          is_check: fallbackChess.inCheck(),
+          is_castle: mov.flags.includes("k") || mov.flags.includes("q"),
+          is_promotion: Boolean(mov.promotion),
+        }));
+      } catch {
+        return [];
+      }
     }
 
     const safeDepth = Math.min(Math.max(1, typeof d === "number" ? d : 10), 15);

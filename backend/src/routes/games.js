@@ -11,9 +11,35 @@ router.get("/", authenticateSupabaseUser, async (req, res) => {
     const userId = req.user.id;
     const { timeClass, result, rated, limit = "50", page = "1" } = req.query;
 
-    const userProfile = await prisma.chessProfile.findUnique({
+    let userProfile = await prisma.chessProfile.findUnique({
       where: { userId },
     });
+
+    if (!userProfile && req.user.email) {
+      userProfile = await prisma.chessProfile.findFirst({
+        where: { user: { email: req.user.email } },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+
+    if (userProfile) {
+      const directGamesCount = await prisma.game.count({ where: { chessProfileId: userProfile.id } });
+      if (directGamesCount === 0 && (req.user.email || userProfile.chessUsername)) {
+        const profileWithGames = await prisma.chessProfile.findFirst({
+          where: {
+            OR: [
+              ...(req.user.email ? [{ user: { email: req.user.email } }] : []),
+              ...(userProfile.chessUsername ? [{ chessUsername: { equals: userProfile.chessUsername, mode: "insensitive" } }] : []),
+            ],
+            games: { some: {} },
+          },
+          orderBy: { updatedAt: "desc" },
+        });
+        if (profileWithGames) {
+          userProfile = profileWithGames;
+        }
+      }
+    }
 
     if (!userProfile) {
       return res.json({ games: [], total: 0 });

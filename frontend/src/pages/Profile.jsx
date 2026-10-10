@@ -5,12 +5,12 @@ import { getProfile, updateProfile, connectChessProfile } from '../api';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, chessProfile, refreshChessProfile } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(chessProfile || null);
+  const [loading, setLoading] = useState(!chessProfile);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ displayName: '', chessUsername: '' });
+  const [form, setForm] = useState({ displayName: '', chessUsername: chessProfile?.chessUsername || '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -19,22 +19,21 @@ const Profile = () => {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
       try {
         const res = await getProfile();
         const p = res.data?.profile || res.data?.data;
         setProfile(p);
         setForm({
           displayName: p?.displayName || displayName,
-          chessUsername: p?.chessUsername || '',
+          chessUsername: p?.chessUsername || chessProfile?.chessUsername || '',
         });
       } catch {
-        setForm({ displayName, chessUsername: '' });
+        setForm({ displayName, chessUsername: chessProfile?.chessUsername || '' });
       }
       setLoading(false);
     };
     load();
-  }, [displayName]);
+  }, [displayName, chessProfile]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -43,6 +42,7 @@ const Profile = () => {
       await updateProfile(form);
       setSaved(true);
       setEditing(false);
+      await refreshChessProfile();
       // Reload profile to refresh stats and linked chess account
       const res = await getProfile();
       const p = res.data?.profile || res.data?.data;

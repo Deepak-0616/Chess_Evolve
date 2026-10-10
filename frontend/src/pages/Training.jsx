@@ -16,7 +16,10 @@ import {
   Sparkles,
   BarChart2
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { getTrainingOverview, createTrainingSession } from '../api';
+
+let clientTrainingCache = null;
 
 const CATEGORY_ICONS = {
   TACTICAL: Target,
@@ -36,9 +39,10 @@ const CATEGORY_NAMES = {
 
 const Training = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { chessProfile } = useAuth();
+  const [loading, setLoading] = useState(!clientTrainingCache);
   const [creating, setCreating] = useState(false);
-  const [overview, setOverview] = useState(null);
+  const [overview, setOverview] = useState(clientTrainingCache || null);
   const [error, setError] = useState(null);
 
   const [selectedCategory, setSelectedCategory] = useState('TACTICAL');
@@ -50,10 +54,11 @@ const Training = () => {
 
   const loadOverview = async () => {
     try {
-      setLoading(true);
+      if (!clientTrainingCache) setLoading(true);
       setError(null);
       const res = await getTrainingOverview();
       setOverview(res.data);
+      clientTrainingCache = res.data;
       if (res.data?.activePlan?.focusCategory) {
         setSelectedCategory(res.data.activePlan.focusCategory);
       }
@@ -163,11 +168,18 @@ const Training = () => {
             <Sparkles size={14} />
             <span>AI-Driven Adaptive Drills</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display" style={{ color: '#F3EFE6' }}>
-            Personalized Training
-          </h1>
+          <div className="flex items-center space-x-2.5">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display" style={{ color: '#F3EFE6' }}>
+              {chessProfile?.chessUsername ? `Personalized Training for @${chessProfile.chessUsername}` : 'Personalized Training'}
+            </h1>
+            {chessProfile?.chessUsername && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-300 border border-amber-500/25">
+                Synced
+              </span>
+            )}
+          </div>
           <p className="text-xs md:text-sm mt-1" style={{ color: '#7E8092' }}>
-            Targeting real decision errors from {user?.chessUsername || 'your'}'s Chess.com games with Current & Peak Self comparison.
+            Targeting real decision errors from {chessProfile?.chessUsername || user?.chessUsername || 'your'}'s Chess.com games with Current & Peak Self comparison.
           </p>
         </div>
 
