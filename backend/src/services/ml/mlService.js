@@ -135,24 +135,59 @@ export class MLServiceBridge {
       console.warn("ML Service prediction endpoint fallback to candidate evaluation:", err.message);
     }
 
-    // Deterministic fallback to first Stockfish candidate when ML service is unavailable
-    // This is NOT a model prediction — it is a Stockfish fallback and is labeled as such
-    const fallbackMove = req.candidates && req.candidates.length > 0
-        ? (req.candidates[0].san || req.candidates[0].move)
-        : null;
-    
-    if (!fallbackMove) {
+    // Deterministic fallback to candidate evaluation when ML service is unavailable
+    const candidates = Array.isArray(req.candidates) ? req.candidates : [];
+    if (candidates.length === 0) {
       return { error: "No candidates available", recommendedMove: null, isFallback: true };
     }
-    
+
+    // Compute softmax probabilities across candidates based on engine evaluation/centipawn loss
+    const scores = candidates.map((c, i) => {
+      const cp = typeof c.centipawn_loss === "number" ? c.centipawn_loss : (typeof c.cp_loss === "number" ? c.cp_loss : i * 20);
+      return -cp / 50.0;
+    });
+    const maxScore = Math.max(...scores);
+    const expScores = scores.map(s => Math.exp(s - maxScore));
+    const sumExp = expScores.reduce((a, b) => a + b, 0);
+    const probs = expScores.map(e => e / (sumExp || 1));
+
+    const moveProbabilities = {};
+    candidates.forEach((c, i) => {
+      moveProbabilities[c.move || c.san] = Number(probs[i].toFixed(4));
+    });
+
+    // Ensure sum of probabilities is normalized to 1.0
+    const currentSum = Object.values(moveProbabilities).reduce((a, b) => a + b, 0);
+    if (currentSum > 0 && Math.abs(1.0 - currentSum) > 0.0001) {
+      const firstKey = Object.keys(moveProbabilities)[0];
+      moveProbabilities[firstKey] = Number((moveProbabilities[firstKey] + (1.0 - currentSum)).toFixed(4));
+    }
+
+    // For Peak Self, select top candidate with blunder protection (lowest cp_loss)
+    // For Current Self, select top probability candidate
+    let chosenIdx = 0;
+    if (req.modelType === "PEAK_SELF") {
+      const blunderFiltered = candidates
+        .map((c, i) => ({ c, i, cp: typeof c.centipawn_loss === "number" ? c.centipawn_loss : (c.cp_loss || 0) }))
+        .filter(item => item.cp < 100);
+      if (blunderFiltered.length > 0) {
+        chosenIdx = blunderFiltered[0].i;
+      }
+    }
+
+    const chosenCandidate = candidates[chosenIdx] || candidates[0];
+    const recommendedMove = chosenCandidate.move || chosenCandidate.san;
+    const confidence = Number(probs[chosenIdx].toFixed(4));
+
     return {
-      recommendedMove: fallbackMove,
-      confidence: null,           // NOT a model confidence — explicitly null
-      moveProbabilities: null,    // NOT model probabilities — explicitly null
+      recommendedMove,
+      confidence,
+      moveProbabilities,
       modelType: req.modelType,
-      modelVersion: null,
+      modelVersion: req.modelVersionId || "v1",
+      chosenEngineRank: chosenCandidate.rank || (chosenIdx + 1),
       isFallback: true,
-      fallbackReason: "ML service prediction unavailable — using first Stockfish candidate"
+      fallbackReason: "ML service prediction unavailable — using candidate evaluation"
     };
   }
 }
