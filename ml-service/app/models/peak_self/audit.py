@@ -8,6 +8,7 @@ import statistics
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 load_dotenv()
 
+from sqlalchemy import text
 from app.db import get_engine
 from app.datasets.target_generation import calculate_peak_score
 from app.datasets.schemas import PeakTargetConfig

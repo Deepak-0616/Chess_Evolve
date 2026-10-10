@@ -1,10 +1,154 @@
+# name: Chess Evolve Production CI
+
+# on:
+#   push:
+#     branches: [ main, master ]
+#   pull_request:
+#     branches: [ main, master ]
+
+# permissions:
+#   contents: read
+
+# jobs:
+#   ci-pipeline:
+#     name: Full CI Pipeline (Node 22, Postgres 16, Python 3.10)
+#     runs-on: ubuntu-latest
+
+#     services:
+#       postgres:
+#         image: postgres:16-alpine
+#         env:
+#           POSTGRES_USER: postgres
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_DB: chess_evolve_test
+#         ports:
+#           - 5432:5432
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+
+#     env:
+#       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test
+#       DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test
+#       NODE_ENV: test
+#       SUPABASE_URL: https://placeholder.supabase.co
+#       SUPABASE_ANON_KEY: placeholder-anon-key
+#       JWT_SECRET: test-jwt-secret-key-32-characters-long-chess-evolve
+
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Setup Node.js 22
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 22
+#           cache: 'npm'
+#           cache-dependency-path: backend/package-lock.json
+
+#       - name: Install Backend Dependencies
+#         working-directory: backend
+#         run: npm ci
+
+#       - name: Prisma Schema Validation
+#         working-directory: backend
+#         run: npx prisma validate --schema=../prisma/schema.prisma
+
+#       - name: Prisma Client Generation
+#         working-directory: backend
+#         run: npm run prisma:generate
+
+#       - name: Prisma Migrations & Schema Deployment
+#         working-directory: backend
+#         run: npx prisma migrate deploy --schema=../prisma/schema.prisma
+
+#       - name: Run Backend Vitest Test Suite
+#         working-directory: backend
+#         run: npm test
+
+#       - name: Setup Python 3.10
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.10'
+#           cache: 'pip'
+#           cache-dependency-path: ml-service/requirements.txt
+
+#       - name: Install ML Service Dependencies
+#         working-directory: ml-service
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+
+#       - name: Run ML Pytest Suite
+#         working-directory: ml-service
+#         run: python -m pytest app/tests
+
+#       - name: Automated Secret Scan
+#         run: |
+#           echo "Scanning repository for leaked private keys, connection strings, and credentials..."
+#           # Prevent grep from matching its own pattern by composing search tokens dynamically:
+#           KEY_HEADER="-----BEGIN"
+#           KEY_FOOTER="PRIVATE KEY-----"
+#           PAT_KEY="${KEY_HEADER}[ A-Z]*${KEY_FOOTER}"
+
+#           DB_PROTO="postgresql://"
+#           PAT_DB="${DB_PROTO}[^: ]+:[^@ ]+@[^/ ]*supabase\.com"
+
+#           AWS_PREFIX="AKIA"
+#           PAT_AWS="(A3T[A-Z0-9]|${AWS_PREFIX}|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"
+
+#           OPENAI_PREFIX="sk-"
+#           PAT_OPENAI="${OPENAI_PREFIX}[a-zA-Z0-9]{32,}"
+
+#           FAILED=0
+#           for PAT in "$PAT_KEY" "$PAT_DB" "$PAT_AWS" "$PAT_OPENAI"; do
+#             if git grep -I -n -E -e "$PAT" -- ':!.github/*' ':!*.md' ':!*.example' ':!*.sample'; then
+#               echo "::error::Credential or secret pattern detected in repository!"
+#               FAILED=1
+#             fi
+#           done
+
+#           if [ "$FAILED" -ne 0 ]; then
+#             exit 1
+#           fi
+#           echo "Secret scan passed: No leaked secrets, credentials, or private keys detected."
+
+#   frontend-build:
+#     name: Frontend Production Build (Node 22)
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Setup Node.js 22
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 22
+#           cache: 'npm'
+#           cache-dependency-path: frontend/package-lock.json
+
+#       - name: Install Frontend Dependencies
+#         working-directory: frontend
+#         run: npm ci
+
+#       - name: Build Frontend Production Bundle
+#         working-directory: frontend
+#         env:
+#           VITE_SUPABASE_URL: https://placeholder.supabase.co
+#           VITE_SUPABASE_ANON_KEY: placeholder-key
+#           VITE_API_BASE_URL: /api/v1
+#         run: npm run build
+
+
 name: Chess Evolve Production CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 permissions:
   contents: read
@@ -24,14 +168,16 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres -d chess_evolve_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
+    # CI uses only its disposable PostgreSQL service.
+    # Do not use production database secrets in this job.
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test
-      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test?schema=public
+      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/chess_evolve_test?schema=public
       NODE_ENV: test
       SUPABASE_URL: https://placeholder.supabase.co
       SUPABASE_ANON_KEY: placeholder-anon-key
@@ -45,12 +191,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: backend/package-lock.json
 
       - name: Install Backend Dependencies
         working-directory: backend
         run: npm ci
+
+      - name: Verify Prisma Environment
+        working-directory: backend
+        run: |
+          test -n "$DATABASE_URL"
+          test -n "$DIRECT_DATABASE_URL"
+          echo "Both Prisma database variables are set."
 
       - name: Prisma Schema Validation
         working-directory: backend
@@ -60,7 +213,7 @@ jobs:
         working-directory: backend
         run: npm run prisma:generate
 
-      - name: Prisma Migrations & Schema Deployment
+      - name: Prisma Migrations
         working-directory: backend
         run: npx prisma migrate deploy --schema=../prisma/schema.prisma
 
@@ -71,8 +224,8 @@ jobs:
       - name: Setup Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-          cache: 'pip'
+          python-version: "3.10"
+          cache: pip
           cache-dependency-path: ml-service/requirements.txt
 
       - name: Install ML Service Dependencies
@@ -85,39 +238,15 @@ jobs:
         working-directory: ml-service
         run: python -m pytest app/tests
 
-      - name: Automated Secret Scan
-        run: |
-          echo "Scanning repository for leaked private keys, connection strings, and credentials..."
-          # Prevent grep from matching its own pattern by composing search tokens dynamically:
-          KEY_HEADER="-----BEGIN"
-          KEY_FOOTER="PRIVATE KEY-----"
-          PAT_KEY="${KEY_HEADER}[ A-Z]*${KEY_FOOTER}"
-
-          DB_PROTO="postgresql://"
-          PAT_DB="${DB_PROTO}[^: ]+:[^@ ]+@[^/ ]*supabase\.com"
-
-          AWS_PREFIX="AKIA"
-          PAT_AWS="(A3T[A-Z0-9]|${AWS_PREFIX}|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}"
-
-          OPENAI_PREFIX="sk-"
-          PAT_OPENAI="${OPENAI_PREFIX}[a-zA-Z0-9]{32,}"
-
-          FAILED=0
-          for PAT in "$PAT_KEY" "$PAT_DB" "$PAT_AWS" "$PAT_OPENAI"; do
-            if git grep -I -n -E -e "$PAT" -- ':!.github/*' ':!*.md' ':!*.example' ':!*.sample'; then
-              echo "::error::Credential or secret pattern detected in repository!"
-              FAILED=1
-            fi
-          done
-
-          if [ "$FAILED" -ne 0 ]; then
-            exit 1
-          fi
-          echo "Secret scan passed: No leaked secrets, credentials, or private keys detected."
+      - name: Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   frontend-build:
     name: Frontend Production Build (Node 22)
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -126,7 +255,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend Dependencies
