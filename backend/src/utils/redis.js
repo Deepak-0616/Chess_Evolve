@@ -46,12 +46,11 @@ export function getRedisClient() {
       },
     });
 
-    _redisClient.on("error", (err) => {
-      // Throttle error logs to at most once every 10 seconds to avoid console flooding
-      const now = Date.now();
-      if (process.env.NODE_ENV !== "test" && now - _lastErrorLog > 10000) {
-        _lastErrorLog = now;
-        console.warn("[Redis]: Connection unavailable, falling back to in-memory/direct mode.");
+    let hasLoggedUnavailable = false;
+    _redisClient.on("error", () => {
+      if (!hasLoggedUnavailable && process.env.NODE_ENV !== "test") {
+        hasLoggedUnavailable = true;
+        console.info("[Redis]: Local Redis service not connected; operating seamlessly in in-memory mode.");
       }
     });
   }

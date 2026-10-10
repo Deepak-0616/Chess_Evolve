@@ -121,7 +121,7 @@ export class MLServiceBridge {
             game_phase: req.gamePhase || "MIDDLEGAME",
             model_version_id: req.modelVersionId,
           },
-          { timeout: 8000 },
+          { timeout: process.env.NODE_ENV === "test" ? 1500 : 8000 },
         )
         .catch((err) => {
           console.warn("[MLServiceBridge] Prediction call failed:", err?.response?.data || err.message);

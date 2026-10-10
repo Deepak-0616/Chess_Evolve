@@ -1,7 +1,0 @@
-User,Model Type,Version,Status,Model ID,Test Top-1 Accuracy,Test Top-3 Accuracy,Test MRR,Log Loss,ECE,Engine Rank Distance,Move-Type Distance,Weakness Reduction,Style Preservation
-KAKAROT0616,Current Self,v1 (Initial),SUPERSEDED,cmuunbgq80007m5syoow8fu7o,26.70%,66.48%,0.5140,1.5463,0.0555,0.4143,Baseline,0.00%,100.00%
-KAKAROT0616,Peak Self,v1 (Initial),SUPERSEDED_INVALID,cmuunbuko0009m5sy4zuj4ped,100.00%*,INVALID,INVALID,0.0084,0.0412,0.2500,0.1000,INVALID,INVALID
-KAKAROT0616,Current Self,v2 (Retrained),ACTIVE,178b09cd-ea92-43f7-9561-c000a3985f2e,33.33%,54.76%,0.5198,1.6412,0.3681,0.4191,Baseline,0.00%,100.00%
-KAKAROT0616,Peak Self,v2 (Retrained),ACTIVE,6745b5b8-c216-4521-81d2-558f02090088,100.00%*,100.00%*,1.0000,1.4600,N/A,0.2200,0.0774,100.00%,73.05%
-keshav-33450,Current Self,v1 (Initial),ACTIVE,cmuv7y5cu0f1t4vnao2plw7pw,20.00%,66.67%,0.4711,1.4384,0.0607,0.5174,Baseline,0.00%,100.00%
-keshav-33450,Peak Self,v1 (Initial),SUPERSEDED_INVALID,cmuv816ir0003pg8xv95x364e,100.00%*,INVALID,INVALID,0.0025,N/A,0.2500,INVALID,INVALID,INVALID

@@ -55,3 +55,7 @@ ml-service/app/retraining/__pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local developer binaries & tools
+tools/
+*.exe

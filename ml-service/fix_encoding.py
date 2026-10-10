@@ -1,6 +1,0 @@
-content = open('run_phase13_verification.py', encoding='utf-8').read()
-content = content.replace(', encoding="utf-8", encoding="utf-8")', ', encoding="utf-8")')
-content = content.replace('"w")', '"w", encoding="utf-8")')
-content = content.replace('"w", encoding="utf-8", encoding="utf-8")', '"w", encoding="utf-8")')
-open('run_phase13_verification.py', 'w', encoding='utf-8').write(content)
-print('Done')

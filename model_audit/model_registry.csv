@@ -1,5 +1,0 @@
-userId,modelType,version,status,datasetVersion,featureVersion,gamesUsed,positionsUsed,dependentModelVersionId,evaluationStatus,qualityGatePassed,artifactExists,artifactLoadable
-b2ea5969-f4a9-4fb6-9228-10a3bd42adcf,CURRENT_SELF,1,READY,v1,v1,39,5592,,PASS,YES,EXISTS,True
-08ec59f6-a73d-47bc-9325-7105f082b534,CURRENT_SELF,1,READY,v1,v1,8,906,,PASS,YES,EXISTS,True
-08ec59f6-a73d-47bc-9325-7105f082b534,PEAK_SELF,1,READY,v1,v1,8,906,cmuv7y5cu0f1t4vnao2plw7pw,PASS,YES,EXISTS,True
-b2ea5969-f4a9-4fb6-9228-10a3bd42adcf,PEAK_SELF,1,READY,v1,v1,39,5592,cmuunbgq80007m5syoow8fu7o,PASS,YES,EXISTS,True
