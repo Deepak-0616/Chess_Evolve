@@ -284,7 +284,3 @@ The repository includes a production CI pipeline in [`.github/workflows/ci.yml`]
 * **Database Connection Resilience**: Automatic URL sanitization prevents driver incompatibilities across Prisma and SQLAlchemy.
 
 ---
-
-## 📄 License
-
-This project is licensed under the MIT License.
