@@ -1,249 +1,290 @@
-# CHESS EVOLVE — Production-Ready AI Chess Decision Intelligence Platform
+# Chess Evolve ♟️🧠
 
-## 1. Project Overview
-Chess Evolve is a full-stack, multi-user AI platform that transforms your raw Chess.com game history into a personalized decision model. By combining full-history PubAPI synchronization, move-by-move Stockfish position evaluations, 13-dimension Chess DNA computation, and PyTorch Neural Networks (Current Self & Peak Self), Chess Evolve allows players to analyze their play, train targeted tactical weaknesses, and play interactive matches against AI models built from their own decision patterns.
+> **AI-Powered Chess Decision Intelligence Platform**  
+> *Transform your raw Chess.com game history into personalized PyTorch neural decision models (Current Self & Peak Self), 13-dimension Chess DNA, and interactive coaching.*
 
-## 2. Problem Statement
-Generic chess engines like Stockfish calculate objective best moves but do not reflect individual human playing styles or personal tactical habits. Existing coaching apps fail to provide personalized AI opponents that simulate how a player actually decision-makes or how they would play at their absolute peak performance while preserving their distinct tactical identity.
+---
 
-## 3. Product Vision
-To empower every chess player with a personal AI decision ecosystem:
-- **Current Self**: Predicts your actual decision probabilities in any position. It learns to replicate how you *actually* play, capturing stylistic preferences, strengths, and characteristic weaknesses.
-- **Peak Self**: Learns how you *should* play on your best day. It trains on "Peak Targets" (which balances engine quality with your style) while treating the Current Self's probability distribution as a foundational input. This prevents the model from collapsing into raw Stockfish and keeps the moves feeling human.
-- **AI Arena**: Allows community players to test their skills against discoverable user models without exposing private game records or raw model binaries.
+## 🌟 Overview
 
-## 4. Features
-- **Supabase Auth & Google OAuth**: Multi-user session management with zero hardcoded credentials.
-- **Full-History Chess.com Sync**: Automatic archive discovery, game deduplication, and PGN parsing.
-- **Stockfish Engine Pipeline**: Centipawn loss (CP Loss) calculation, candidate move ranking, and move classification (Best, Good, Inaccuracy, Mistake, Blunder).
-- **13-Dimension Chess DNA**: Aggression, Risk Taking, Tactical Preference, Positional Preference, Defensive Ability, Sacrifice Tendency, Trading Tendency, Opening Diversity, Endgame Ability, King Safety, Attack Preference, Simplification Preference, and Time Pressure Behavior.
-- **PyTorch Candidate Move Rankers**: Dedicated neural networks trained on user decision data.
-- **Interactive Game Board & Analysis**: Replay games, view evaluation graphs, inspect Stockfish alternatives, and play against your own AI models in real-time.
-- **Community AI Arena**: Discover and challenge public player models.
+**Chess Evolve** is a full-stack, multi-user AI chess intelligence platform that analyzes your actual games, identifies your tactical and strategic habits, and trains custom neural networks modeled on your decision patterns:
 
-## 5. Architecture
+* **Current Self Model**: Learns how you *actually* play across every game phase, predicting your exact move probabilities and capturing your stylistic habits, tactical strengths, and recurring blind spots.
+* **Peak Self Model**: Learns how you *should* play on your best day. It optimizes move quality against Stockfish while treating your Current Self probability distribution as a foundational stylistic anchor—preventing generic engine collapse and preserving your tactical identity.
+* **13-Dimension Chess DNA**: A comprehensive quantitative breakdown of your chess personality (Aggression, Risk-Taking, Tactical Tendency, Positional Sense, King Safety, Trading Bias, and more).
+* **Interactive AI Arena & Play**: Challenge your own AI models, test against other community player models, train custom blunder-correction positions, and get feedback from an AI coach.
+
+---
+
+## 🏗️ System Architecture
+
 ```text
-React (Vite + Tailwind CSS + Recharts + React Chessboard)
-                       ↓
-Supabase Auth (Google OAuth) + Bearer JWT
-                       ↓
-Express TypeScript Backend API
-                       ↓
-Prisma ORM ←→ Supabase PostgreSQL
-                       ↓
-BullMQ / AccountSyncManager Engine Pipeline
-   ├── Chess.com PubAPI
-   ├── Stockfish Position Analyzer
-   └── 13-Dimension DNA Calculator
-                       ↓
-FastAPI Python ML Service (PyTorch Candidate Move Ranker)
+┌────────────────────────────────────────────────────────────────────────┐
+│                        React Frontend (Vite)                           │
+│     (React Chessboard, Recharts, Framer Motion, Tailwind CSS)          │
+│                      http://localhost:3000                             │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTP / REST / Bearer JWT
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     Node.js / Express Backend API                      │
+│            (Supabase Auth, Stockfish UCI Service, BullMQ)              │
+│                      http://localhost:5000                             │
+└───────────┬───────────────────────┬──────────────────────┬─────────────┘
+            │                       │                      │
+            ▼                       ▼                      ▼
+┌──────────────────────┐ ┌──────────────────────┐ ┌──────────────────────┐
+│  Prisma ORM Client   │ │   BullMQ / Redis     │ │  FastAPI ML Service  │
+│          │           │ │ (Background Workers  │ │  (PyTorch Neural     │
+│          ▼           │ │  & Sync Pipelines)   │ │   Decision Models)   │
+│ Supabase PostgreSQL  │ │  (In-Memory Fallback)│ │ http://localhost:8000│
+└──────────────────────┘ └──────────────────────┘ └──────────────────────┘
 ```
 
-## 6. Authentication
-Authentication is powered by **Supabase Auth** integrated with **Google OAuth**.
-- The backend verifies Supabase Bearer JWTs and extracts the Supabase Auth User UUID (`auth.user.id`).
-- User records are dynamically created and updated in PostgreSQL.
-- No passwords, custom auth tables, or hardcoded usernames exist anywhere in the code.
+---
 
-## 7. Supabase Setup
-1. Create a project at [Supabase](https://supabase.com).
-2. Note your `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
-3. In your `.env` file, set:
-   ```env
-   VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
-   VITE_SUPABASE_ANON_KEY=<your-anon-key>
-   SUPABASE_URL=https://<your-project-ref>.supabase.co
-   SUPABASE_ANON_KEY=<your-anon-key>
-   SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
-   ```
+## ✨ Key Features
 
-## 8. Google OAuth Setup
-1. Go to Google Cloud Console -> APIs & Services -> Credentials.
-2. Create OAuth 2.0 Client ID for Web Applications.
-3. Add Authorized Redirect URI: `https://<your-project-ref>.supabase.co/auth/v1/callback`.
-4. Copy Client ID & Client Secret into Supabase Dashboard under Auth -> Providers -> Google.
+* **Multi-User Authentication**: Supabase Auth with Google OAuth & cryptographically verified JWT tokens.
+* **Automated Chess.com Sync**: Incremental monthly archive discovery, PGN parsing, game deduplication, and non-blocking background synchronization.
+* **Engine Evaluation Pipeline**: Move-by-move Stockfish centipawn loss (CP Loss) analysis, candidate ranking, and classification (*Best, Good, Inaccuracy, Mistake, Blunder*).
+* **13-Dimensional Chess DNA**:
+  * *Aggression*, *Risk Taking*, *Tactical Preference*, *Positional Sense*, *Defensive Tenacity*, *Sacrifice Tendency*, *Trading Bias*, *Opening Diversity*, *Endgame Skill*, *King Safety*, *Attack Orientation*, *Simplification Rate*, and *Time Trouble Factor*.
+* **PyTorch Candidate Move Rankers**:
+  * **Current Self**: 16-dimensional position vector + candidate feature embeddings evaluated via Cross-Entropy Loss.
+  * **Peak Self**: Dual-head quality and style alignment model with blunder-protection guards and ECE calibration.
+* **Resilient Offline Architecture**: Automatic graceful fallback to in-memory queues and offline candidate evaluation if Redis or ML service are temporarily unavailable.
+* **Interactive Arena & Play Mode**: Play against your own Current Self or Peak Self, or discover public player models in the community Arena.
+* **AI Coach & Targeted Training**: Position selector that pulls puzzles directly from your historical mistakes and weaknesses.
 
-## 9. Database Setup
-The platform uses Supabase PostgreSQL accessed via Prisma ORM:
-```env
-DATABASE_URL=postgresql://postgres.xxx:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgboiler=true
-DIRECT_DATABASE_URL=postgresql://postgres.xxx:password@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+---
+
+## 📁 Repository Structure
+
+```text
+Chess_Evolve/
+├── backend/                       # Express Node.js API Service
+│   ├── src/
+│   │   ├── middleware/            # Auth, rate limiting, and request validation
+│   │   ├── routes/                # Express routes (auth, chess, games, dna, training, arena, play)
+│   │   ├── services/              # Stockfish service, sync jobs, coach, DNA, ML bridge
+│   │   ├── queues/                # BullMQ background queue definitions
+│   │   ├── utils/                 # Prisma singleton, Redis client, logger
+│   │   └── index.js               # Express application entrypoint
+│   ├── prisma/                    # Database schema and migration files
+│   ├── Dockerfile                 # Production backend Docker container
+│   ├── Dockerfile.worker          # Dedicated BullMQ worker daemon Dockerfile
+│   └── package.json
+│
+├── frontend/                      # React SPA (Vite)
+│   ├── src/
+│   │   ├── components/            # Layout sidebar, Auth forms, Reusable UI
+│   │   ├── contexts/              # Global AuthContext & multi-session state
+│   │   ├── pages/                 # Dashboard, Games, DNA, Training, Coach, Arena, Play
+│   │   └── api/                   # Axios API client
+│   ├── Dockerfile                 # Production multi-stage Nginx build
+│   └── package.json
+│
+├── ml-service/                    # Python FastAPI Machine Learning Service
+│   ├── app/
+│   │   ├── datasets/              # Dataset schemas and target generation
+│   │   ├── features/              # Position and candidate feature extractors
+│   │   ├── models/                # PyTorch neural models (Current Self & Peak Self)
+│   │   ├── retraining/            # Continuous retraining, quality gates, and rollback
+│   │   ├── tests/                 # Pytest test suite
+│   │   ├── db.py                  # Resilient SQLAlchemy engine with URL sanitization
+│   │   └── main.py                # FastAPI routes & endpoints
+│   ├── Dockerfile                 # Python 3.10 CPU container
+│   ├── requirements.txt           # Python dependencies
+│   └── run.py                     # Local uvicorn development runner
+│
+├── prisma/                        # Root Prisma schema & migrations
+├── .github/workflows/ci.yml       # Production GitHub Actions CI Pipeline
+├── docker-compose.yml             # Multi-container local orchestration
+└── README.md
 ```
 
-## 10. Prisma Setup
-Navigate to backend directory and run:
-```bash
-npx prisma generate --schema=../prisma/schema.prisma
-npx prisma db push --schema=../prisma/schema.prisma
+---
+
+## ⚙️ Prerequisites
+
+* **Node.js**: `v20.x` or `v22.x` (LTS recommended)
+* **Python**: `3.10+`
+* **Stockfish**: Installed locally or available via PATH (`stockfish`)
+* **PostgreSQL / Supabase**: Supabase database instance (or local PostgreSQL 16)
+* **Redis** *(Optional for local dev)*: `v7.x` (App seamlessly falls back to in-memory mode if Redis is offline)
+
+---
+
+## 🔑 Environment Configuration
+
+### 1. Backend (`backend/.env`)
+
+```ini
+# Supabase PostgreSQL Database (Session Pooler on port 5432 is recommended for persistent servers)
+DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres?connection_limit=10&connect_timeout=30&pool_timeout=30"
+DIRECT_DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
+
+# Supabase Auth
+SUPABASE_URL="https://<your-project-ref>.supabase.co"
+SUPABASE_ANON_KEY="<your-supabase-anon-key>"
+SUPABASE_SERVICE_ROLE_KEY="<your-supabase-service-role-key>"
+JWT_SECRET="<your-jwt-secret>"
+
+# Server Config
+PORT=5000
+NODE_ENV=development
+STOCKFISH_PATH="C:\\path\\to\\stockfish.exe" # Or /usr/bin/stockfish on Linux
+ML_SERVICE_URL="http://localhost:8000"
+REDIS_URL="redis://localhost:6379"
 ```
 
-## 11. Chess.com API Setup
-Chess Evolve interfaces directly with the public official Chess.com PubAPI:
-- Profile: `https://api.chess.com/pub/player/{username}`
-- Archives: `https://api.chess.com/pub/player/{username}/games/archives`
-- Games: `https://api.chess.com/pub/player/{username}/games/{yyyy}/{mm}`
+### 2. Frontend (`frontend/.env`)
 
-## 12. Full Synchronization System
-Synchronization runs asynchronously in the background (`AccountSyncManager`):
-1. **Profile Verification**: Validates username on Chess.com.
-2. **Archive Discovery**: Fetches all available monthly archive URLs.
-3. **Game Import & Deduplication**: Imports raw games, parses PGNs using `chess.js`, computes deterministic game IDs to prevent duplicates.
-4. **Position Analysis**: Evaluates player decisions using Stockfish.
-5. **DNA Computation**: Calculates 13 style dimensions.
-6. **ML Training**: Triggers Current Self & Peak Self model training.
-
-## 13. Stockfish Setup
-Position analysis uses Stockfish engine evaluations:
-- Evaluates FEN position before and after each player move.
-- Computes Centipawn Loss (`cpLoss = Math.abs(bestEval - playedEval)`).
-- Classifies moves: BEST (<=15 CP), GOOD (<=45 CP), INACCURACY (<=110 CP), MISTAKE (<=250 CP), BLUNDER (>250 CP).
-
-## 14. Redis Setup
-Redis is used by BullMQ for background synchronization jobs:
-```env
-REDIS_HOST=localhost
-REDIS_PORT=6379
+```ini
+VITE_SUPABASE_URL="https://<your-project-ref>.supabase.co"
+VITE_SUPABASE_ANON_KEY="<your-supabase-anon-key>"
+VITE_API_BASE_URL="http://localhost:5000/api/v1"
 ```
 
-## 15. BullMQ
-Background workers run background jobs for:
-- `PROFILE_SYNC`
-- `ARCHIVE_DISCOVERY`
-- `GAME_IMPORT`
-- `POSITION_ANALYSIS`
-- `DNA_GENERATION`
-- `MODEL_TRAINING`
+### 3. ML Service (`ml-service/.env` or shared from `backend/.env`)
 
-## 16. ML Environment
-The ML service is built with **Python 3.10**, **FastAPI**, and **PyTorch**.
-Dependencies: `fastapi`, `uvicorn`, `torch`, `scikit-learn`, `pandas`, `numpy`, `pydantic`.
-
-## 17. Current Self
-The Current Self model is a PyTorch Candidate Move Ranker:
-- Input: 16-dimensional position feature vector (material balance, piece counts, turn, castling rights).
-- Output: Softmax probability distribution over legal candidate moves matching the player's personal decision habits.
-
-## 18. Peak Self
-The Peak Self model is a dual-head Neural Network:
-- Blends candidate quality scores with the user's style probability logits.
-- Maximizes win-rate decision quality while preserving the user's distinct tactical identity signature.
-
-## 19. Chess DNA
-13 style dimensions computed from real game positions:
-Aggression, Risk Taking, Tactical Preference, Positional Preference, Defensive Ability, Sacrifice Tendency, Trading Tendency, Opening Diversity, Endgame Ability, King Safety, Attack Preference, Simplification Preference, and Time Pressure Behavior.
-
-## 20. Model Training
-Triggers via `/api/v1/train`:
-- Splits user position samples into 80/20 train/validation sets.
-- Trains PyTorch model across 15 epochs using Adam optimizer and CrossEntropy loss.
-- Saves model artifacts to `ml-service/artifacts/{userId}_{modelType}_v1.pt`.
-
-## 21. Model Evaluation
-Computes top-1 accuracy, top-3 accuracy, validation loss, and sample counts. Metrics are stored in the `MLModelVersion` database record.
-
-## 22. Model Versioning
-Supports versioning (`v1`, `v2`, `v3`) with statuses:
-`NOT_AVAILABLE`, `INSUFFICIENT_DATA`, `DATASET_GENERATING`, `TRAINING`, `VALIDATING`, `READY`, `FAILED`.
-
-## 23. AI Arena
-Public community platform for discovering and playing against AI models of other users:
-- Visibility controls: `PRIVATE`, `DISCOVERABLE`, `PUBLIC`.
-- Shields private games, raw training data, and model binaries.
-
-## 24. API Documentation
-Swagger OpenAPI documentation is available live at:
-`http://localhost:5000/api/docs`
-
-## 25. Environment Variables
-Copy `.env.example` to `.env` and fill in Supabase and Database connection strings.
-
-## 26. Local Development
-Start Redis, Python ML Service, Express Backend, and Vite Frontend:
-```bash
-# Backend
-cd backend && npm run dev
-
-# ML Service
-cd ml-service && python run.py
-
-# Frontend
-cd frontend && npm run dev
+```ini
+DATABASE_URL="postgresql://postgres.xxx:password@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
+STOCKFISH_PATH="/usr/bin/stockfish"
+PORT=8000
 ```
 
-## 27. Database Migration
+---
+
+## 🚀 Quick Start (Local Development)
+
+### 1. Database Setup
 ```bash
 cd backend
-npx prisma db push --schema=../prisma/schema.prisma
+npm install
+npm run prisma:generate
+npm run prisma:db-push
 ```
 
-## 28. Background Workers
-Background sync workers run automatically within the backend process or via Docker containers.
+### 2. Running Services Concurrently
 
-## 29. Running Frontend
-```bash
-cd frontend
-npm run dev
-```
-Accessible at `http://localhost:3000`.
+Open three terminal windows:
 
-## 30. Running Backend
+**Terminal 1 — Backend API**:
 ```bash
 cd backend
 npm run dev
+# Running on http://localhost:5000
 ```
-Accessible at `http://localhost:5000`.
 
-## 31. Running ML Service
+**Terminal 2 — Python ML Service**:
 ```bash
 cd ml-service
+python -m pip install -r requirements.txt
 python run.py
+# Running on http://localhost:8000
 ```
-Accessible at `http://localhost:8000`.
 
-## 32. Testing
-Run unit and data isolation test suite:
+**Terminal 3 — React Frontend**:
+```bash
+cd frontend
+npm install
+npm run dev
+# Running on http://localhost:3000
+```
+
+---
+
+## 🐳 Running with Docker Compose
+
+To start the entire multi-container production stack (PostgreSQL, Redis, Backend, Worker, ML Service, and Frontend):
+
+```bash
+docker-compose up --build -d
+```
+
+| Service | Port | Description |
+| :--- | :--- | :--- |
+| **Frontend** | `http://localhost:3000` | Production React SPA served via Nginx |
+| **Backend API** | `http://localhost:5000` | Express API server |
+| **ML Service** | `http://localhost:8000` | FastAPI PyTorch prediction engine |
+| **Redis** | `localhost:6379` | BullMQ message broker |
+| **Worker** | *Internal* | Background synchronization & analysis daemon |
+
+---
+
+## 🧪 Testing
+
+### Backend Test Suite (Vitest)
+Includes authentication security, RLS data isolation, Stockfish process safety, database connection pooling, and ML offline resilience tests:
 ```bash
 cd backend
 npm test
 ```
+*Result: 11 test suites passed (78 tests total)*
 
-## 33. Deployment
-- **Frontend**: Vercel / Netlify
-- **Backend**: Render / Railway
-- **ML Service**: Railway / Docker Cloud
-- **Database & Auth**: Supabase
-
-## 34. Security
-- Supabase JWT validation on every protected route.
-- Ownership checks on game IDs, DNA records, and play sessions.
-- Private model binary protection.
-- Service role key kept strictly on server.
-
-## 35. Troubleshooting
-- **Sync stuck**: Check network connectivity to Chess.com API.
-- **ML Service offline**: Ensure PyTorch and FastAPI dependencies are installed (`pip install -r ml-service/requirements.txt`).
-- **Prisma Client error**: Run `npx prisma generate --schema=../prisma/schema.prisma`.
-
-## 36. Data Flow
-`Supabase Auth -> User UUID -> Connected Chess.com Profile -> Games -> Stockfish Analysis -> Chess DNA -> PyTorch Models -> Play & Arena`
-
-## 37. Synchronization Flow
-`User Connects -> Verify Profile -> Fetch Archives -> Import Games -> Analyze Positions -> Generate DNA -> Train Models -> Ready`
-
-## 38. Model Lifecycle
-`INSUFFICIENT_DATA -> DATASET_GENERATING -> TRAINING -> VALIDATING -> READY`
-
-## 39. AI Arena Lifecycle
-`User Profile -> Public Visibility -> Discoverable Model -> Challenge Session -> Legal Move Engine -> Live Gameplay`
-
-## 40. Project Structure
-```text
-Chess_Evolve/
-├── frontend/          # React + Vite + Tailwind CSS + React Chessboard + Recharts
-├── backend/           # Express + TypeScript + Prisma + Supabase Auth + Stockfish
-├── ml-service/        # Python FastAPI + PyTorch Candidate Move Ranker
-├── prisma/            # PostgreSQL Database Schema
-├── .env.example       # Environment Variables Template
-├── docker-compose.yml # Docker Local Orchestration
-└── README.md          # Architecture & Documentation Guide
+### ML Service Test Suite (Pytest)
+Tests database connection pooling safety, model state artifact hardening, ECE calibration, and retraining pipeline quality gates:
+```bash
+cd ml-service
+python -m pytest app/tests
 ```
+*Result: 9 tests passed*
+
+### Continuous Integration (GitHub Actions)
+The repository includes a production CI pipeline in [`.github/workflows/ci.yml`](file:///c:/Users/deepa/Desktop/Deepak/github/Chess_Evolve/.github/workflows/ci.yml):
+* Spins up disposable PostgreSQL 16 service
+* Validates Prisma schema & runs migrations
+* Executes full Backend Vitest suite
+* Executes full ML Pytest suite
+* Runs Gitleaks secret detection scan
+* Compiles Frontend production Vite bundle
+
+---
+
+## 🧠 Machine Learning Engine Architecture
+
+### 1. Current Self (Habit & Preference Replicator)
+* **Goal**: Accurately predict the moves you *actually* make given your historical games.
+* **Input Features**:
+  * 16-dimensional board state vector (material balance, active piece counts, castling rights, turn, game phase).
+  * Candidate move vectors (Stockfish engine rank, centipawn loss, tactical flag, sacrifice flag).
+* **Architecture**: Fully connected deep ranker with dropout regularization and softmax probability output.
+
+### 2. Peak Self (Style-Anchored Optimization)
+* **Goal**: Recommend optimal moves while maintaining your tactical signature.
+* **Mechanism**:
+  $$\text{Score} = w_1 \cdot \text{EngineQuality} + w_2 \cdot \text{StyleLogits} + w_3 \cdot \text{WeaknessCorrection}$$
+* **Blunder Guard**: Strictly filters out candidates with centipawn loss $> 150$, guaranteeing that tactical blunders are never recommended.
+
+---
+
+## 📡 Core API Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/auth/me` | Fetch authenticated user details |
+| `POST` | `/api/v1/chess/connect` | Link Chess.com username and trigger sync |
+| `GET` | `/api/v1/chess/profile` | Get connected profile and sync status |
+| `GET` | `/api/v1/games` | Get paginated games with filters & accuracy |
+| `GET` | `/api/v1/dna` | Get 13-dimension Chess DNA metrics |
+| `POST` | `/api/v1/training/session` | Start targeted weakness training session |
+| `POST` | `/api/v1/play/move` | Request move from Current Self or Peak Self model |
+| `GET` | `/api/v1/arena/models` | List discoverable public community AI models |
+| `GET` | `/health` | Service health check |
+
+---
+
+## 🔒 Security & Best Practices
+
+* **Row-Level Security (RLS)**: Enforced via Supabase JWT user claims on all database tables.
+* **Credential Protection**: Zero secrets or credentials committed to Git; all environment variables sanitized.
+* **Stockfish Safety**: Process execution isolated through child process semaphores with strict parameter validation to prevent command injection.
+* **Database Connection Resilience**: Automatic URL sanitization prevents driver incompatibilities across Prisma and SQLAlchemy.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
