@@ -1,11 +1,11 @@
-# Chess Evolve ♟️🧠
+# Chess Evolve
 
 > **AI-Powered Chess Decision Intelligence Platform**  
 > *Transform your raw Chess.com game history into personalized PyTorch neural decision models (Current Self & Peak Self), 13-dimension Chess DNA, and interactive coaching.*
 
 ---
 
-## 🌟 Overview
+## Overview
 
 **Chess Evolve** is a full-stack, multi-user AI chess intelligence platform that analyzes your actual games, identifies your tactical and strategic habits, and trains custom neural networks modeled on your decision patterns:
 
@@ -16,7 +16,7 @@
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -43,7 +43,7 @@
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 * **Multi-User Authentication**: Supabase Auth with Google OAuth & cryptographically verified JWT tokens.
 * **Automated Chess.com Sync**: Incremental monthly archive discovery, PGN parsing, game deduplication, and non-blocking background synchronization.
@@ -59,7 +59,7 @@
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 Chess_Evolve/
@@ -106,7 +106,7 @@ Chess_Evolve/
 
 ---
 
-## ⚙️ Prerequisites
+## Prerequisites
 
 * **Node.js**: `v20.x` or `v22.x` (LTS recommended)
 * **Python**: `3.10+`
@@ -116,7 +116,7 @@ Chess_Evolve/
 
 ---
 
-## 🔑 Environment Configuration
+## Environment Configuration
 
 ### 1. Backend (`backend/.env`)
 
@@ -157,9 +157,10 @@ PORT=8000
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## Quick Start (Local Development)
 
 ### 1. Database Setup
+Ensure `backend/.env` is configured with your database URL, then run:
 ```bash
 cd backend
 npm install
@@ -196,7 +197,7 @@ npm run dev
 
 ---
 
-## 🐳 Running with Docker Compose
+## Running with Docker Compose
 
 To start the entire multi-container production stack (PostgreSQL, Redis, Backend, Worker, ML Service, and Frontend):
 
@@ -214,7 +215,7 @@ docker-compose up --build -d
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Backend Test Suite (Vitest)
 Includes authentication security, RLS data isolation, Stockfish process safety, database connection pooling, and ML offline resilience tests:
@@ -233,7 +234,7 @@ python -m pytest app/tests
 *Result: 9 tests passed*
 
 ### Continuous Integration (GitHub Actions)
-The repository includes a production CI pipeline in [`.github/workflows/ci.yml`](file:///c:/Users/deepa/Desktop/Deepak/github/Chess_Evolve/.github/workflows/ci.yml):
+The repository includes a production CI pipeline in `.github/workflows/ci.yml`:
 * Spins up disposable PostgreSQL 16 service
 * Validates Prisma schema & runs migrations
 * Executes full Backend Vitest suite
@@ -243,7 +244,7 @@ The repository includes a production CI pipeline in [`.github/workflows/ci.yml`]
 
 ---
 
-## 🧠 Machine Learning Engine Architecture
+## Machine Learning Engine Architecture
 
 ### 1. Current Self (Habit & Preference Replicator)
 * **Goal**: Accurately predict the moves you *actually* make given your historical games.
@@ -260,7 +261,7 @@ The repository includes a production CI pipeline in [`.github/workflows/ci.yml`]
 
 ---
 
-## 📡 Core API Endpoints
+## Core API Endpoints
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -276,11 +277,9 @@ The repository includes a production CI pipeline in [`.github/workflows/ci.yml`]
 
 ---
 
-## 🔒 Security & Best Practices
+## Security & Best Practices
 
 * **Row-Level Security (RLS)**: Enforced via Supabase JWT user claims on all database tables.
 * **Credential Protection**: Zero secrets or credentials committed to Git; all environment variables sanitized.
 * **Stockfish Safety**: Process execution isolated through child process semaphores with strict parameter validation to prevent command injection.
 * **Database Connection Resilience**: Automatic URL sanitization prevents driver incompatibilities across Prisma and SQLAlchemy.
-
----
